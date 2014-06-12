@@ -26,7 +26,7 @@ INITRD_PHYS := $(initrd_phys-y)
 
 export ZRELADDR INITRD_PHYS PARAMS_PHYS
 
-targets := Image zImage xipImage bootpImage uImage
+targets := Image zImage xipImage bootpImage uImage vmlinux.bin
 
 DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE_NAMES))
 ifneq ($(DTB_NAMES),)
@@ -52,6 +52,10 @@ else
 $(obj)/xipImage: FORCE
 	@echo 'Kernel not configured for XIP (CONFIG_XIP_KERNEL!=y)'
 	@false
+
+$(obj)/vmlinux.bin: $(obj)/Image FORCE
+	@cp $< $@ -f
+	@$(echo) '  Kernel: $@ is ready'
 
 $(obj)/Image: vmlinux FORCE
 	$(call if_changed,objcopy)

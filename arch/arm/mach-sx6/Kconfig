@@ -1,0 +1,184 @@
+if  ARCH_SIGMA_SX6
+
+menu "Sigma SOC SX6 Specific Features"
+
+#select chip version
+choice
+	prompt "Select SX6 Revision"
+	depends on ARCH_SIGMA_SX6
+	default SX6_REVISION_A
+	help
+	 For Selection SX6 Revision Number.
+
+config SX6_REVISION_A
+        bool "Revision A"
+        help
+         SX6 Revision A
+
+config SX6_REVISION_B
+        bool "Revision B"
+        help
+         SX6 Revision B
+
+endchoice
+
+choice
+	prompt "Select ROM device type"
+	depends on ARCH_SIGMA_SX6
+	default SIGMA_DTV_ROM_SLC
+	help
+	 ROM device selection. Keep no change if unsure.
+
+config SIGMA_DTV_ROM_NONE
+	bool "NONE"
+	help
+	 None. Used to reset all ROM related selections.
+	 switching between SLC and MLC has to by means of NONE: SLC -> NONE -> MLC or MLC -> NONE -> SLC
+
+config SIGMA_DTV_ROM_SLC
+	bool "NAND SLC"
+	select MTD
+	select MTD_PARTITIONS
+	select MTD_CMDLINE_PARTS
+	select MTD_CHAR
+	select MTD_BLOCK
+	select MTD_OOPS
+	select MTD_NAND
+	select MTD_UBI
+	select MTD_UBI_GLUEBI
+	select MTD_UBI_DEBUG
+	select YAFFS_FS
+	select JFFS2_FS
+	select UBIFS_FS
+	help
+	 SLC nand flash
+
+config SIGMA_DTV_ROM_MLC
+	bool "NAND MLC"
+	select MTD
+	select MTD_PARTITIONS
+	select MTD_CMDLINE_PARTS
+	select MTD_CHAR
+	select MTD_BLOCK
+	select MTD_OOPS
+	select MTD_NAND
+	select MTD_UBI
+	select MTD_UBI_GLUEBI
+	select MTD_UBI_DEBUG
+	select YAFFS_FS
+	select JFFS2_FS
+	select UBIFS_FS
+	help
+	 MLC nand flash
+
+config SIGMA_DTV_ROM_MMC
+	bool "eMMC"
+	select MMC
+	select MMC_SDHCI
+	select MMC_SDHCI2_SIGMA
+	help
+	 eMMC
+
+endchoice
+
+config ARCH_SIGMA_SX6_GENERIC
+	bool "Generic configuration"
+	default y
+	select AEABI
+	select REGULATOR
+	select PM
+	select PM_RUNTIME
+	select VFP
+	select NEON 
+	select CPU_V7
+	select ARM_GIC
+	select HAVE_SMP
+	select LOCAL_TIMERS if SMP
+	select PL310_ERRATA_588369 if CACHE_L2X0
+	select PL310_ERRATA_727915 if CACHE_L2X0
+	select ARCH_HAS_OPP
+	select PM_OPP if PM
+	select ARM_ERRATA_720789 if SMP
+	help
+	  Compile a kernel suitable for booting most boards
+
+config SIGMA_SX6_CACHE_L2X0
+	bool "Enable L2 Cache "
+	default n
+	select CACHE_L2X0
+	help
+	 Turn ON/OFF L2 Cache
+
+config SIGMA_SX6_L2X0_PERFORMANCE
+	depends on SIGMA_SX6_CACHE_L2X0
+	bool "L2 Cache performance"
+	default n
+	help
+	 Optimize L2 cache performance. i.e. enable double linefill, .etc.
+	 if unsure say N
+
+config ANDROID_PLATFORM
+	depends on ARCH_SIGMA_SX6
+	bool "Android Support"
+	default n
+	select SYNC
+	select ANDROID
+	select ANDROID_BINDER_IPC
+	select ANDROID_LOGGER
+	select ANDROID_TIMED_OUTPUT
+	select ASHMEM
+	select ANDROID_LOW_MEMORY_KILLER
+	select ANDROID_SWITCH
+	select ANDROID_INTF_ALARM_DEV
+	help
+	 Support Android Platform.
+	 Turn ON/OFF android support, if unsure say N
+
+config SIGMA_SX6_SMC
+	depends on ARCH_SIGMA_SX6
+	bool "Enable SX6 secure monitor call operations"
+	default n
+
+config SIGMA_SERIAL_IO_MAP
+	bool "Map serial io when turn on mmu"
+	default y
+
+config SIGMA_VELOCE
+	bool "Ture if run on veloce"
+	default y
+
+config SIGMA_DBG
+	bool "True if turn on some debug print"
+	default y
+
+config SX6_PM_CHECK
+        bool "SX6 PM Suspend Memory CRC"
+	default n
+        depends on PM && CRC32
+        help
+          Enable the PM code's memory area checksum over sleep. This option
+          will generate CRCs of all blocks of memory, and store them before
+          going to sleep. The blocks are then checked on resume for any
+          errors.
+
+          Note, this can take several seconds depending on memory size
+          and CPU speed.
+
+config PROC_SX6_BOOT_VERSION
+	bool "uboot version"
+	default n
+	help
+          Support display uboot version in /proc/bootversion.
+          if unsure say N
+
+config SX6_MIN_CPUFREQ
+	int "Minimum cpu frequency(KHz)"
+	default 500000
+	depends on CPU_FREQ
+	help
+          Specify the minimum cpu frequency that is allowed to scale to.
+          if unsure just give 500000
+
+endmenu
+
+endif

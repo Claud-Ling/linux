@@ -4747,6 +4747,12 @@ static int __init xhci_hcd_init(void)
 		printk(KERN_DEBUG "Problem registering platform driver.");
 		goto unreg_pci;
 	}
+	retval = xhci_register_sigma();
+	if (retval < 0) {
+		printk(KERN_DEBUG "Problem registering sigma dtv driver.");
+		goto unreg_plat;
+	}
+
 	/*
 	 * Check the compiler generated sizes of structures that must be laid
 	 * out in specific ways for hardware access.
@@ -4765,6 +4771,8 @@ static int __init xhci_hcd_init(void)
 	/* xhci_run_regs has eight fields and embeds 128 xhci_intr_regs */
 	BUILD_BUG_ON(sizeof(struct xhci_run_regs) != (8+8*128)*32/8);
 	return 0;
+unreg_plat:
+	xhci_unregister_plat();
 unreg_pci:
 	xhci_unregister_pci();
 	return retval;
@@ -4775,5 +4783,6 @@ static void __exit xhci_hcd_cleanup(void)
 {
 	xhci_unregister_pci();
 	xhci_unregister_plat();
+	xhci_unregister_sigma();
 }
 module_exit(xhci_hcd_cleanup);

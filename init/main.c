@@ -497,6 +497,9 @@ asmlinkage void __init start_kernel(void)
  */
 	boot_cpu_init();
 	page_address_init();
+#ifdef CONFIG_SIGMA_DTV
+	printk("Git Version:"CONFIG_SIGMA_RELEASE_VERSION"\n");
+#endif
 	pr_notice("%s", linux_banner);
 	setup_arch(&command_line);
 	mm_init_owner(&init_mm, &init_task);

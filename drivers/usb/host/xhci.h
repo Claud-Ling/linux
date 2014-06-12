@@ -1722,6 +1722,16 @@ static inline void xhci_unregister_plat(void)
 {  }
 #endif
 
+#ifdef CONFIG_USB_XHCI_SIGMA_DTV
+int xhci_register_sigma(void);
+void xhci_unregister_sigma(void);
+#else
+static inline int xhci_register_sigma(void)
+{ return 0; }
+static inline void xhci_unregister_sigma(void)
+{  }
+#endif
+
 /* xHCI host controller glue */
 typedef void (*xhci_get_quirks_t)(struct device *, struct xhci_hcd *);
 int xhci_handshake(struct xhci_hcd *xhci, void __iomem *ptr,

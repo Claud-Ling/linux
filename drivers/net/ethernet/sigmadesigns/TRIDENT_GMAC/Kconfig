@@ -1,0 +1,56 @@
+#
+# Ethernet GMAC driver configuration
+#
+
+config NET_VENDOR_SIGMADESIGNS
+	bool "Sigma Designs SX6 devices Ethernet Device"
+	default y
+	depends on ARCH_SIGMA_SX6
+	---help---
+	  Support Sigma Designs' TRIx SoC & SX6
+
+config SIGMA_TRIX_ENET
+	tristate "Trix / SX6 Builtin Gigabit Ethernet support"
+	depends on ETHERNET && ARCH_SIGMA_SX6 && NET_VENDOR_SIGMADESIGNS
+	select MII
+	select CRC32
+	help
+	 This option adds support for the SMP8xxx integrated Gigabit Ethernet
+	 controller.  This driver uses NAPI and generic Linux MII
+	 support.
+
+config ETH_SIGMA_TRIX_GMAC_NAPI 
+	bool "Ethernet Device uses NAPI"
+	depends on SIGMA_TRIX_ENET
+	help
+	   GMAC will use NAPI
+
+config SIGMA_GMAC_CSUMOFFLOAD
+	bool "Checksum Offload"
+	depends on SIGMA_TRIX_ENET
+	help
+	   Checksum Offload
+
+choice
+	prompt "MII interface Mode"
+	depends on SIGMA_TRIX_ENET
+	default GMAC_MODE_RGMII
+	help
+	 For Selection MII Interface Mode.
+
+config GMAC_MODE_RGMII
+	bool "RGMII interface mode enable"
+	help
+	  Trix Board uses RGMII mode.
+
+config GMAC_MODE_RMII
+	bool "RMII interface mode"
+	help
+	 Trix Board uses RMII mode.
+
+config GMAC_MODE_MII
+	bool "MII interface mode enable"
+	help
+	 Trix Board uses MII mode.
+
+endchoice

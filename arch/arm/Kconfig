@@ -261,6 +261,14 @@ config PHYS_OFFSET
 	  Please provide the physical address corresponding to the
 	  location of main memory in your system.
 
+menu "release version"
+	depends on ARCH_SIGMA_SX6
+
+config SIGMA_RELEASE_VERSION
+	string "git commit version"
+	default "000000"
+endmenu
+
 config GENERIC_BUG
 	def_bool y
 	depends on BUG
@@ -864,6 +872,28 @@ config ARCH_OMAP1
 	help
 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
 
+config ARCH_SIGMA_SX6
+	bool "SigmaDesigns SX6 Soc"
+	select HAVE_CLK
+	select HAVE_SMP
+	select SMP
+	select HAVE_ARM_SCU if SMP
+	select HAVE_ARM_TWD if LOCAL_TIMERS
+	select ARCH_REQUIRE_GPIOLIB
+	select ARCH_HAS_CPUFREQ
+	select GENERIC_CLOCKEVENTS
+	select ARCH_HAS_HOLES_MEMORYMODEL
+	#select HAVE_SCHED_CLOCK
+	select CLKDEV_LOOKUP
+	select CLKSRC_MMIO
+	select HOTPLUG_CPU
+	select NEED_MACH_IO_H
+	select SIGMA_DTV
+	select USB_ARCH_HAS_EHCI
+	select USB_ARCH_HAS_XHCI
+	help
+	  Support for Sigma's SX6 DTV platform.
+
 endchoice
 
 menu "Multiple platform selection"
@@ -906,8 +936,10 @@ config ARCH_MULTI_V6_V7
 config ARCH_MULTI_CPU_AUTO
 	def_bool !(ARCH_MULTI_V4 || ARCH_MULTI_V4T || ARCH_MULTI_V6_V7)
 	select ARCH_MULTI_V5
-
 endmenu
+
+config SIGMA_DTV
+	bool
 
 #
 # This is sorted alphabetically by mach-* pathname.  However, plat-*
@@ -1027,6 +1059,8 @@ source "arch/arm/mach-vt8500/Kconfig"
 source "arch/arm/mach-w90x900/Kconfig"
 
 source "arch/arm/mach-zynq/Kconfig"
+
+source "arch/arm/mach-sx6/Kconfig"
 
 # Definitions to make life easier
 config ARCH_ACORN

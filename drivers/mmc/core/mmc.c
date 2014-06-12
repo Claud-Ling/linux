@@ -269,7 +269,11 @@ static void mmc_select_card_type(struct mmc_card *card)
 /*
  * Decode extended CSD.
  */
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd, int update)
+#else
 static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
+#endif
 {
 	int err = 0, idx;
 	unsigned int part_size;
@@ -348,7 +352,11 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		 * There are two boot regions of equal size, defined in
 		 * multiples of 128K.
 		 */
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+		if (ext_csd[EXT_CSD_BOOT_MULT] && mmc_boot_partition_access(card->host) && !update) {
+#else
 		if (ext_csd[EXT_CSD_BOOT_MULT] && mmc_boot_partition_access(card->host)) {
+#endif
 			for (idx = 0; idx < MMC_NUM_BOOT_PARTITION; idx++) {
 				part_size = ext_csd[EXT_CSD_BOOT_MULT] << 17;
 				mmc_part_add(card, part_size,
@@ -431,6 +439,9 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 				!ext_csd[EXT_CSD_GP_SIZE_MULT + idx * 3 + 1] &&
 				!ext_csd[EXT_CSD_GP_SIZE_MULT + idx * 3 + 2])
 					continue;
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+				if (update) break;
+#endif
 				part_size =
 				(ext_csd[EXT_CSD_GP_SIZE_MULT + idx * 3 + 2]
 					<< 16) +
@@ -497,7 +508,11 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		 * RPMB regions are defined in multiples of 128K.
 		 */
 		card->ext_csd.raw_rpmb_size_mult = ext_csd[EXT_CSD_RPMB_MULT];
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+		if (ext_csd[EXT_CSD_RPMB_MULT] && mmc_host_cmd23(card->host) && !update) {
+#else
 		if (ext_csd[EXT_CSD_RPMB_MULT] && mmc_host_cmd23(card->host)) {
+#endif
 			mmc_part_add(card, ext_csd[EXT_CSD_RPMB_MULT] << 17,
 				EXT_CSD_PART_CONFIG_ACC_RPMB,
 				"rpmb", 0, false,
@@ -951,7 +966,11 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		err = mmc_get_ext_csd(card, &ext_csd);
 		if (err)
 			goto free_card;
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+		err = mmc_read_ext_csd(card, ext_csd, 0);
+#else
 		err = mmc_read_ext_csd(card, ext_csd);
+#endif
 		if (err)
 			goto free_card;
 
@@ -1522,6 +1541,27 @@ static void mmc_attach_bus_ops(struct mmc_host *host)
 		bus_ops = &mmc_ops;
 	mmc_attach_bus(host, bus_ops);
 }
+
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+/*
+ * update driver internal ext_csd structure in case ext_csd was touched by ioctl, i.e. mmc-utils
+ */
+int mmc_update_ext_csd(struct mmc_card *card)
+{
+	u8 *new_ext_csd;
+	int err;
+
+	err = mmc_get_ext_csd(card, &new_ext_csd);
+	if (err || new_ext_csd == NULL)
+		goto out;
+
+	err = mmc_read_ext_csd(card, new_ext_csd, 1);
+
+out:
+	mmc_free_ext_csd(new_ext_csd);
+	return err;
+}
+#endif
 
 /*
  * Starting point for MMC card init.

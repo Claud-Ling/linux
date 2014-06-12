@@ -194,6 +194,7 @@ machine-$(CONFIG_PLAT_SPEAR)		+= spear
 machine-$(CONFIG_ARCH_VIRT)		+= virt
 machine-$(CONFIG_ARCH_ZYNQ)		+= zynq
 machine-$(CONFIG_ARCH_SUNXI)		+= sunxi
+machine-$(CONFIG_ARCH_SIGMA_SX6)	:= sx6
 
 # Platform directory name.  This list is sorted alphanumerically
 # by CONFIG_* macro name.
@@ -235,6 +236,11 @@ KBUILD_CPPFLAGS += $(patsubst %,-I%include,$(machdirs) $(platdirs))
 else
 KBUILD_CPPFLAGS += $(patsubst %,-I$(srctree)/%include,$(machdirs) $(platdirs))
 endif
+endif
+
+ifeq ($(CONFIG_SIGMA_DTV),y)
+#sigma soc debug
+KBUILD_CPPFLAGS += -include tri_dbg.h
 endif
 
 export	TEXT_OFFSET GZFLAGS MMUEXT
@@ -285,7 +291,7 @@ archprepare:
 # Convert bzImage to zImage
 bzImage: zImage
 
-zImage Image xipImage bootpImage uImage: vmlinux
+zImage Image xipImage bootpImage uImage vmlinux.bin: vmlinux
 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
 
 zinstall uinstall install: vmlinux

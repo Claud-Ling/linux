@@ -1,0 +1,14 @@
+config SECURITY_SIGMADESIGNS
+        bool "Sigma Designs SX6 Secuirty Boot"
+        default n
+        depends on ARCH_SIGMA_SX6
+        depends on SIGMA_DTV_ROM_MMC
+        ---help---
+          Support Sigma Designs' Security component.
+
+config SIGMA_DTV_SECURITY
+        bool "Sigma DTV Enable Secure boot check"
+        depends on SECURITY_SIGMADESIGNS
+        help
+          When enable Secure check when kernel bootup it will check rootfs
+          and APP partition.

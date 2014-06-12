@@ -1,0 +1,11 @@
+#
+# Sigma Designs device configuration
+#
+
+#if TANGOX
+#source "drivers/net/ethernet/sigmadesigns/tangox/Kconfig"
+#endif	#TANGOX
+
+if SIGMA_DTV
+source "drivers/net/ethernet/sigmadesigns/TRIDENT_GMAC/Kconfig"
+endif	#SIGMA_DTV

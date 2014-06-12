@@ -2406,6 +2406,33 @@ static irqreturn_t sdhci_irq(int irq, void *dev_id)
 		goto out;
 	}
 
+#if defined(CONFIG_ARCH_SIGMA_DTV)
+	/*
+	 * Kernel assume R1B type command(i.e MMC_SWITCH) report
+	 * SDHCI_INT_RESPONSE first and then SDHCI_INT_DATA_END
+	 * But some card have invert sequence. (i.e Toshiba eMMC)
+	 * So, add a temporary patch resolve this issue.
+	 */
+	if (host->cmd != NULL) {
+		while (!(intmask & SDHCI_INT_ERROR_MASK)) {
+
+			if (host->cmd->opcode != MMC_SWITCH)
+				break;
+
+			intmask = sdhci_readl(host, SDHCI_INT_STATUS);
+
+			if (!(intmask & 
+			(SDHCI_INT_RESPONSE | SDHCI_INT_DATA_END)))
+				break;
+
+			if ((intmask & (SDHCI_INT_RESPONSE |
+				SDHCI_INT_DATA_END)) == 
+				(SDHCI_INT_RESPONSE|SDHCI_INT_DATA_END))
+				break;
+		}
+	}
+#endif
+
 again:
 	DBG("*** %s got interrupt: 0x%08x\n",
 		mmc_hostname(host->mmc), intmask);
@@ -2471,6 +2498,9 @@ again:
 
 	result = IRQ_HANDLED;
 
+#if defined(CONFIG_MMC_SDHCI1_SIGMA) && defined(CONFIG_ARCH_SIGMA_SX6)
+	mdelay(5);	//TODO: temp patch for sdhost 1 to fix CMD interrup always trigger two times
+#endif
 	intmask = sdhci_readl(host, SDHCI_INT_STATUS);
 	if (intmask && --max_loops)
 		goto again;
