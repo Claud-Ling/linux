@@ -176,7 +176,7 @@ static int sx6_security_proc_show(struct seq_file *m, void *v)
 		get_opt_key((unsigned int*)customer_key);
 		 for(i=0; i<256; i++)
 		{
- 	  		snprintf(p,3,"%02x",customer_key[i]);
+ 	  		snprintf(p,3,"%02X",customer_key[i]);
 			p += 2;
 		}
 		p[512] = '\0';	

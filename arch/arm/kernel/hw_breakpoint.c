@@ -1044,7 +1044,7 @@ static void sx6_swdbg_enable(void)
 #define DBG_SWEN_MASK	0xc0
 #define DBG_SWEN_SHIFT	6
 	MWriteRegByte(SX6_A9_CFG2_REG, 3 << DBG_SWEN_SHIFT, DBG_SWEN_MASK);	/*enable sw debug on two cores*/
-	dsb();
+	mb();	/*drain write buffer*/
 }
 #endif
 
