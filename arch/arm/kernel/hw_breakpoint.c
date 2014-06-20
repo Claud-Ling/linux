@@ -1046,7 +1046,7 @@ static void sx6_swdbg_enable(void)
 #define DBG_SWEN_SHIFT	6
 	MWriteRegByte(SX6_A9_CFG2_REG, 3 << DBG_SWEN_SHIFT, DBG_SWEN_MASK);	/*enable sw debug on two cores*/
 	mb();	/*drain write buffer*/
-	ndelay(200)	/*explicit delay (~200ns) is required here as dbg_swen is in 24M clock domain*/
+	ndelay(200);	/*explicit delay (~200ns) is required here as dbg_swen is in 24M clock domain*/
 }
 #endif
 

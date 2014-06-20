@@ -9,6 +9,7 @@
 #include <linux/interrupt.h>  
 #include <linux/sched.h>      
 #include <linux/ctype.h>      
+#include <linux/platform_device.h>
 
 #include <linux/mtd/mtd.h>    
 #include <linux/mtd/nand.h>   
@@ -23,11 +24,6 @@
 #include "monza_ecc.h"
 
 #define FLASH_SUPPORT_RNDOUT_READ
-/*
- * MTD structure for HiDTV board
- */
-static struct mtd_info hidtv_nand_mtd;
-static struct nand_chip hidtv_nand_chip;
 
 #define MONZA_NAND_IO_ADDR	CONFIG_MTD_NAND_IO_SPACE	/* Start of HIDTV NAND IO address space */
 
@@ -128,42 +124,43 @@ static struct nand_ecclayout nand_oob_mlcbch_448 = {
 };
 
 
-static void enable_nce(int enabled)
+static void enable_nce(struct monza_nand_info *info ,int enabled)
 {
 	unsigned int val;
 	
-	val = ReadRegWord((u32 __iomem *)0xfb002000);
+	val = nand_readl(info,NAND_BOOTROM_R_TIMG);
 	if(!enabled){
-		WriteRegWord((u32 __iomem *)0xfb002000, val | 0x80);
+		nand_writel(info, NAND_BOOTROM_R_TIMG, val | 0x80);
 	}
 	else{
-		WriteRegWord((u32 __iomem *)0xfb002000, val & ~0x80);
+		nand_writel(info, NAND_BOOTROM_R_TIMG, val & ~0x80);
 	}
 }
 
 static void monza_nand_hwcontrol(struct mtd_info *mtd, int cmd, unsigned int ctrl)
 {
-	struct nand_chip *nand_chip = (struct nand_chip *) (mtd->priv);
+	struct monza_nand_info *info = container_of(mtd,
+					struct monza_nand_info, mtd);
 	static unsigned long IO_ADDR_W = 0;
 	
 	switch (ctrl) {
 	case NAND_CTRL_CHANGE:
-		enable_nce(0);
+		enable_nce(info, 0);
 		break;
 	
 	default:
-		enable_nce(1);
+		enable_nce(info, 1);
 
 		if(ctrl & NAND_CTRL_CHANGE)
 		{
 			if(ctrl == NAND_NCE)
-				IO_ADDR_W = ((unsigned long)nand_chip->IO_ADDR_W);
+				IO_ADDR_W = ((unsigned long)info->nand.IO_ADDR_W);
 			else if(ctrl & NAND_ALE)
-				IO_ADDR_W = ((unsigned long)nand_chip->IO_ADDR_W) + (1 << 14);
+				IO_ADDR_W = ((unsigned long)info->nand.IO_ADDR_W) + (1 << 14);
 			else if(ctrl & NAND_CLE)
-				IO_ADDR_W = ((unsigned long)nand_chip->IO_ADDR_W) + (1 << 13);
+				IO_ADDR_W = ((unsigned long)info->nand.IO_ADDR_W) + (1 << 13);
 			else
-				IO_ADDR_W = ((unsigned long)nand_chip->IO_ADDR_W);
+				IO_ADDR_W = ((unsigned long)info->nand.IO_ADDR_W);
 		}
 		
 		break;
@@ -177,19 +174,21 @@ static void monza_nand_hwcontrol(struct mtd_info *mtd, int cmd, unsigned int ctr
 
 static int monza_nand_ready(struct mtd_info *mtd)
 {
-	return (ReadRegWord((void*)NAND_BOOTROM_R_TIMG) & 0x40) != 0;
+	struct monza_nand_info *info = container_of(mtd,
+					struct monza_nand_info, mtd);
+
+	return (nand_readl(info,NAND_BOOTROM_R_TIMG) & 0x40) != 0;
 }
 /*
  * set nand controller work mode
  * 	mode: NAND_HW_MODE / NAND_SW_MODE
  */
-void set_nand_mode(int mode)
+void set_nand_mode(struct monza_nand_info *info,int mode)
 {
-	WriteRegWord((void *)NAND_DCR, (mode<<24)|0x00000002); 
-
+	nand_writel(info, NAND_DCR, (mode<<24)|0x00000002);
 }
 
-void hidtv_nand_inithw(void)
+void hidtv_nand_inithw(struct monza_nand_info *info)
 {
 	unsigned char val8;
 	unsigned int val32;
@@ -204,25 +203,25 @@ void hidtv_nand_inithw(void)
 	
         /* switch the nand source clock 200Hz clock for write, 
         if the clock is not match the NAND init setting such like 1b002004 = 0x21, will cause WP*/
-        WriteRegWord((void*)NAND_FCR, 0x00000067);
+        nand_writel(info, NAND_FCR, 0x00000067);
 
-        val32 = ReadRegWord((void*)NAND_MLC_ECC_CTRL);
+        val32 = nand_readl(info, NAND_MLC_ECC_CTRL);
         val32 |= 0x100;
-        WriteRegWord((void*)NAND_MLC_ECC_CTRL,val32);
+        nand_writel(info, NAND_MLC_ECC_CTRL,val32);
 
-        val32 = ReadRegWord((void*)NAND_SPI_DLY_CTRL);
+        val32 = nand_readl(info, NAND_SPI_DLY_CTRL);
         val32 &= 0xffff3f3f;
-        WriteRegWord((void*)NAND_SPI_DLY_CTRL,val32);
+        nand_writel(info, NAND_SPI_DLY_CTRL,val32);
 
-        WriteRegWord((void*)NAND_TIMG, 0x40193333);
+        nand_writel(info, NAND_TIMG, 0x40193333);
 
 	/* ECC control reset */	
-	WriteRegWord((void *)NAND_ECC_CTRL, (ReadRegWord((void *)NAND_ECC_CTRL)&(~0x4)));
-	WriteRegWord((void *)NAND_ECC_CTRL, 0x1000);
-	while((ReadRegWord((void *)NAND_ECC_CTRL)&0x1000)!=0);                      
-	WriteRegWord((void *)NAND_ECC_CTRL, 0x02); 
+	nand_writel(info, NAND_ECC_CTRL, (nand_readl(info, NAND_ECC_CTRL)&(~0x4)));
+	nand_writel(info, NAND_ECC_CTRL, 0x1000);
+	while((nand_readl(info, NAND_ECC_CTRL)&0x1000)!=0);                      
+	nand_writel(info, NAND_ECC_CTRL, 0x02); 
 
-	set_nand_mode(NAND_SW_MODE);
+	set_nand_mode(info, NAND_SW_MODE);
 	return;
 }
 
@@ -297,20 +296,33 @@ static inline int parse_mtd_cmdline(struct mtd_info *mtd)
 }
 #endif
 
-static int hidtv_nand_add_partition(void)
+static int hidtv_nand_add_partition(struct monza_nand_info *info)
 {	
 	int nr_parts = 0;
 	/* register the Master.*/
-	nand_physical_partition_info[0].size = hidtv_nand_mtd.size;
-	add_mtd_partitions(&hidtv_nand_mtd, nand_physical_partition_info, 1);
+	nand_physical_partition_info[0].size = info->mtd.size;
+	add_mtd_partitions(&(info->mtd), nand_physical_partition_info, 1);
 	
 #ifdef CONFIG_MTD_CMDLINE_PARTS
-	nr_parts = parse_mtd_cmdline(&hidtv_nand_mtd);
+	nr_parts = parse_mtd_cmdline(&(info->mtd));
 #endif
 	return nr_parts;
 }
 
-static void monza_write_buf32(struct mtd_info *mtd, const uint8_t *buf, int len)                     {
+/*PIO Mode*/
+static void monza_pio_read_buf32(struct mtd_info *mtd, uint8_t *buf, int len)
+{
+        int i;
+        struct nand_chip *chip = mtd->priv;
+        u32 *p = (u32 *) buf; 
+	
+	for (i = 0; i < (len >> 2); i++)              
+		p[i] = ReadRegWord(chip->IO_ADDR_R);
+
+}
+
+static void monza_write_buf(struct mtd_info *mtd, const uint8_t *buf, int len)
+{
         struct nand_chip *chip = mtd->priv;
         register volatile void* hwaddr = chip->IO_ADDR_W;
         register u32 *p = (u32 *) buf;                                                                                              
@@ -323,26 +335,33 @@ static void monza_write_buf32(struct mtd_info *mtd, const uint8_t *buf, int len)
         } while(--len);
 
 }
+static int monza_nand_dma_op(struct mtd_info *mtd, void *buf, int len,
+                               int is_read)
+{
+	return 0;
+}
 
-static void monza_read_buf32(struct mtd_info *mtd, uint8_t *buf, int len)                            {
-        int i;
-        struct nand_chip *chip = mtd->priv;
-        u32 *p = (u32 *) buf; 
+static void monza_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
+{
+	struct monza_nand_info *info = container_of(mtd,
+					struct monza_nand_info, mtd);
         
-	set_nand_mode(NAND_HW_MODE);	/*set HC as hw mode to fast read*/
-	WriteRegWord((void*)NAND_CTRL, (0x00000421+(len<<16)));//length and stop bit
-	
-	/*should implement DMA in future. wonderful :)*/
-	len >>= 2;
-	for (i = 0; i < len; i++)              
-		p[i] = ReadRegWord(chip->IO_ADDR_R);
+	set_nand_mode(info, NAND_HW_MODE);	/*set HC as hw mode to fast read*/
+	nand_writel(info, NAND_CTRL, (0x00000421+(len<<16)));//length and stop bit
 
-	set_nand_mode(NAND_SW_MODE);	/*must exit hw mode*/
-	WriteRegWord((void*)NAND_CTRL, 0x00000420);
+	/* only use DMA for bigger than oob size: better performances */	
+	if( (MONZA_NAND_DMA == info->xfer_type) && (len > mtd->oobsize) )
+		if(monza_nand_dma_op(mtd, buf, len, 1) == 0)
+			goto xfer_end;
+
+	monza_pio_read_buf32(mtd, buf ,len);	
+xfer_end:
+	set_nand_mode(info, NAND_SW_MODE);	/*must exit hw mode*/
+	nand_writel(info, NAND_CTRL, 0x00000420);
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
-static int monza_verify_buf32(struct mtd_info *mtd, const uint8_t *buf, int len)                                                     
+static int monza_verify_buf(struct mtd_info *mtd, const uint8_t *buf, int len)                                                     
 {
         int i;                
         struct nand_chip *chip = mtd->priv;
@@ -481,64 +500,79 @@ static void monza_ecc_hwctl(struct mtd_info *mtd, int param)
 	return;
 }
 
-static int __init hidtv_nand_init (void)
+static int monza_nand_probe(struct platform_device *pdev)
 {
-	struct nand_chip *this;
-	void* nand_io_addr;
+	struct monza_nand_info           *info;
+	struct monza_nand_platform_data  *pdata;
+	int err = 0;	
 
-	nand_io_addr = (void *)MONZA_NAND_IO_ADDR;
+	pdata = pdev->dev.platform_data;
+	if (!pdata) {
+		dev_err(&pdev->dev, "no platform data defined\n");
+		return -ENODEV;        
+	}
+
+	info = kzalloc(sizeof(struct monza_nand_info), GFP_KERNEL); 
+	if(!info)
+		return -ENOMEM;
+
+	platform_set_drvdata(pdev, info);
+
+	info->host_base  = pdata->host_base;
+	info->io_base    = pdata->io_base;
+	info->xfer_type  = pdata->xfer_type;
 	
-	memset((char *)&hidtv_nand_mtd, 0, sizeof(struct mtd_info));
-	memset((char *)&hidtv_nand_chip, 0, sizeof(struct nand_chip));
+	memset((char *)&(info->mtd), 0, sizeof(struct mtd_info));
+	memset((char *)&(info->nand), 0, sizeof(struct nand_chip));
 	
 	/*basic hardware initialisation*/
-	hidtv_nand_inithw();
+	hidtv_nand_inithw(info);
 	
-	hidtv_nand_mtd.priv = &hidtv_nand_chip;
-	hidtv_nand_mtd.owner = THIS_MODULE;
-	this = &hidtv_nand_chip; 	
+	info->mtd.priv       = &(info->nand);	
+	info->mtd.owner      = THIS_MODULE;	
 	
-	this->IO_ADDR_R   = (void __iomem *)nand_io_addr;
-	this->IO_ADDR_W   = (void __iomem *)nand_io_addr;
+	info->nand.IO_ADDR_R = info->io_base;
+	info->nand.IO_ADDR_W = info->io_base;
 	
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
-	this->options     = NAND_NO_AUTOINCR/*NAND_SKIP_BBTSCAN|NAND_BBT_USE_FLASH|NAND_BBT_NO_OOB*/;
+	info->nand.options     = NAND_NO_AUTOINCR/*NAND_SKIP_BBTSCAN|NAND_BBT_USE_FLASH|NAND_BBT_NO_OOB*/;
 #endif
-	//this->bbt_options = NAND_BBT_USE_FLASH|NAND_BBT_NO_OOB;
+	//info->nand.bbt_options = NAND_BBT_USE_FLASH|NAND_BBT_NO_OOB;
 
-	this->chip_delay  = 1000; //fix me
-	this->cmd_ctrl    = monza_nand_hwcontrol;	
-	this->dev_ready   = monza_nand_ready;
+	info->nand.chip_delay  = 1000; //fix me
+	info->nand.cmd_ctrl    = monza_nand_hwcontrol;	
+	info->nand.dev_ready   = monza_nand_ready;
 	
-	this->write_buf   = monza_write_buf32;
-	this->read_buf    = monza_read_buf32;
+	info->nand.write_buf   = monza_write_buf;
+	info->nand.read_buf    = monza_read_buf;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,10,0)
-	this->verify_buf  = monza_verify_buf32;
+	info->nand.verify_buf  = monza_verify_buf;
 #endif
-	this->ecc.mode     = NAND_ECC_HW; 	
-	if (nand_scan_ident(&hidtv_nand_mtd, 1, NULL)) { 
-		return -ENXIO;
+	info->nand.ecc.mode     = NAND_ECC_HW; 	
+	if (nand_scan_ident(&(info->mtd), 1, NULL)) { 
+		err =  -ENXIO;
+		goto exit;
 	}
 	
-	this->options |= NAND_NO_SUBPAGE_WRITE;	/*we not support subpage in UBI*/
-	hidtv_nand_mtd.subpage_sft = 0; 
+	info->nand.options |= NAND_NO_SUBPAGE_WRITE;	/*we not support subpage in UBI*/
+	info->mtd.subpage_sft = 0; 
 	
-	switch (hidtv_nand_mtd.writesize)
+	switch (info->mtd.writesize)
 	{
 		case 2048:
-			this->ecc.strength = 8;
-			this->ecc.size     = 512;
-			this->ecc.layout = &nand_oob_mlcbch_64;
+			info->nand.ecc.strength = 8;
+			info->nand.ecc.size     = 512;
+			info->nand.ecc.layout = &nand_oob_mlcbch_64;
 			break;
 		case 4096:
-			this->ecc.strength = 24;
-			this->ecc.size     = 1024;
-			this->ecc.layout = &nand_oob_mlcbch_224;
+			info->nand.ecc.strength = 24;
+			info->nand.ecc.size     = 1024;
+			info->nand.ecc.layout = &nand_oob_mlcbch_224;
 			break;
 		case 8192:
-			this->ecc.strength = 24;
-			this->ecc.size     = 1024;
-			this->ecc.layout = &nand_oob_mlcbch_448;
+			info->nand.ecc.strength = 24;
+			info->nand.ecc.size     = 1024;
+			info->nand.ecc.layout = &nand_oob_mlcbch_448;
 			break;
 		default:
 			printk("ERROR: unsupport NAND device.\n");
@@ -546,57 +580,84 @@ static int __init hidtv_nand_init (void)
 	}
 
 	/*ECC bytes per step*/
-	this->ecc.bytes = (14*this->ecc.strength + 7)>>3;	
+	info->nand.ecc.bytes = (14*info->nand.ecc.strength + 7)>>3;	
 
 	/*
  	 * sanity checks 
  	 * NOTE:it's important!
  	 */
-	BUG_ON((this->ecc.size != 512)&&(this->ecc.size != 1024));	
-	BUG_ON((this->ecc.strength < 4)||(this->ecc.strength > 60)||(this->ecc.strength % 2 ));
+	BUG_ON((info->nand.ecc.size != 512)&&(info->nand.ecc.size != 1024));	
+	BUG_ON((info->nand.ecc.strength < 4)||(info->nand.ecc.strength > 60)||(info->nand.ecc.strength % 2 ));
 
-	if (!this->ecc.read_page)
-		this->ecc.read_page = monza_read_page_bch;
-	if (!this->ecc.write_page)
-		this->ecc.write_page = monza_write_page_bch;
+	if (!info->nand.ecc.read_page)
+		info->nand.ecc.read_page = monza_read_page_bch;
+	if (!info->nand.ecc.write_page)
+		info->nand.ecc.write_page = monza_write_page_bch;
 	
-	this->ecc.calculate = monza_ecc_calculate;
-	this->ecc.hwctl     = monza_ecc_hwctl;
-	this->ecc.correct   = monza_ecc_correct;
+	info->nand.ecc.calculate = monza_ecc_calculate;
+	info->nand.ecc.hwctl     = monza_ecc_hwctl;
+	info->nand.ecc.correct   = monza_ecc_correct;
 	
 	/* second phase scan */
-	if (nand_scan_tail(&hidtv_nand_mtd)) { 
-		return -ENXIO;
+	if (nand_scan_tail(&(info->mtd))) { 
+		err =  -ENXIO;
+		goto exit;
 	}
 
 	printk("Detected NAND, %lldMiB, erasesize %dKiB, pagesize %dB,oobsize %dB, \
 	oobavail %dB\n",
-	hidtv_nand_mtd.size >> 20, hidtv_nand_mtd.erasesize >> 10, 
-	hidtv_nand_mtd.writesize,hidtv_nand_mtd.oobsize, hidtv_nand_mtd.oobavail);
+	info->mtd.size >> 20, 
+	info->mtd.erasesize >> 10, 
+	info->mtd.writesize,
+	info->mtd.oobsize, 
+	info->mtd.oobavail);
 
-	printk("Nand ECC info:Strength=%d,ecc size=%d ecc_bytes=%d\n",this->ecc.strength,this->ecc.size,this->ecc.bytes);
-	hidtv_nand_add_partition();
-	return 0;	
+	printk("Nand ECC info:Strength=%d,ecc size=%d ecc_bytes=%d\n",
+	info->nand.ecc.strength,
+	info->nand.ecc.size,
+	info->nand.ecc.bytes);
+	hidtv_nand_add_partition(info);
+
+exit:
+	return err;	
 }
-
-/*
- * Clean up routine
- */
-
-static void __exit
-hidtv_nand_cleanup(void)
+static int monza_nand_remove(struct platform_device *pdev)
 {
-	struct nand_chip *this = &hidtv_nand_chip;
+	struct monza_nand_info *info = platform_get_drvdata(pdev);
 	/* Unregister the device */
-	del_mtd_device(&hidtv_nand_mtd);
+	del_mtd_device(&(info->mtd));
 
-	/* Free the MTD device structure */
-	kfree(&hidtv_nand_mtd);
-	kfree(this);
+	kfree(info);
+	
+	return 0;
 }
 
-module_init(hidtv_nand_init);
-module_exit(hidtv_nand_cleanup);
+#ifdef CONFIG_PM
+static int monza_nand_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	return 0;
+}
+
+static int monza_nand_resume(struct platform_device *pdev)
+{
+	return 0;
+}
+#else
+#define monza_nand_suspend     NULL
+#define monza_nand_resume      NULL
+#endif
+
+static struct platform_driver monza_nand_driver = {
+        .driver = {
+                .name   = "monza-nand",       
+        },
+        .probe          = monza_nand_probe,
+        .remove         = monza_nand_remove,
+        .suspend        = monza_nand_suspend,         
+        .resume         = monza_nand_resume,
+};
+
+module_platform_driver(monza_nand_driver);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("SigmaDesigns kernel team");
