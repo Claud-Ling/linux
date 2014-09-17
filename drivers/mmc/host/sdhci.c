@@ -2498,7 +2498,7 @@ again:
 
 	result = IRQ_HANDLED;
 
-#if defined(CONFIG_MMC_SDHCI1_SIGMA) && defined(CONFIG_ARCH_SIGMA_SX6)
+#if defined(CONFIG_MMC_SDHCI1_SIGMA) && defined(CONFIG_SIGMA_SOC_SX6)
 	mdelay(5);	//TODO: temp patch for sdhost 1 to fix CMD interrup always trigger two times
 #endif
 	intmask = sdhci_readl(host, SDHCI_INT_STATUS);

@@ -3,15 +3,15 @@
 #
 
 config NET_VENDOR_SIGMADESIGNS
-	bool "Sigma Designs SX6 devices Ethernet Device"
+	bool "Sigma Designs SX series SoC"
 	default y
-	depends on ARCH_SIGMA_SX6
-	---help---
-	  Support Sigma Designs' TRIx SoC & SX6
+	depends on ARCH_SIGMA_TRIX
+	help
+	  Support Sigma Designs' TRIx SoC
 
 config SIGMA_TRIX_ENET
-	tristate "Trix / SX6 Builtin Gigabit Ethernet support"
-	depends on ETHERNET && ARCH_SIGMA_SX6 && NET_VENDOR_SIGMADESIGNS
+	tristate "Trix / SX Builtin Gigabit Ethernet support"
+	depends on ETHERNET && ARCH_SIGMA_TRIX && NET_VENDOR_SIGMADESIGNS
 	select MII
 	select CRC32
 	help

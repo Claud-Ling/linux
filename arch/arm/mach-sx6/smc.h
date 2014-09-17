@@ -20,6 +20,7 @@ void sx6_smc_l2x0_enable(void);
 void sx6_smc_l2x0_disable(void);
 void sx6_smc_l2x0_set_auxctrl(unsigned long val);
 void sx6_smc_l2x0_set_debug(unsigned long val);
+void sx6_smc_l2x0_set_prefetchctrl(unsigned long val);
 void sx6_smc_set_actlr(unsigned long val);
 #endif
 
@@ -31,6 +32,7 @@ void sx6_smc_set_actlr(unsigned long val);
 #define ARMOR_SMCCALL_SET_AUX_CORE_BOOT0 0x104
 #define ARMOR_SMCCALL_SET_AUX_CORE_BOOT_ADDR 0x105
 #define ARMOR_SMCCALL_SET_L2_AUX_DEBUG 0x106
+#define ARMOR_SMCCALL_SET_L2_PREFETCH_CTRL  0x107
 #define ARMOR_SMCCALL_SET_L2_AUX_CONTROL    0x109
 
 #endif // __DTV_SMC_H__

@@ -114,11 +114,23 @@ static int __init parse_tag_serialnr(const struct tag *tag)
 
 __tagtable(ATAG_SERIAL, parse_tag_serialnr);
 
+#if defined(CONFIG_SIGMA_DTV) && defined(CONFIG_SIGMA_PROC_BOOT_VERSION)
+#define BOOT_REVISION_SIZE 512
+char boot_revision_info[BOOT_REVISION_SIZE]="";
+EXPORT_SYMBOL(boot_revision_info);
+static int __init parse_tag_revision(const struct tag *tag)
+{
+	system_rev = tag->u.revision.rev;
+	strlcpy(boot_revision_info, ((char*)&tag->u.revision.rev) + 4, BOOT_REVISION_SIZE);
+	return 0;
+}
+#else
 static int __init parse_tag_revision(const struct tag *tag)
 {
 	system_rev = tag->u.revision.rev;
 	return 0;
 }
+#endif
 
 __tagtable(ATAG_REVISION, parse_tag_revision);
 

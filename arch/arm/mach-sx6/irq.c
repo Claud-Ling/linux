@@ -29,18 +29,18 @@
 #include <mach/hardware.h>
 #include <mach/irqs.h>
 
-static void __iomem *gic_cpu_base 	= SIGMA_IO_ADDRESS(SIGMA_SX6_GIC_CPU_BASE);
-static void __iomem *gic_dist_base_addr	= SIGMA_IO_ADDRESS(SIGMA_SX6_GIC_DIST_BASE);
+static void __iomem *gic_cpu_base 	= SIGMA_IO_ADDRESS(SIGMA_TRIX_GIC_CPU_BASE);
+static void __iomem *gic_dist_base_addr	= SIGMA_IO_ADDRESS(SIGMA_TRIX_GIC_DIST_BASE);
 
-void __init sx6_init_irq(void)
+void __init trix_init_irq(void)
 {
 	TRI_DBG("%d %s\n",__LINE__,__func__);
 
-	printk("int dist iomap '%x' -> '%p'\n", SIGMA_SX6_GIC_DIST_BASE, gic_dist_base_addr);
+	printk("int dist iomap '%x' -> '%p'\n", SIGMA_TRIX_GIC_DIST_BASE, gic_dist_base_addr);
 	BUG_ON(!gic_dist_base_addr);
 
 	TRI_DBG("%d %s\n",__LINE__,__func__);
-	printk("gic iomap '%x' -> '%p'\n", SIGMA_SX6_GIC_CPU_BASE, gic_cpu_base);
+	printk("gic iomap '%x' -> '%p'\n", SIGMA_TRIX_GIC_CPU_BASE, gic_cpu_base);
 	BUG_ON(!gic_cpu_base);
 
 	TRI_DBG("%d %s\n",__LINE__,__func__);

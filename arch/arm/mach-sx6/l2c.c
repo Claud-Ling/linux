@@ -24,9 +24,10 @@
 #include <asm/hardware/cache-l2x0.h>
 #include <mach/hardware.h>
 
-#ifdef CONFIG_SIGMA_SX6_SMC
+#ifdef CONFIG_SIGMA_SMC
 #include "smc.h"
 #endif
+#include "common.h"
 
 #define L2X_WRITEL_MASK(v, m, a) do{		\
 	unsigned int __tmp = readl_relaxed(a);	\
@@ -35,7 +36,7 @@
 	writel_relaxed(__tmp, a);		\
 	}while(0)
 
-static void __iomem *l2cache_base = SIGMA_IO_ADDRESS(SIGMA_SX6_L2CACHE_BASE);
+static void __iomem *l2cache_base = SIGMA_IO_ADDRESS(SIGMA_TRIX_L2CACHE_BASE);
 
 
 /**************************************************************************/
@@ -44,7 +45,7 @@ static void __iomem *l2cache_base = SIGMA_IO_ADDRESS(SIGMA_SX6_L2CACHE_BASE);
 void sigma_sx6_l2x0_enable(void)
 {
 	/* Disable PL310 L2 Cache controller */
-#ifdef CONFIG_SIGMA_SX6_SMC
+#ifdef CONFIG_SIGMA_SMC
 	sx6_smc_l2x0_enable();
 #else
 	writel_relaxed(1, l2cache_base + L2X0_CTRL);
@@ -53,7 +54,7 @@ void sigma_sx6_l2x0_enable(void)
 void sigma_sx6_l2x0_disable(void)
 {
 	/* Disable PL310 L2 Cache controller */
-#ifdef CONFIG_SIGMA_SX6_SMC
+#ifdef CONFIG_SIGMA_SMC
 	sx6_smc_l2x0_disable();
 #else
 	writel_relaxed(0, l2cache_base + L2X0_CTRL);
@@ -62,8 +63,8 @@ void sigma_sx6_l2x0_disable(void)
 
 void sigma_sx6_l2x0_set_auxctrl(unsigned long val)
 {
-	/* Set L2 Cache auxiliary contry register */
-#ifdef CONFIG_SIGMA_SX6_SMC
+	/* Set L2 Cache auxiliary control register */
+#ifdef CONFIG_SIGMA_SMC
 	sx6_smc_l2x0_set_auxctrl(val);
 #else
 	writel_relaxed(val, l2cache_base + L2X0_AUX_CTRL);
@@ -72,7 +73,7 @@ void sigma_sx6_l2x0_set_auxctrl(unsigned long val)
 
 void sigma_sx6_l2x0_set_debug(unsigned long val)
 {
-#ifdef CONFIG_SIGMA_SX6_SMC
+#ifdef CONFIG_SIGMA_SMC
 	/* Program PL310 L2 Cache controller debug register */
 	sx6_smc_l2x0_set_debug(val);
 #else
@@ -80,7 +81,18 @@ void sigma_sx6_l2x0_set_debug(unsigned long val)
 #endif
 }
 
-#ifdef CONFIG_SIGMA_SX6_SMC
+void sigma_sx6_l2x0_set_prefetchctrl(unsigned long val)
+{
+#ifdef CONFIG_SIGMA_SMC
+	/* Program PL310 L2 Cache controller prefetch control register */
+	sx6_smc_l2x0_set_prefetchctrl(val);
+#else
+	writel_relaxed(val, l2cache_base + L2X0_PREFETCH_CTRL);
+#endif
+}
+
+
+#ifdef CONFIG_SIGMA_SMC
 /**************************************************************************/
 /* Following code slices are copied from arm/mm/cache-l2x0.c		  */
 /**************************************************************************/
@@ -475,7 +487,7 @@ static void sx6_l2x0_init(void __iomem *base, u32 aux_val, u32 aux_mask)
 	 */
 	if (!(readl_relaxed(base + L2X0_CTRL) & 1)) {
 		/* Make sure that I&D is not locked down when starting */
-		//l2x0_unlock(cache_id);
+		//l2x0_unlock(cache_id); /*write only for secure access*/
 
 		/* l2x0 controller is disabled */
 		sigma_sx6_l2x0_set_auxctrl(aux);
@@ -528,26 +540,11 @@ static int __init sx6_l2_cache_init(void)
 	TRI_DBG("[%d] %s\n",__LINE__,__func__);	
 
 	/* Static mapping, never released */
-	printk("l2cc iomap '%x' -> '%p'\n", SIGMA_SX6_L2CACHE_BASE, l2cache_base);
+	printk("l2cc iomap '%x' -> '%p'\n", SIGMA_TRIX_L2CACHE_BASE, l2cache_base);
 	BUG_ON(!l2cache_base);
 
-	/*
-	* SX6 L2CC: 512K, 16ways, 32K per ways
-	* Tag laterncy: 0, Data latency: 0
-	*/
-
-	aux_ctrl = ((1 << L2X0_AUX_CTRL_ASSOCIATIVITY_SHIFT) |	//bit 16: 1 for 16 ways
-			(0x1 << 25) |									//bit 25: SBO/RAO
-			(0x1 << L2X0_AUX_CTRL_NS_LOCKDOWN_SHIFT) |		//bit 26: 1 NS accesses can write to the lockdown register
-			(0x1 << L2X0_AUX_CTRL_NS_INT_CTRL_SHIFT));		//bit 27: 1 Int Clear and Mask can be NS accessed
-
-	aux_ctrl |= ((0x2 << L2X0_AUX_CTRL_WAY_SIZE_SHIFT) |	//bit 19-17: 011b 64KB, 010b 32KB
-			(1 << L2X0_AUX_CTRL_SHARE_OVERRIDE_SHIFT) |		//bit 22: 1 shared attribute internally ignored.
-			(1 << L2X0_AUX_CTRL_DATA_PREFETCH_SHIFT) |		//bit 28: 1 data prefetching enabled
-			(1 << L2X0_AUX_CTRL_INSTR_PREFETCH_SHIFT) |		//bit 29: 1 instruction prefetch enabled
-			(1 << L2X0_AUX_CTRL_EARLY_BRESP_SHIFT));		//bit 30: 1 early BRESP eanbled
-
-#ifdef CONFIG_SIGMA_SX6_SMC
+	aux_ctrl = trix_make_l2x_auxctrl();
+#ifdef CONFIG_SIGMA_SMC
 	/* in non-secure state */
 	sx6_l2x0_init(l2cache_base, aux_ctrl, L2X0_AUX_CTRL_MASK);
 #else
@@ -555,11 +552,12 @@ static int __init sx6_l2_cache_init(void)
 	l2x0_init(l2cache_base, aux_ctrl, L2X0_AUX_CTRL_MASK);
 #endif
 
-#ifdef CONFIG_SIGMA_SX6_L2X0_PERFORMANCE
-	/* enable double linefill */
-	L2X_WRITEL_MASK((0x1 << 30),		//bit[30]: Double linefile enable
-			(0x1 << 30),
-			l2cache_base + L2X0_PREFETCH_CTRL);
+#ifdef CONFIG_SIGMA_L2X0_PERFORMANCE
+	/*
+	 * enable double linefill
+	 * bit[30]: Double linefile enable
+	 */
+	sigma_sx6_l2x0_set_prefetchctrl(readl_relaxed(l2cache_base + L2X0_PREFETCH_CTRL) | (1 << 30));
 #endif
 
 	/*

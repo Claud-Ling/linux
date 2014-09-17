@@ -55,7 +55,7 @@ EXPORT_SYMBOL(get_security_state);
 /**************************************************************************/
 /* sx6 l2x0 control wrapper						  */
 /**************************************************************************/
-#ifdef CONFIG_SIGMA_SX6_CACHE_L2X0
+#ifdef CONFIG_SIGMA_CACHE_L2X0
 extern void __iomem *sx6_get_l2cache_base(void);
 static void __iomem *l2c_base = NULL;
 #define GET_L2C_BASE ((NULL==l2c_base) ? (l2c_base=sx6_get_l2cache_base()) : l2c_base)
@@ -79,7 +79,7 @@ void sx6_smc_l2x0_disable(void)
 
 void sx6_smc_l2x0_set_auxctrl(unsigned long val)
 {
-	/* Set L2 Cache auxiliary contry register */
+	/* Set L2 Cache auxiliary control register */
 	if ( !security_state )
 		sigma_dtv_smc1(ARMOR_SMCCALL_SET_L2_AUX_CONTROL, val);
 	else
@@ -93,6 +93,15 @@ void sx6_smc_l2x0_set_debug(unsigned long val)
 		sigma_dtv_smc1(ARMOR_SMCCALL_SET_L2_AUX_DEBUG, val);
 	else
 		writel_relaxed(val, GET_L2C_BASE + L2X0_DEBUG_CTRL);
+}
+
+void sx6_smc_l2x0_set_prefetchctrl(unsigned long val)
+{
+	/* Program PL310 L2 Cache controller prefetch control register */
+	if ( !security_state )
+		;//TODO: sigma_dtv_smc1(ARMOR_SMCCALL_SET_L2_PREFETCH_CTRL, val);
+	else
+		writel_relaxed(val, GET_L2C_BASE + L2X0_PREFETCH_CTRL);
 }
 #endif
 
@@ -110,8 +119,8 @@ void sx6_smc_set_actlr(unsigned long val)
 		__asm__ __volatile__("mcr	p15, 0, %0, c1, c0, 1": : "r" (val):);
 }
 
-static int __init sx6_smc_init(void)
+static int __init sigma_smc_init(void)
 {
 	return 0;
 }
-early_initcall(sx6_smc_init);
+early_initcall(sigma_smc_init);

@@ -43,7 +43,7 @@ extern void *sx6_sp_base_sram;
 
 extern void sx6_cpu_resume(void);
 
-#ifdef CONFIG_SX6_PM_CHECK
+#ifdef CONFIG_SIGMA_PM_CRC
 #define SX6_PMDBG(fmt...) printk(fmt)
 extern void sx6_pm_check_prepare(void);
 extern void sx6_pm_check_restore(void);

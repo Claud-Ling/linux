@@ -1033,20 +1033,14 @@ static struct notifier_block __cpuinitdata dbg_reset_nb = {
 	.notifier_call = dbg_reset_notify,
 };
 
-#ifdef CONFIG_ARCH_SIGMA_SX6
-#include <plat/io.h>
-#include <linux/delay.h>
+#ifdef CONFIG_SIGMA_DTV
+extern void trix_set_dbg_swen(unsigned int cpu, bool state);
 /*
  * it should be called before CPU accesses any debug registers
  */
-static void sx6_swdbg_enable(void)
+static void swdbg_enable(void)
 {
-#define SX6_A9_CFG2_REG ((void*)0x1500ef12)	/*[7..6] sw debug enable (to access dbg regs), each bit for one core*/
-#define DBG_SWEN_MASK	0xc0
-#define DBG_SWEN_SHIFT	6
-	MWriteRegByte(SX6_A9_CFG2_REG, 3 << DBG_SWEN_SHIFT, DBG_SWEN_MASK);	/*enable sw debug on two cores*/
-	mb();	/*drain write buffer*/
-	ndelay(200);	/*explicit delay (~200ns) is required here as dbg_swen is in 24M clock domain*/
+	trix_set_dbg_swen(-1, true);	/*enalbe dbg for all cpus*/
 }
 #endif
 
@@ -1055,8 +1049,8 @@ static int dbg_cpu_pm_notify(struct notifier_block *self, unsigned long action,
 			     void *v)
 {
 	if (action == CPU_PM_EXIT) {
-#ifdef CONFIG_ARCH_SIGMA_SX6
-		sx6_swdbg_enable();
+#ifdef CONFIG_SIGMA_DTV
+		swdbg_enable();
 #endif
 		reset_ctrl_regs(NULL);
 	}
@@ -1080,8 +1074,8 @@ static inline void pm_init(void)
 
 static int __init arch_hw_breakpoint_init(void)
 {
-#ifdef CONFIG_ARCH_SIGMA_SX6
-	sx6_swdbg_enable();
+#ifdef CONFIG_SIGMA_DTV
+	swdbg_enable();
 #endif
 	debug_arch = get_debug_arch();
 

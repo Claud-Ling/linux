@@ -170,7 +170,7 @@
 				}while(0)
 
 #define XTAL_CLK_KHZ			24000
-#define MIN_CPUFREQ_KHZ			CONFIG_SX6_MIN_CPUFREQ	/*khz*/
+#define MIN_CPUFREQ_KHZ			CONFIG_SIGMA_MIN_CPUFREQ	/*khz*/
 
 #define PLL_GET_SUB(val, nm) (((val) & PLL_##nm##_MASK) >> PLL_##nm##_SHIFT)
 #define PLL1_GET_SUB(val, nm) (((val) & PLL1_##nm##_MASK) >> PLL1_##nm##_SHIFT)

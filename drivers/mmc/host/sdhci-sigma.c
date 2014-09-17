@@ -153,7 +153,7 @@ out:
 static void sdhci_sx6_pinshare_init(void)
 {
 	unsigned int temp;
-#if defined(CONFIG_ARCH_SIGMA_SX6)
+#if defined(CONFIG_SIGMA_SOC_SX6) || defined(CONFIG_SIGMA_SOC_SX7)
 	
         /*TODO put UMAC setting to a better place.*/
 

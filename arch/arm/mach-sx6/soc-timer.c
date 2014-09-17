@@ -300,7 +300,7 @@ static void __init sigma_sx6_clocksource_init(void)
 }
 
 
-void __init sx6_timer_init(void)
+void __init trix_timer_init(void)
 {
 	TRI_DBG("[%d] %s\n",__LINE__,__func__);	
 
@@ -311,7 +311,7 @@ void __init sx6_timer_init(void)
 	sigma_sx6_clockevent_init();
 
 #ifdef CONFIG_LOCAL_TIMERS
-	sx6_local_timer_setup();
+	trix_local_timer_setup();
 #endif
 
 	TRI_DBG("[%d] %s end\n",__LINE__,__func__);	

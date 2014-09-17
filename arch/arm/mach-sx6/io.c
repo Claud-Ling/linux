@@ -53,7 +53,7 @@ static struct map_desc sigma_io_desc[] __initdata = {
 };
 
 
-void __init sx6_map_io(void)
+void __init trix_map_io(void)
 {
 	TRI_DBG("[%d] %s\n",__LINE__,__func__);
 

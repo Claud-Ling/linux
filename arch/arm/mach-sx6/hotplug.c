@@ -38,7 +38,7 @@ static inline void cpu_enter_lowpower(void)
 	  : "cc");
 
 	/* ACTLR, RO in Non-secure state if NSACR.NS_SMP=0, RW if NSACR.NS_SMP=1 */
-#ifdef CONFIG_SIGMA_SX6_SMC
+#ifdef CONFIG_SIGMA_SMC
 	sx6_smc_set_actlr(v);
 #else
 	asm volatile(
@@ -71,7 +71,7 @@ static inline void cpu_leave_lowpower(void)
 	  : "cc");
 
 	/* ACTLR, RO in Non-secure state if NSACR.NS_SMP=0, RW if NSACR.NS_SMP=1 */
-#ifdef CONFIG_SIGMA_SX6_SMC
+#ifdef CONFIG_SIGMA_SMC
 	sx6_smc_set_actlr(v);
 #else
 	asm volatile(
@@ -159,7 +159,7 @@ static inline int platform_leave_lowpower(unsigned int cpu)
  *
  * Called with IRQs disabled
  */
-void __ref sx6_cpu_die(unsigned int cpu)
+void __ref trix_cpu_die(unsigned int cpu)
 {
 	int ret = 0;
 	int spurious = 0;

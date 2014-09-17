@@ -36,7 +36,7 @@
 #include "common.h"
 
 /* SCU base address */
-static void __iomem *scu_base = SIGMA_IO_ADDRESS(SIGMA_SX6_SCU_BASE);
+static void __iomem *scu_base = SIGMA_IO_ADDRESS(SIGMA_TRIX_SCU_BASE);
 
 /*
  * control for which core is the next to come out of the secondary
@@ -135,7 +135,7 @@ static void __init sx6_smp_init_cpus(void)
 {
 	unsigned int i, ncores = 0;
 
-	printk("scu iomap '%x' -> '%p' \n", SIGMA_SX6_SCU_BASE, scu_base);	
+	printk("scu iomap '%x' -> '%p' \n", SIGMA_TRIX_SCU_BASE, scu_base);
 	BUG_ON(!scu_base);
 	ncores = scu_get_core_count(scu_base);
 
@@ -231,12 +231,12 @@ void platform_smp_resume_cpus(void)
 }
 #endif
 
-struct smp_operations sx6_smp_ops __initdata = {
+struct smp_operations trix_smp_ops __initdata = {
 	.smp_init_cpus		= sx6_smp_init_cpus,
 	.smp_prepare_cpus	= sx6_smp_prepare_cpus,
 	.smp_secondary_init	= sx6_secondary_init,
 	.smp_boot_secondary	= sx6_boot_secondary,
 #ifdef CONFIG_HOTPLUG_CPU
-	.cpu_die		= sx6_cpu_die,
+	.cpu_die		= trix_cpu_die,
 #endif
 };

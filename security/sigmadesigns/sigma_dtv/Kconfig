@@ -1,7 +1,7 @@
 config SECURITY_SIGMADESIGNS
-        bool "Sigma Designs SX6 Secuirty Boot"
+        bool "Sigma Designs DTV Secuirty Boot"
         default n
-        depends on ARCH_SIGMA_SX6
+        depends on ARCH_SIGMA_TRIX
         depends on SIGMA_DTV_ROM_MMC
         ---help---
           Support Sigma Designs' Security component.

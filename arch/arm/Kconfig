@@ -262,8 +262,7 @@ config PHYS_OFFSET
 	  location of main memory in your system.
 
 menu "release version"
-	depends on ARCH_SIGMA_SX6
-
+	depends on ARCH_SIGMA_TRIX
 config SIGMA_RELEASE_VERSION
 	string "git commit version"
 	default "000000"
@@ -872,8 +871,8 @@ config ARCH_OMAP1
 	help
 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
 
-config ARCH_SIGMA_SX6
-	bool "SigmaDesigns SX6 Soc"
+config ARCH_SIGMA_TRIX
+	bool "SDesigns SX series SoC"
 	select HAVE_CLK
 	select HAVE_SMP
 	select SMP
@@ -892,7 +891,7 @@ config ARCH_SIGMA_SX6
 	select USB_ARCH_HAS_EHCI
 	select USB_ARCH_HAS_XHCI
 	help
-	  Support for Sigma's SX6 DTV platform.
+	  Support for Sigma's SX series SoC.
 
 endchoice
 

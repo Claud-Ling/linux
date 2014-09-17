@@ -25,17 +25,17 @@
 
 #ifdef CONFIG_LOCAL_TIMERS
 
-static DEFINE_TWD_LOCAL_TIMER(sx6_twd_local_timer, SIGMA_SX6_LOCAL_TWD_BASE, TRIHIDTV_LOCAL_TIMER_IRQ);
+static DEFINE_TWD_LOCAL_TIMER(trix_twd_local_timer, SIGMA_TRIX_LOCAL_TWD_BASE, TRIHIDTV_LOCAL_TIMER_IRQ);
 
 /*
  * local timer setup, driver smp tick.
  */
-int __init sx6_local_timer_setup(void)
+int __init trix_local_timer_setup(void)
 {
 	int err = 1;
 	TRI_DBG("[%d] %s\n",__LINE__,__func__);
 #ifdef CONFIG_HAVE_ARM_TWD
-	err = twd_local_timer_register(&sx6_twd_local_timer);
+	err = twd_local_timer_register(&trix_twd_local_timer);
 	if (err)
 		printk("twd_local_timer_register failed %d\n", err);
 #endif

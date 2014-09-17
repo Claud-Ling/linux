@@ -44,14 +44,13 @@
 #include <asm/hardware/cache-l2x0.h>
 #include "common.h"
 
-
-static int sx6_set_dbg_swen(unsigned int cpu, bool state)
+static int sx7_set_dbg_swen(unsigned int cpu, bool state)
 {
 #define A9_CFG2_REG ((void*)0x1500ef12)	/*
-					 * SX6: [7..6] sw debug enable (to access dbg regs), each bit for one core
+					 * SX7: [7..4] sw debug enable (to access dbg regs), each bit for one core
 					 */
-#define DBG_SWEN_MASK	0xc0
-#define DBG_SWEN_SHIFT	6
+#define DBG_SWEN_MASK	0xf0
+#define DBG_SWEN_SHIFT	4
 	u8 val = 0;
 	if (-1u == cpu) {
 		val = (state ? DBG_SWEN_MASK : 0);	/*enable/disable sw debug on two cores*/
@@ -68,16 +67,16 @@ static int sx6_set_dbg_swen(unsigned int cpu, bool state)
 	return 0;
 }
 
-static u32 sx6_make_l2x_auxctrl(void)
+static u32 sx7_make_l2x_auxctrl(void)
 {
 	u32 aux_ctrl;
 	/*
-	* SX6 L2CC: PL310@r3p2, 512K, 16ways, 32K per ways
+	* SX7 L2CC: PL310@r3p2, 1024K, 16ways, 64K per ways
 	* Tag laterncy: 0, Data latency: 0
 	*/
 
 	aux_ctrl = ((1 << L2X0_AUX_CTRL_ASSOCIATIVITY_SHIFT) |		//bit 16: 1 for 16 ways
-			(0x2 << L2X0_AUX_CTRL_WAY_SIZE_SHIFT) |		//bit 19-17: 011b 64KB, 010b 32KB
+			(0x3 << L2X0_AUX_CTRL_WAY_SIZE_SHIFT) |		//bit 19-17: 011b 64KB, 010b 32KB
 			(1 << L2X0_AUX_CTRL_SHARE_OVERRIDE_SHIFT) |     //bit 22: 1 shared attribute internally ignored.
 			(1 << 25) |					//bit 25: SBO/RAO
 			(1 << L2X0_AUX_CTRL_NS_LOCKDOWN_SHIFT) |	//bit 26: 1 NS can write to the lockdown register
@@ -90,9 +89,9 @@ static u32 sx6_make_l2x_auxctrl(void)
 }
 
 struct trix_board_object trix_board_obj = {
-	.name = "SX6",
+	.name = "SX7",
 	.ops = {
-		.set_dbg_swen = sx6_set_dbg_swen,
-		.make_l2x_auxctrl = sx6_make_l2x_auxctrl,
+		.set_dbg_swen = sx7_set_dbg_swen,
+		.make_l2x_auxctrl = sx7_make_l2x_auxctrl,
 	}
 };

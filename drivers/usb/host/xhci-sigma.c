@@ -32,7 +32,10 @@ static void sigma_xhci_start(void)
 	/* Set USB3.0 PHY TX swing strength to full level */
 	MWriteRegWord((volatile void*)0x1520cd0c, 0x7f, 0x7f);	//[6:0]=0x7f
 
-	MWriteRegWord((volatile void*)0x15200020, 0x1,0x1);	//[0]=1'b1
+	/* Enable USB3.0 PHY power */
+	MWriteRegWord((volatile void*)0x1520cd04, 0x00000000, 0xc0000000);	//[31:30]=2'b00
+
+	MWriteRegWord((volatile void*)0x15200020, 0x2,0x2);	//[1]=1'b1
 }
 
 static void sigma_xhci_stop(void)

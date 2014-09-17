@@ -3,21 +3,21 @@
 #
 config MTD_NAND_MONZA 
         bool "SigmaDesigns NAND Flash Controller driver" 
-        depends on MTD_NAND && ARCH_SIGMA_SX6 
+        depends on MTD_NAND && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7)
         help 
-         Enables NAND Flash support for SX6.
+         Enables NAND Flash support for SX6/SX7.
 
 config MTD_NAND_PHYSMAP_START
         hex "Physical start address of NAND flash mapping"
-        depends on MTD_NAND && ARCH_SIGMA_SX6 && MTD_NAND_MONZA
-default 0xfb000000
+        depends on MTD_NAND && MTD_NAND_MONZA
+	default 0xfb000000
 
 config MTD_NAND_IO_SPACE 
         hex "Physical start address of NAND IO address space"
-        depends on MTD_NAND && ARCH_SIGMA_SX6 && MTD_NAND_MONZA
-default 0xfc000000
+        depends on MTD_NAND && MTD_NAND_MONZA
+	default 0xfc000000
 
 config MTD_NAND_DMA
         bool "DMA enable"
-        depends on MTD_NAND && ARCH_SIGMA_SX6 && MTD_NAND_MONZA
-default n
+        depends on MTD_NAND && MTD_NAND_MONZA
+	default n

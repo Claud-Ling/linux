@@ -49,7 +49,7 @@
 #include <asm/mach-trifusion/trihidtv.h>
 #endif
 
-#ifdef CONFIG_ARCH_SIGMA_SX6 
+#ifdef CONFIG_ARCH_SIGMA_TRIX
 #include <plat/gmac_eth_drv.h>
 #endif
 
