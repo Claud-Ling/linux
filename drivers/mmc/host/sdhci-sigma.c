@@ -152,13 +152,13 @@ out:
 }
 static void sdhci_sx6_pinshare_init(void)
 {
-	unsigned int temp;
-#if defined(CONFIG_SIGMA_SOC_SX6) || defined(CONFIG_SIGMA_SOC_SX7)
+	unsigned int temp = 0;
 	
         /*TODO put UMAC setting to a better place.*/
 
         /*FIXME SXL SDIO port pin share. May conflict with the high speed UART pin share.*/
 #ifdef CONFIG_MMC_SDHCI1_SIGMA
+#ifdef CONFIG_SIGMA_SOC_SX6
 	temp = ReadRegByte((volatile unsigned char*)0xf500ee30);
 	temp |= 0x11;
 	temp &= 0x99;
@@ -197,8 +197,20 @@ static void sdhci_sx6_pinshare_init(void)
 	temp = ReadRegByte((volatile unsigned char*)0xf500ee41);
 	temp |= 0x10;
 	WriteRegByte((volatile unsigned char *)0xf500ee41, temp);
+#elif defined (CONFIG_SIGMA_SOC_SX7)
+	MWriteRegByte(0x1500ee27, 0x10, 0x70);
+	WriteRegByte(0x1500ee29, 0x11);
+	WriteRegByte(0x1500ee2a, 0x11);
+	WriteRegByte(0x1500ee2b, 0x11);
+	WriteRegByte(0x1500ee2c, 0x11);
+	MWriteRegByte(0x1500ee2d, 0x01, 0x03);
+#else
+	#error "unknown SoC type!"
 #endif
+#endif /*CONFIG_MMC_SDHCI1_SIGMA*/
+
 #ifdef CONFIG_MMC_SDHCI2_SIGMA
+#ifdef CONFIG_SIGMA_SOC_SX6
  //0xf500ee24[6:4] = 3¡¯h1;
 	temp = ReadRegByte((volatile unsigned char*)0xf500ee24);
         temp &= 0x8f;
@@ -232,11 +244,13 @@ static void sdhci_sx6_pinshare_init(void)
 	temp = ReadRegByte((volatile unsigned char*)0xf500e868);
         temp &= 0xfd;
         WriteRegByte((volatile unsigned char *)0xf500e868, temp);
-#endif
+#elif defined(CONFIG_SIGMA_SOC_SX7)
+	printk("[TODO] sdhci2 pinshare is required for SX7!!\n");
 #else
-
-#error "select cpu in sdio"
+	#error "unknown SoC type!"
 #endif
+
+#endif /*CONFIG_MMC_SDHCI2_SIGMA*/
 
 }
 static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)

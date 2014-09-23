@@ -53,6 +53,35 @@ extern void mcu_send_rest( void );
 
 #define SECURITY_FAIL 127
 
+#define TURING_FUSE_STATE	0x110C
+#define TURING_REG_SIZE		SZ_8K	/*actually turing reg space is 128k, but 8k is enough for use here */
+
+#ifdef CONFIG_SIGMA_SOC_SX6
+# define TURING_REG_BASE 	0xf5020000
+# define TURING_SETUP()		do{}while(0)
+# define TURING_CLEANUP()	do{}while(0)
+# define TURING_READL(a) readl((void*)(a))
+#else /*CONFIG_SIGMA_SOC_SX6*/
+static void __iomem* turing_reg_vbase = NULL;
+# define TURING_REG_BASE 0xf1040000
+# define TURING_SETUP()	do{									\
+				turing_reg_vbase = ioremap(TURING_REG_BASE, TURING_REG_SIZE);	\
+				if (!turing_reg_vbase)						\
+					pr_err("turing iomap failed!\n");			\
+			}while(0)
+# define TURING_CLEANUP() do{									\
+				if (turing_reg_vbase) iounmap(turing_reg_vbase);		\
+				turing_reg_vbase = NULL;					\
+			}while(0)
+# define TURING_READL(a) ({									\
+				long _ret = 0;							\
+				if (turing_reg_vbase && ((a)>0 && (a) < TURING_REG_SIZE))	\
+					_ret = readl((void*)(turing_reg_vbase + a));		\
+				else								\
+					pr_warn("failed to read turing reg:%x\n", (a));		\
+				_ret;								\
+			})
+#endif /*CONFIG_SIGMA_SOC_SX6*/
 
 int __initdata security_debug = 0;  /*0 = normal mode ,1 = force debug, 2 = force disable*/
 #ifndef SECURITY_BUILD_AS_MODULE
@@ -70,7 +99,7 @@ static int is_secure_enable(void)
 	int security_otp;
 	unsigned long val;	
 	
-	val = readl((void *)0xF510110C);
+	val = TURING_READL(TURING_FUSE_STATE);
 	//PDEBUG("Secure OTP val:0x%08lx\n", val);
 	security_otp = (val&0x2)?1:0;
 
@@ -380,6 +409,7 @@ EXIT:
 
 static int __init secure_check_init(void)
 {
+	TURING_SETUP();
 #ifdef CONFIG_PROC_FS
 	proc_security_init();	
 #endif
@@ -403,6 +433,7 @@ late_initcall(secure_check_init);
 #else
 static void __exit cleanup_secure_check(void)
 {
+	TURING_CLEARNUP();
 	return;
 }
 module_init(secure_check_init);

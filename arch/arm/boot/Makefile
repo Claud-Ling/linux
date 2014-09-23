@@ -55,7 +55,7 @@ $(obj)/xipImage: FORCE
 
 $(obj)/vmlinux.bin: $(obj)/Image FORCE
 	@cp $< $@ -f
-	@$(echo) '  Kernel: $@ is ready'
+	@$(kecho) '  Kernel: $@ is ready'
 
 $(obj)/Image: vmlinux FORCE
 	$(call if_changed,objcopy)
