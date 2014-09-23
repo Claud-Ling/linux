@@ -458,6 +458,16 @@ static __s32 trident_gmacEth_probe(struct platform_device *pdev)
 	 IntrMask = ReadRegWord((volatile void*)INTERRUPTCTL_REG);
 	 IntrMask |= 0x40; 	
 	 WriteRegWord((volatile void *)INTERRUPTCTL_REG, IntrMask );
+
+#if defined(CONFIG_SIGMA_SOC_SX7)
+	 WriteRegByte((volatile void *)0xf500ea2c, 0x7f); //GBE_TXEN
+	 WriteRegByte((volatile void *)0xf500ea2d, 0x7f); //GBE_TXC
+	 WriteRegByte((volatile void *)0xf500ea2e, 0x7f); //GBE_TXD0
+	 WriteRegByte((volatile void *)0xf500ea2f, 0x7f); //GBE_TXD1
+	 WriteRegByte((volatile void *)0xf500ea30, 0x7f); //GBE_TXD2
+	 WriteRegByte((volatile void *)0xf500ea31, 0x7f); //GBE_TXD3
+	 WriteRegByte((volatile void *)0xf500ea38, 0x7f); //GBE_MDC
+#endif
     dev = alloc_etherdev(sizeof( trident_gmacEth_PRIV_t));
 
     if( NULL == dev ) {
