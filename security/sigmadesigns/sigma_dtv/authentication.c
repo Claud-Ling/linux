@@ -433,7 +433,7 @@ late_initcall(secure_check_init);
 #else
 static void __exit cleanup_secure_check(void)
 {
-	TURING_CLEARNUP();
+	TURING_CLEANUP();
 	return;
 }
 module_init(secure_check_init);
