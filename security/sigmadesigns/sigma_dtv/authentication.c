@@ -32,9 +32,6 @@
 
 #include "./inc/mmc_priv.h"
 
-#ifdef CONFIG_PROC_FS
-#include "proc_security.c"
-#endif
 
 extern void mcu_send_rest( void );
 //#define SIG_DEBUG 1
@@ -82,6 +79,10 @@ static void __iomem* turing_reg_vbase = NULL;
 				_ret;								\
 			})
 #endif /*CONFIG_SIGMA_SOC_SX6*/
+
+#ifdef CONFIG_PROC_FS
+#include "proc_security.c"
+#endif
 
 int __initdata security_debug = 0;  /*0 = normal mode ,1 = force debug, 2 = force disable*/
 #ifndef SECURITY_BUILD_AS_MODULE

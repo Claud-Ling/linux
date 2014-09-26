@@ -21,6 +21,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 
+//TODO:fix the register for SX7.
 #define FC_READ_ADDR_REG 0xF5101020
 #define FC_READ_STATUS_REG 0xF5101024
 #define FC_READ_DATA0_REG 0xF5101028
@@ -160,7 +161,7 @@ static int sx6_security_proc_show(struct seq_file *m, void *v)
 	unsigned long val,i;
 	unsigned char *p = bootromkey[0];
 
-	val = readl((void *)0xF510110C);
+	val = TURING_READL(TURING_FUSE_STATE);
 	security_otp = (val&0x2)?1:0;
 
 	if(security_otp)
