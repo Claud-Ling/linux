@@ -50,14 +50,15 @@ extern void mcu_send_rest( void );
 
 #define SECURITY_FAIL 127
 
-#define TURING_FUSE_STATE	0x110C
+#define TURING_FC_2		0x110C	/*Fuction Control 2*/
 #define TURING_REG_SIZE		SZ_8K	/*actually turing reg space is 128k, but 8k is enough for use here */
 
 #ifdef CONFIG_SIGMA_SOC_SX6
-# define TURING_REG_BASE 	0xf5020000
+# define TURING_REG_BASE 	0xf5100000
 # define TURING_SETUP()		do{}while(0)
 # define TURING_CLEANUP()	do{}while(0)
-# define TURING_READL(a) readl((void*)(a))
+# define TURING_READL(a)	ReadRegWord((volatile void*)(TURING_REG_BASE + (a)))
+# define TURING_WRITEL(v,a)	WriteRegWord((volatile void*)(TURING_REG_BASE + (a)), v)
 #else /*CONFIG_SIGMA_SOC_SX6*/
 static void __iomem* turing_reg_vbase = NULL;
 # define TURING_REG_BASE 0xf1040000
@@ -72,12 +73,18 @@ static void __iomem* turing_reg_vbase = NULL;
 			}while(0)
 # define TURING_READL(a) ({									\
 				long _ret = 0;							\
-				if (turing_reg_vbase && ((a)>0 && (a) < TURING_REG_SIZE))	\
-					_ret = readl((void*)(turing_reg_vbase + a));		\
+				if (turing_reg_vbase && ((a) > 0 && (a) < TURING_REG_SIZE))	\
+					_ret = readl((volatile void*)(turing_reg_vbase + (a)));	\
 				else								\
 					pr_warn("failed to read turing reg:%x\n", (a));		\
 				_ret;								\
 			})
+# define TURING_WRITEL(v,a) do{									\
+				if (turing_reg_vbase && ((a) > 0 && (a) < TURING_REG_SIZE))	\
+					writel(v, (volatile void*)(turing_reg_vbase + (a)));	\
+				else								\
+					pr_warn("failed to write turing reg:%x\n", (a));	\
+			}while(0)
 #endif /*CONFIG_SIGMA_SOC_SX6*/
 
 #ifdef CONFIG_PROC_FS
@@ -100,7 +107,7 @@ static int is_secure_enable(void)
 	int security_otp;
 	unsigned long val;	
 	
-	val = TURING_READL(TURING_FUSE_STATE);
+	val = TURING_READL(TURING_FC_2);
 	//PDEBUG("Secure OTP val:0x%08lx\n", val);
 	security_otp = (val&0x2)?1:0;
 

@@ -83,7 +83,7 @@ static void __cpuinit sx6_secondary_init(unsigned int cpu)
 static int __cpuinit sx6_boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
     unsigned long timeout;
-    printk("[%d] %s\n",__LINE__,__func__);	
+    TRI_DBG("[%d] %s\n",__LINE__,__func__);
 
     /*
      * Set synchronisation state between this boot processor

@@ -21,13 +21,12 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 
-//TODO:fix the register for SX7.
-#define FC_READ_ADDR_REG 0xF5101020
-#define FC_READ_STATUS_REG 0xF5101024
-#define FC_READ_DATA0_REG 0xF5101028
-#define FC_READ_DATA1_REG 0xF510102C
-#define FC_READ_DATA2_REG 0xF5101030
-#define FC_READ_DATA3_REG 0xF5101034
+#define FC_READ_ADDR 	0x1020
+#define FC_READ_STATUS	0x1024
+#define FC_READ_DATA0	0x1028
+#define FC_READ_DATA1	0x102C
+#define FC_READ_DATA2	0x1030
+#define FC_READ_DATA3	0x1034
 
 static int opt_arg ;
 #define SHOW_SECURITY_ENABLE		0
@@ -98,48 +97,48 @@ int read_fuse(unsigned int fuseOffset, unsigned int bQuadWord, unsigned int* buf
 {
     int addr_reg;
     int temp;
-    // setup addr_reg for readl command
+    // setup addr_reg for read command
     addr_reg = 0xC2000000 | // set interlock to 0xC2 to indicate the start of read operation
             (fuseOffset & 0x0000FFFF); // set fuse offset to addr
-    // loop until readl is successful
+    // loop until read is successful
     do
     {
-        // initiate readl command
+        // initiate read command
         do
         {
-            // wait for readl interface to be idle
-            while ( (readl((volatile void*)FC_READ_ADDR_REG)&0xFF000000) != 0x00000000);
-            // attempt readl, then check if command was accepted
+            // wait for read interface to be idle
+            while ( (TURING_READL(FC_READ_ADDR)&0xFF000000) != 0x00000000);
+            // attempt read, then check if command was accepted
             // i.e. busy, done or invalid
-            writel(addr_reg,(volatile void*)FC_READ_ADDR_REG);
-            temp = readl((volatile void*)FC_READ_STATUS_REG);
-            // exit if readl had an error and return temp
+            TURING_WRITEL(addr_reg,FC_READ_ADDR);
+            temp = TURING_READL(FC_READ_STATUS);
+            // exit if read had an error and return temp
             if (temp & 0x000000A0) 
                 return temp;
          }while (!(temp&0x11));  // loop again if busy or done bits are not active
 
-        // wait for readl to complete
+        // wait for read to complete
         while (!(temp&0x00000010)) 
         {
-            temp = readl((volatile void*)FC_READ_STATUS_REG);
+            temp = TURING_READL(FC_READ_STATUS);
         }
         if (temp & 0x000000A0)
             return temp;
         
         // copy word to data array
-        buf[0] = readl((volatile void*)FC_READ_DATA0_REG);
-        // copy three more words if performing 128-bit readl
+        buf[0] = TURING_READL(FC_READ_DATA0);
+        // copy three more words if performing 128-bit read
         if (bQuadWord)
         {
-            buf[1] = readl((volatile void*)FC_READ_DATA1_REG);
-            buf[2] = readl((volatile void*)FC_READ_DATA2_REG);
-            buf[3] = readl((volatile void*)FC_READ_DATA3_REG);
+            buf[1] = TURING_READL(FC_READ_DATA1);
+            buf[2] = TURING_READL(FC_READ_DATA2);
+            buf[3] = TURING_READL(FC_READ_DATA3);
         }
         // check done bit one more time
-        // if it is still set then the correct data was readl from the registers
+        // if it is still set then the correct data was read from the registers
         // if it is not set then another client’s data may have overwritten
-        // data in the registers before they were readl
-    }while(0==(readl((volatile void*)FC_READ_STATUS_REG)&0x10));
+        // data in the registers before they were read
+    }while(0==(TURING_READL(FC_READ_STATUS)&0x10));
 
     return 0;
 }
@@ -161,7 +160,7 @@ static int sx6_security_proc_show(struct seq_file *m, void *v)
 	unsigned long val,i;
 	unsigned char *p = bootromkey[0];
 
-	val = TURING_READL(TURING_FUSE_STATE);
+	val = TURING_READL(TURING_FC_2);
 	security_otp = (val&0x2)?1:0;
 
 	if(security_otp)
