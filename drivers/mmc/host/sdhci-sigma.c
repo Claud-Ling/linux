@@ -32,25 +32,26 @@ void sx6_sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 	int real_div = div, clk_mul = 1;
 	u16 clk = 0;
 	unsigned long timeout;
+	struct platform_device *pdev = to_platform_device(host->mmc->parent);
 
 	struct mmc_host *mmc = host->mmc;
 	unsigned char timing = mmc->ios.timing;
 
+
 	switch(timing) {
 		case MMC_TIMING_MMC_HS:
 		case MMC_TIMING_UHS_SDR50:
-			MWriteRegWord((volatile void*)0x1b00a400, 0x1600, 0x1fff);
+			MWriteRegWord((host->ioaddr+0x400), 0x1600, 0x1fff);
 			break;
 		case MMC_TIMING_UHS_DDR50:	
-			MWriteRegWord((volatile void*)0x1b00a400, 0x1300, 0x1fff);
+			MWriteRegWord((host->ioaddr+0x400), 0x1300, 0x1fff);
 			break;
 		case MMC_TIMING_MMC_HS200:
-			MWriteRegWord((volatile void*)0x1b00a400, 0x1424, 0x1fff);
+			MWriteRegWord((host->ioaddr+0x400), 0x1424, 0x1fff);
 			break;
 		default:
 			printk("Sdhci clock=%d, no tap delay\n", clock);
 	}
-
 
 
 	sdhci_writew(host, 0, SDHCI_CLOCK_CONTROL);
@@ -114,16 +115,7 @@ void sx6_sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 
 	if (real_div)
 		host->mmc->actual_clock = (host->max_clk * clk_mul) / real_div;
-/*FIXME: SX6 SDHCI max clock is fixed at 52MHZ*/
- #ifdef CONFIG_MMC_SDHCI1_SIGMA
-/* SX6 SDHCI host max clock is 12.5 =(200/16), so mini div shoud be 8*/
-	if(div <= 8) 
-		div =8;
- #elif defined(CONFIG_MMC_SDHCI2_SIGMA)
-/* SX6 SDHCI host max clock is 50M =(200/4), so mini div shoud be 2*/
-	if(div <= 2) 
-		div = 2;
- #endif
+
 	clk |= (div & SDHCI_DIV_MASK) << SDHCI_DIVIDER_SHIFT;
 	clk |= ((div & SDHCI_DIV_HI_MASK) >> SDHCI_DIV_MASK_LEN)
 		<< SDHCI_DIVIDER_HI_SHIFT;
@@ -150,108 +142,127 @@ out:
 	host->clock = clock;
 	return;
 }
-static void sdhci_sx6_pinshare_init(void)
+static void sdhci_sx6_pinshare_init(int dev_id)
 {
-	unsigned int temp = 0;
 	
-        /*TODO put UMAC setting to a better place.*/
-
-        /*FIXME SXL SDIO port pin share. May conflict with the high speed UART pin share.*/
+	if (dev_id == 0) {
 #ifdef CONFIG_MMC_SDHCI1_SIGMA
 #ifdef CONFIG_SIGMA_SOC_SX6
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee30);
-	temp |= 0x11;
-	temp &= 0x99;
-	WriteRegByte((volatile unsigned char *)0xf500ee30, temp);
+		/*
+ 		* bit[6:4] = 001	SDIO data 1
+ 		* bit[2:0] = 001	SDIO data 0
+ 		*/
+		MWriteRegByte(0xf500ee30, 0x11, 0x77);
 
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee31);
-	temp |= 0x11;
-	temp &= 0x99;
-	WriteRegByte((volatile unsigned char *)0xf500ee31, temp);
+		/*
+ 		* bit[6:4] = 001	SDIO data 3
+ 		* bit[2:0] = 001	SDIO data 2
+ 		*/
+		MWriteRegByte(0xf500ee31, 0x11, 0x77);
+
+		/*
+ 		* bit[6:4] = 011	SDIO CD
+ 		*/
+		MWriteRegByte(0xf500ee20, 0x30, 0x70);
+
+		/*
+ 		* bit[2:0] = 011	SDIO WP
+ 		*/
+		MWriteRegByte(0xf500ee21, 0x03, 0x07);
+
+		/*
+ 		* bit[2:0] = 010	SDIO CLK
+ 		* bit[6:4] = 010	SDIO CMD
+ 		*/
+		MWriteRegByte(0xf500ee3b, 0x22, 0x77);
 	
-	//SDIO_CD
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee20);
-	temp |= 0x30;
-	temp &= 0xbf;
-	WriteRegByte((volatile unsigned char *)0xf500ee20, temp);
-	//SDIO_WP
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee21);
-	temp |= 0x03;
-	temp &= 0xfb;
-	WriteRegByte((volatile unsigned char *)0xf500ee21, temp);
-//SDIO_CLK
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee3b);
-	temp |= 0x2;
-	temp &= 0xfa;
-	WriteRegByte((volatile unsigned char *)0xf500ee3b, temp);
-//SDIO_CMD
-	
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee3b);
-	temp |= 0x20;
-	temp &= 0xaf;
-	WriteRegByte((volatile unsigned char *)0xf500ee3b, temp);
-// input pin share
-	temp = ReadRegByte((volatile unsigned char*)0xf500e868);
-	temp |= 0x2;
-	WriteRegByte((volatile unsigned char *)0xf500e868, temp);
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee41);
-	temp |= 0x10;
-	WriteRegByte((volatile unsigned char *)0xf500ee41, temp);
+		/*
+ 		* bit[1] = 1	Select IO for function sdin of SDIO
+ 		*/
+		MWriteRegByte(0xf500e868, 0x02, 0x02);
+
+		/*
+ 		* bit[4] = 1	Select IO for function sdin of SDIO
+ 		*/
+		MWriteRegByte(0xf500ee41, 0x10, 0x10);
+
 #elif defined (CONFIG_SIGMA_SOC_SX7)
-	MWriteRegByte(0x1500ee27, 0x10, 0x70);
-	WriteRegByte(0x1500ee29, 0x11);
-	WriteRegByte(0x1500ee2a, 0x11);
-	WriteRegByte(0x1500ee2b, 0x11);
-	WriteRegByte(0x1500ee2c, 0x11);
-	MWriteRegByte(0x1500ee2d, 0x01, 0x03);
+		WriteRegByte(0x1500ee23, 0x22);
+		WriteRegByte(0x1500ee34, 0x11);
+		WriteRegByte(0x1500ee35, 0x11);
+		WriteRegByte(0x1500ee3f, 0x22);
 #else
 	#error "unknown SoC type!"
 #endif
 #endif /*CONFIG_MMC_SDHCI1_SIGMA*/
+	}
 
+	if (dev_id == 1) {
 #ifdef CONFIG_MMC_SDHCI2_SIGMA
 #ifdef CONFIG_SIGMA_SOC_SX6
- //0xf500ee24[6:4] = 3¡¯h1;
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee24);
-        temp &= 0x8f;
-        temp |= 0x10; 
-        WriteRegByte((volatile unsigned char *)0xf500ee24, temp);
+		/*
+ 		* bit[6:4] = 001	SDIO_2 data 0
+ 		*/
+		MWriteRegByte(0xf500ee24, 0x10, 0x70);
 	
-        WriteRegByte((volatile unsigned char *)0xf500ee25, 0x11);
-        WriteRegByte((volatile unsigned char *)0xf500ee26, 0x11);
-        WriteRegByte((volatile unsigned char *)0xf500ee27, 0x11);
-        WriteRegByte((volatile unsigned char *)0xf500ee28, 0x11);
+		/*
+ 		* bit[6:4] = 001	SDIO data 2
+ 		* bit[2:0] = 001	SDIO data 1
+ 		*/
+		MWriteRegByte(0xf500ee25, 0x11, 0x77);
 
-	//0xf500ee29[2:0] = 3¡¯h1;
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee29);
-        temp &=0xf8;
-        temp |= 0x01;
-        WriteRegByte((volatile unsigned char *)0xf500ee29, temp);
+		/*
+ 		* bit[6:4] = 001	SDIO data 4
+ 		* bit[2:0] = 001	SDIO data 3
+ 		*/
+		MWriteRegByte(0xf500ee26, 0x11, 0x77);
 
-	 //0xf500ee20[6:4] = 3¡¯h3;
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee20);
-        temp &=0x8f;
-        temp |= 0x30;
-        WriteRegByte((volatile unsigned char *)0xf500ee20, temp);
+		/*
+ 		* bit[6:4] = 001	SDIO data 6
+ 		* bit[2:0] = 001	SDIO data 5
+ 		*/
+		MWriteRegByte(0xf500ee27, 0x11, 0x77);
 
-    //0xf500ee41[3:2] = 2¡¯h2;
-	temp = ReadRegByte((volatile unsigned char*)0xf500ee41);
-        temp &=0xf3;
-        temp |= 0x08;
-        WriteRegByte((volatile unsigned char *)0xf500ee41, temp);
+		/*
+ 		* bit[6:4] = 001	SDIO CLK
+ 		* bit[2:0] = 001	SDIO data 7
+ 		*/
+		MWriteRegByte(0xf500ee28, 0x11, 0x77);
+
+		/*
+ 		* bit[2:0] = 001	SDIO CMD
+ 		*/
+		MWriteRegByte(0xf500ee29, 0x01, 0x07);
+
+		/*
+ 		* bit[6:4] = 011	SDIO CD
+ 		*/
+		MWriteRegByte(0xf500ee20, 0x30, 0x70);
+
+		/*
+ 		* bit[3:2] = 10		Select IO for function SDCDN in of SDIO
+ 		*/
+		MWriteRegByte(0xf500ee41, 0x08, 0x0c);
 	
-	//0xf500e868[1] = 0
-	temp = ReadRegByte((volatile unsigned char*)0xf500e868);
-        temp &= 0xfd;
-        WriteRegByte((volatile unsigned char *)0xf500e868, temp);
+		/*
+ 		* bit[1] = 0		Select IO for function sdin of SDIO
+ 		*/
+		MWriteRegByte(0xf500e868, 0x00, 0x02);
+
 #elif defined(CONFIG_SIGMA_SOC_SX7)
-	printk("[TODO] sdhci2 pinshare is required for SX7!!\n");
+		MWriteRegByte(0x1500ee27, 0x10, 0x70);
+		WriteRegByte(0x1500ee29, 0x11);
+		WriteRegByte(0x1500ee2a, 0x11);
+		WriteRegByte(0x1500ee2b, 0x11);
+		WriteRegByte(0x1500ee2c, 0x11);
+		MWriteRegByte(0x1500ee2d, 0x01, 0x03);
 #else
 	#error "unknown SoC type!"
 #endif
-
 #endif /*CONFIG_MMC_SDHCI2_SIGMA*/
+	}
 
+	return;
 }
 static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 {
@@ -260,7 +271,7 @@ static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 	struct sdhci_trihidtv_chip *chip;
 	resource_size_t addr;
 
-	sdhci_sx6_pinshare_init();
+	sdhci_sx6_pinshare_init(pdev->id);
 
 	if(pdev->resource[1].flags != IORESOURCE_IRQ){
 		printk(KERN_ERR "resource[1] is not IORESOURCE_IRQ");
@@ -298,23 +309,23 @@ static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 
 	host->irq = pdev->resource[1].start;
 	addr = pdev->resource[0].start;
-	//host->ioaddr = ioremap_nocache(addr, 0x1000);
 	host->ioaddr = (void __iomem *)addr;
-	//printk("%s sdhci addr %x\n",__func__,addr);
 	if(!host->ioaddr){
 		dev_err(&pdev->dev, "failed to remap registers\n");
 		goto free2;
 	}
 	
-#ifdef CONFIG_MMC_SDHCI2_SIGMA
-	host->mmc->caps |=MMC_CAP_8_BIT_DATA;
-#endif
+	if (pdev->id == 1) {
+		host->mmc->caps |=MMC_CAP_8_BIT_DATA;
+	} else {
+		host->mmc->caps |=MMC_CAP_4_BIT_DATA;
+	}
 	retval = sdhci_add_host(host);
 	if(!retval){
-#ifdef CONFIG_MMC_SDHCI2_SIGMA
-//		host->mmc->caps2 |= MMC_CAP2_HS200;
-		host->mmc->caps |= MMC_CAP_1_8V_DDR;
-#endif
+		if (pdev->id == 1) {
+		//	host->mmc->caps2 |= MMC_CAP2_HS200;
+			host->mmc->caps |= MMC_CAP_1_8V_DDR;
+		}
 		return 0;
 	}
 free2:
@@ -356,8 +367,9 @@ static int sdhci_sx6_resume(struct device *dev)
 {
 	struct sdhci_trihidtv_chip *chip = dev_get_drvdata(dev);
 	struct sdhci_host *host = chip->host;
+	struct platform_device *pdev = to_platform_device(dev);
 
-	sdhci_sx6_pinshare_init();
+	sdhci_sx6_pinshare_init(pdev->id);
 
 	return sdhci_resume_host(host);
 }

@@ -73,10 +73,18 @@
 #define TRIHIDTV_TIMER_1_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 25)
 
 #define TRIHIDTV_FLASH_INTERRUPT                      (TRIHIDTV_EIC_IRQ_BASE + 26)
+#if defined (CONFIG_SIGMA_SOC_SX6)
 #define TRIHIDTV_HS_UART_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 27)
+#elif defined (CONFIG_SIGMA_SOC_SX7)
+#define TRIHIDTV_SDIO_0_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 27)
+#endif
+#if defined (CONFIG_SIGMA_SOC_SX6) && defined (CONFIG_MMC_SDHCI1_SIGMA)
+#define TRIHIDTV_SDIO_0_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 30)
+#endif
 #define TRIHIDTV_CA_INTERRUPT                         (TRIHIDTV_EIC_IRQ_BASE + 28)
 #define TRIHIDTV_ETHERNET_INTERRUPT                   (TRIHIDTV_EIC_IRQ_BASE + 29)
-#define TRIHIDTV_SDIO_0_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 30)
+
+#define TRIHIDTV_SDIO_1_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 30)
 
 #define TRIHIDTV_MDISP_RES_CH1                        (TRIHIDTV_EIC_IRQ_BASE + 31)
 #define TRIHIDTV_GPIO_INTERRUPT                       (TRIHIDTV_EIC_IRQ_BASE + 32)

@@ -57,16 +57,31 @@ static struct resource sigma_usb_xhci_resources[] = {
        },
 };
 
-#if defined(CONFIG_MMC_SDHCI1_SIGMA) || defined(CONFIG_MMC_SDHCI2_SIGMA)
-static struct resource sigma_sdhci_resources[] = {
+#if defined(CONFIG_MMC_SDHCI1_SIGMA)
+static struct resource sigma_sdhci_1_resources[] = {
         [0] = { 
-                .start          = SIGMA_SDHCI_BASE,
-                .end            = SIGMA_SDHCI_BASE + SIGMA_SDHCI_LEN - 1,
+                .start          = SIGMA_SDHCI_1_BASE,
+                .end            = SIGMA_SDHCI_1_BASE + SIGMA_SDHCI_1_LEN - 1,
                 .flags          = IORESOURCE_MEM,
         },      
         [1] = { 
                 .start          = TRIHIDTV_SDIO_0_INTERRUPT,
                 .end            = TRIHIDTV_SDIO_0_INTERRUPT,
+                .flags          = IORESOURCE_IRQ,
+        },      
+};
+#endif
+
+#if defined(CONFIG_MMC_SDHCI2_SIGMA)
+static struct resource sigma_sdhci_2_resources[] = {
+        [0] = { 
+                .start          = SIGMA_SDHCI_2_BASE,
+                .end            = SIGMA_SDHCI_2_BASE + SIGMA_SDHCI_2_LEN - 1,
+                .flags          = IORESOURCE_MEM,
+        },      
+        [1] = { 
+                .start          = TRIHIDTV_SDIO_1_INTERRUPT,
+                .end            = TRIHIDTV_SDIO_1_INTERRUPT,
                 .flags          = IORESOURCE_IRQ,
         },      
 };
@@ -107,16 +122,29 @@ static struct platform_device sigma_usb_ehci2_device = {
        .resource       = sigma_usb_ehci2_resources,
 };
 
-#if defined(CONFIG_MMC_SDHCI1_SIGMA) || defined(CONFIG_MMC_SDHCI2_SIGMA)
-static struct platform_device sigma_sdhci_device = { 
+#if defined(CONFIG_MMC_SDHCI1_SIGMA) 
+static struct platform_device sigma_sdhci_1_device = { 
        .name           = "sigma-sdhci",
        .id             = 0,    
        .dev = {
                .dma_mask               = &ehci_dmamask,
                .coherent_dma_mask      = 0xffffffff,
        },      
-       .num_resources  = ARRAY_SIZE(sigma_sdhci_resources),
-       .resource       = sigma_sdhci_resources,
+       .num_resources  = ARRAY_SIZE(sigma_sdhci_1_resources),
+       .resource       = sigma_sdhci_1_resources,
+};
+#endif
+
+#if defined(CONFIG_MMC_SDHCI2_SIGMA)
+static struct platform_device sigma_sdhci_2_device = { 
+       .name           = "sigma-sdhci",
+       .id             = 1,    
+       .dev = {
+               .dma_mask               = &ehci_dmamask,
+               .coherent_dma_mask      = 0xffffffff,
+       },      
+       .num_resources  = ARRAY_SIZE(sigma_sdhci_2_resources),
+       .resource       = sigma_sdhci_2_resources,
 };
 #endif
 
@@ -145,8 +173,11 @@ static struct platform_device *sigma_platform_devices[] __initdata = {
 	&sigma_usb_ehci2_device,
 
 	&sigma_usb_xhci_device,
-#if defined(CONFIG_MMC_SDHCI1_SIGMA)||defined(CONFIG_MMC_SDHCI2_SIGMA)
-	&sigma_sdhci_device,
+#if defined(CONFIG_MMC_SDHCI2_SIGMA)
+	&sigma_sdhci_2_device,
+#endif
+#if defined(CONFIG_MMC_SDHCI1_SIGMA)
+	&sigma_sdhci_1_device,
 #endif
 	&sigma_pmu_device,
 };

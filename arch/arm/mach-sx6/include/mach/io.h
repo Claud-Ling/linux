@@ -34,5 +34,14 @@
 #define SIGMA_XHCI_LEN     0xc00
 #define SIGMA_XHCI_PTR               IO_PTR(SIGMA_SX6_XHCI_BASE)
 
-#define SIGMA_SDHCI_BASE             0xfb00a000
-#define SIGMA_SDHCI_LEN              0x100
+#if defined(CONFIG_SIGMA_SOC_SX6)
+#define SIGMA_SDHCI_1_BASE             0xfb00a000
+#define SIGMA_SDHCI_1_LEN              0x100
+#else
+#define SIGMA_SDHCI_1_BASE             0xfb00c000
+#define SIGMA_SDHCI_1_LEN              0x100
+#endif
+
+#define SIGMA_SDHCI_2_BASE             0xfb00a000
+#define SIGMA_SDHCI_2_LEN              0x100
+
