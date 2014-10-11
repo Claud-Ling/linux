@@ -63,45 +63,50 @@ static void __iomem *l2c_base = NULL;
 void sx6_smc_l2x0_enable(void)
 {
 	/* Disable PL310 L2 Cache controller */
-	if ( !security_state )
-		sigma_dtv_smc1(ARMOR_SMCCALL_SET_L2_CONTROL, 0x1);
-	else
+	if ( security_state ) {
 		writel_relaxed(1, GET_L2C_BASE + L2X0_CTRL);
+	} else {
+		armor_smc_set_l2_control(1);
+	}
 }
 void sx6_smc_l2x0_disable(void)
 {
 	/* Disable PL310 L2 Cache controller */
-	if ( !security_state )
-		sigma_dtv_smc1(ARMOR_SMCCALL_SET_L2_CONTROL, 0x0);
-	else
+	if ( security_state ) {
 		writel_relaxed(0, GET_L2C_BASE + L2X0_CTRL);
+	} else {
+		armor_smc_set_l2_control(0);
+	}
 }
 
 void sx6_smc_l2x0_set_auxctrl(unsigned long val)
 {
 	/* Set L2 Cache auxiliary control register */
-	if ( !security_state )
-		sigma_dtv_smc1(ARMOR_SMCCALL_SET_L2_AUX_CONTROL, val);
-	else
+	if ( security_state ) {
 		writel_relaxed(val, GET_L2C_BASE + L2X0_AUX_CTRL);
+	} else {
+		armor_smc_set_l2_aux_control(val);
+	}
 }
 
 void sx6_smc_l2x0_set_debug(unsigned long val)
 {
 	/* Program PL310 L2 Cache controller debug register */
-	if ( !security_state )
-		sigma_dtv_smc1(ARMOR_SMCCALL_SET_L2_AUX_DEBUG, val);
-	else
+	if ( security_state ) {
 		writel_relaxed(val, GET_L2C_BASE + L2X0_DEBUG_CTRL);
+	} else {
+		armor_smc_set_l2_debug(val);
+	}
 }
 
 void sx6_smc_l2x0_set_prefetchctrl(unsigned long val)
 {
 	/* Program PL310 L2 Cache controller prefetch control register */
-	if ( !security_state )
-		;//TODO: sigma_dtv_smc1(ARMOR_SMCCALL_SET_L2_PREFETCH_CTRL, val);
-	else
+	if ( security_state ) {
 		writel_relaxed(val, GET_L2C_BASE + L2X0_PREFETCH_CTRL);
+	} else {
+		armor_smc_set_l2_reg(L2X0_PREFETCH_CTRL, val);
+	}
 }
 #endif
 
@@ -113,10 +118,10 @@ void sx6_smc_l2x0_set_prefetchctrl(unsigned long val)
 void sx6_smc_set_actlr(unsigned long val)
 {
 	/* Program PL310 L2 Cache controller debug register */
-	if ( !security_state )
-		;				/*armor N/A yet*/
-	else
+	if ( security_state )
 		__asm__ __volatile__("mcr	p15, 0, %0, c1, c0, 1": : "r" (val):);
+	else
+		;				/*armor N/A yet*/
 }
 
 static int __init sigma_smc_init(void)

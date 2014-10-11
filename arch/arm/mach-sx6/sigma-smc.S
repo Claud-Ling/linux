@@ -19,17 +19,42 @@
 
 #include <linux/linkage.h>
 
-/* void sigma_dtv_smc1(int code, int arg)
+/* void sigma_trix_smc1(int arg, int code)
  * beware: this has been copied from
  * repo/hwdep_xos/xos/xboot4/armuk/boot/armuk_asm.S
- * Report any modification over there! 
+ * Report any modification over there!
  */
-ENTRY(sigma_dtv_smc1)
+ENTRY(sigma_trix_smc1)
 	stmfd	sp!, {r2 - r12, lr}
-	mov     ip, r0
-	mov     r0, r1
+	mov     ip, r1
 	dsb
 	smc	#0
 	ldmfd	sp!, {r2 - r12, pc}
-ENDPROC(sigma_dtv_smc1)
+ENDPROC(sigma_trix_smc1)
+
+/* void sigma_trix_smc2(int arg0, int arg1, int code)
+ * beware: this has been copied from
+ * repo/hwdep_xos/xos/xboot4/armuk/boot/armuk_asm.S
+ * Report any modification over there!
+ */
+ENTRY(sigma_trix_smc2)
+	stmfd	sp!, {r3 - r12, lr}
+	mov     ip, r2
+	dsb
+	smc	#0
+	ldmfd	sp!, {r3 - r12, pc}
+ENDPROC(sigma_trix_smc2)
+
+/* void sigma_trix_smc3(int arg0, int arg1, int arg2, int code)
+ * beware: this has been copied from
+ * repo/hwdep_xos/xos/xboot4/armuk/boot/armuk_asm.S
+ * Report any modification over there!
+ */
+ENTRY(sigma_trix_smc3)
+	stmfd	sp!, {r4 - r12, lr}
+	mov     ip, r3
+	dsb
+	smc	#0
+	ldmfd	sp!, {r4 - r12, pc}
+ENDPROC(sigma_trix_smc3)
 
