@@ -20,7 +20,7 @@ static void trihidtv_start_ehc(struct platform_device *dev)
         pr_debug(__FILE__ ": starting TriHidtv EHCI USB Controller\n");
 	if(dev->id == 0)
         {
-		printk("USB EHCI%d %s____%d\n", dev->id,__func__, __LINE__);
+		pr_debug("USB EHCI%d %s____%d\n", dev->id,__func__, __LINE__);
 		temp = ReadRegByte((void *)0xf500ee23);
 		temp &= 0x8f;//bit[6:4]
 		WriteRegByte((void *)0xf500ee23, temp);
@@ -36,7 +36,7 @@ static void trihidtv_start_ehc(struct platform_device *dev)
 	
 	}
 	if(dev->id == 1){
-		printk("USB EHCI%d %s____%d\n", dev->id,__func__, __LINE__);
+		pr_debug("USB EHCI%d %s____%d\n", dev->id,__func__, __LINE__);
 	/*	temp = ReadRegByte((void *)0xf500ee1e);
 		temp |= 0x30;//bit[6:4]
 		WriteRegByte((void *)0xf500ee1e, temp);*/
@@ -196,7 +196,6 @@ static int ehci_hcd_trihidtv_drv_probe(struct platform_device *pdev)
 	int ret;
 
 	pr_debug("In ehci_hcd_trihidtv_drv_probe\n");
-	printk("In ehci_hcd_trihidtv_drv_probe\n");
 
 	if (usb_disabled())
 		return -ENODEV;

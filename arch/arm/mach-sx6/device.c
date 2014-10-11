@@ -149,16 +149,33 @@ static struct platform_device sigma_sdhci_2_device = {
 #endif
 
 static struct resource sigma_pmu_resources[] = {
-        [0] = {
-                .start          = TRIHIDTV_A9_CPU0_PTM_INTERRUPT,
-                .end            = TRIHIDTV_A9_CPU0_PTM_INTERRUPT,
+        {
+                .start          = TRIHIDTV_A9_CPU0_PMU_INTERRUPT,
+                .end            = TRIHIDTV_A9_CPU0_PMU_INTERRUPT,
                 .flags          = IORESOURCE_IRQ,
         },
-        [1] = {
-                .start          = TRIHIDTV_A9_CPU1_PTM_INTERRUPT,
-                .end            = TRIHIDTV_A9_CPU1_PTM_INTERRUPT,
+#if CONFIG_NR_CPUS > 1
+        {
+                .start          = TRIHIDTV_A9_CPU1_PMU_INTERRUPT,
+                .end            = TRIHIDTV_A9_CPU1_PMU_INTERRUPT,
                 .flags          = IORESOURCE_IRQ,
         },
+#endif
+#if CONFIG_NR_CPUS > 2
+        {
+                .start          = TRIHIDTV_A9_CPU2_PMU_INTERRUPT,
+                .end            = TRIHIDTV_A9_CPU2_PMU_INTERRUPT,
+                .flags          = IORESOURCE_IRQ,
+        },
+        {
+                .start          = TRIHIDTV_A9_CPU3_PMU_INTERRUPT,
+                .end            = TRIHIDTV_A9_CPU3_PMU_INTERRUPT,
+                .flags          = IORESOURCE_IRQ,
+        },
+#endif
+#if CONFIG_NR_CPUS > 4
+# error "Not support NR_CPUS > 4 yet!"
+#endif
 };
 
 static struct platform_device sigma_pmu_device = {

@@ -32,7 +32,7 @@ void sx6_sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 	int real_div = div, clk_mul = 1;
 	u16 clk = 0;
 	unsigned long timeout;
-	struct platform_device *pdev = to_platform_device(host->mmc->parent);
+	//struct platform_device *pdev = to_platform_device(host->mmc->parent);
 
 	struct mmc_host *mmc = host->mmc;
 	unsigned char timing = mmc->ios.timing;
@@ -41,16 +41,16 @@ void sx6_sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 	switch(timing) {
 		case MMC_TIMING_MMC_HS:
 		case MMC_TIMING_UHS_SDR50:
-			MWriteRegWord((host->ioaddr+0x400), 0x1600, 0x1fff);
+			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1600, 0x1fff);
 			break;
 		case MMC_TIMING_UHS_DDR50:	
-			MWriteRegWord((host->ioaddr+0x400), 0x1300, 0x1fff);
+			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1300, 0x1fff);
 			break;
 		case MMC_TIMING_MMC_HS200:
-			MWriteRegWord((host->ioaddr+0x400), 0x1424, 0x1fff);
+			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1424, 0x1fff);
 			break;
 		default:
-			printk("Sdhci clock=%d, no tap delay\n", clock);
+			pr_debug("Sdhci clock=%d, no tap delay\n", clock);
 	}
 
 
@@ -152,45 +152,45 @@ static void sdhci_sx6_pinshare_init(int dev_id)
  		* bit[6:4] = 001	SDIO data 1
  		* bit[2:0] = 001	SDIO data 0
  		*/
-		MWriteRegByte(0xf500ee30, 0x11, 0x77);
+		MWriteRegByte((void*)0x1500ee30, 0x11, 0x77);
 
 		/*
  		* bit[6:4] = 001	SDIO data 3
  		* bit[2:0] = 001	SDIO data 2
  		*/
-		MWriteRegByte(0xf500ee31, 0x11, 0x77);
+		MWriteRegByte((void*)0x1500ee31, 0x11, 0x77);
 
 		/*
  		* bit[6:4] = 011	SDIO CD
  		*/
-		MWriteRegByte(0xf500ee20, 0x30, 0x70);
+		MWriteRegByte((void*)0x1500ee20, 0x30, 0x70);
 
 		/*
  		* bit[2:0] = 011	SDIO WP
  		*/
-		MWriteRegByte(0xf500ee21, 0x03, 0x07);
+		MWriteRegByte((void*)0x1500ee21, 0x03, 0x07);
 
 		/*
  		* bit[2:0] = 010	SDIO CLK
  		* bit[6:4] = 010	SDIO CMD
  		*/
-		MWriteRegByte(0xf500ee3b, 0x22, 0x77);
+		MWriteRegByte((void*)0x1500ee3b, 0x22, 0x77);
 	
 		/*
  		* bit[1] = 1	Select IO for function sdin of SDIO
  		*/
-		MWriteRegByte(0xf500e868, 0x02, 0x02);
+		MWriteRegByte((void*)0x1500e868, 0x02, 0x02);
 
 		/*
  		* bit[4] = 1	Select IO for function sdin of SDIO
  		*/
-		MWriteRegByte(0xf500ee41, 0x10, 0x10);
+		MWriteRegByte((void*)0x1500ee41, 0x10, 0x10);
 
 #elif defined (CONFIG_SIGMA_SOC_SX7)
-		WriteRegByte(0x1500ee23, 0x22);
-		WriteRegByte(0x1500ee34, 0x11);
-		WriteRegByte(0x1500ee35, 0x11);
-		WriteRegByte(0x1500ee3f, 0x22);
+		WriteRegByte((void*)0x1500ee23, 0x22);
+		WriteRegByte((void*)0x1500ee34, 0x11);
+		WriteRegByte((void*)0x1500ee35, 0x11);
+		WriteRegByte((void*)0x1500ee3f, 0x22);
 #else
 	#error "unknown SoC type!"
 #endif
@@ -203,59 +203,59 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 		/*
  		* bit[6:4] = 001	SDIO_2 data 0
  		*/
-		MWriteRegByte(0xf500ee24, 0x10, 0x70);
+		MWriteRegByte((void*)0x1500ee24, 0x10, 0x70);
 	
 		/*
  		* bit[6:4] = 001	SDIO data 2
  		* bit[2:0] = 001	SDIO data 1
  		*/
-		MWriteRegByte(0xf500ee25, 0x11, 0x77);
+		MWriteRegByte((void*)0x1500ee25, 0x11, 0x77);
 
 		/*
  		* bit[6:4] = 001	SDIO data 4
  		* bit[2:0] = 001	SDIO data 3
  		*/
-		MWriteRegByte(0xf500ee26, 0x11, 0x77);
+		MWriteRegByte((void*)0x1500ee26, 0x11, 0x77);
 
 		/*
  		* bit[6:4] = 001	SDIO data 6
  		* bit[2:0] = 001	SDIO data 5
  		*/
-		MWriteRegByte(0xf500ee27, 0x11, 0x77);
+		MWriteRegByte((void*)0x1500ee27, 0x11, 0x77);
 
 		/*
  		* bit[6:4] = 001	SDIO CLK
  		* bit[2:0] = 001	SDIO data 7
  		*/
-		MWriteRegByte(0xf500ee28, 0x11, 0x77);
+		MWriteRegByte((void*)0x1500ee28, 0x11, 0x77);
 
 		/*
  		* bit[2:0] = 001	SDIO CMD
  		*/
-		MWriteRegByte(0xf500ee29, 0x01, 0x07);
+		MWriteRegByte((void*)0x1500ee29, 0x01, 0x07);
 
 		/*
  		* bit[6:4] = 011	SDIO CD
  		*/
-		MWriteRegByte(0xf500ee20, 0x30, 0x70);
+		MWriteRegByte((void*)0x1500ee20, 0x30, 0x70);
 
 		/*
  		* bit[3:2] = 10		Select IO for function SDCDN in of SDIO
  		*/
-		MWriteRegByte(0xf500ee41, 0x08, 0x0c);
+		MWriteRegByte((void*)0x1500ee41, 0x08, 0x0c);
 	
 		/*
  		* bit[1] = 0		Select IO for function sdin of SDIO
  		*/
-		MWriteRegByte(0xf500e868, 0x00, 0x02);
+		MWriteRegByte((void*)0x1500e868, 0x00, 0x02);
 
 #elif defined(CONFIG_SIGMA_SOC_SX7)
-		MWriteRegByte(0x1500ee27, 0x10, 0x70);
-		WriteRegByte(0x1500ee29, 0x11);
-		WriteRegByte(0x1500ee2a, 0x11);
-		WriteRegByte(0x1500ee2b, 0x11);
-		WriteRegByte(0x1500ee2c, 0x11);
-		MWriteRegByte(0x1500ee2d, 0x01, 0x03);
+		MWriteRegByte((void*)0x1500ee27, 0x10, 0x70);
+		WriteRegByte((void*)0x1500ee29, 0x11);
+		WriteRegByte((void*)0x1500ee2a, 0x11);
+		WriteRegByte((void*)0x1500ee2b, 0x11);
+		WriteRegByte((void*)0x1500ee2c, 0x11);
+		MWriteRegByte((void*)0x1500ee2d, 0x01, 0x03);
 #else
 	#error "unknown SoC type!"
 #endif
