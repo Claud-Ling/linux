@@ -90,7 +90,7 @@ config MMC_SDHCI1_SIGMA
 
 config MMC_SDHCI2_SIGMA
 	tristate "Sigma Designs SDHCI2 support"
-	depends on MMC_SDHCI && !SIGMA_DTV_ROM_SLC && !SIGMA_DTV_ROM_MLC && SIGMA_DTV
+	depends on MMC_SDHCI && !SIGMA_DTV_ROM_NAND && SIGMA_DTV
 	select MMC_SDHCI_SIGMA_DTV
 	help
 	  This selects Sigma designs SOC sdhci2.

@@ -34,8 +34,10 @@ int bch_encode_end(unsigned int ecc[],struct nand_chip *chip)
 	int err = 0;
 	int i;
 
-	unsigned int times = chip->ecc.bytes >> 2;
-	unsigned short ecc_remain;
+        unsigned int times = (ALIGN(chip->ecc.bytes, 4) >> 2) - 1;
+        unsigned int ecc_align = ALIGN(chip->ecc.bytes, 4) - chip->ecc.bytes;
+        unsigned int ecc_align_mask[4] = {0xFFFFFFFF,0x00FFFFFF,0x0000FFFF,0x000000FF};
+
 	unsigned long deadline = jiffies + MONZA_ECC_BUSY_WAIT_TIMEOUT;	
 	
 	do{
@@ -52,12 +54,10 @@ int bch_encode_end(unsigned int ecc[],struct nand_chip *chip)
 		goto exit;
 	}
 
-	for(i = 0; i < times; i ++)
+	for(i = 0; i <= times; i ++)
 		ecc[i] = nand_readl( info, REG_BCH_ECC_DATA_0 + (i<<2) );
 
-	ecc_remain = (unsigned short)nand_readl(info, (REG_BCH_ECC_DATA_0 + (i<<2)))&0x0000ffff;
-	*(unsigned short *)(ecc+i) = ecc_remain;	
-	 
+	ecc[times] &= ecc_align_mask[ecc_align];
 exit:
     // clear MCL encoder
     nand_writel(info, MLC_ECC_REG_CONTROL, 0x102);
@@ -97,23 +97,24 @@ void bch_decode_start(unsigned int ecc[],struct nand_chip * chip)
 	unsigned int i;
 	unsigned int ecc_unit  = (chip->ecc.size >> 9) & 0x3; /*[3:2] 01-512bytes 10-1024bytes*/
 	unsigned int ecc_level = chip->ecc.strength & 0x1F;   /*[9:4] ecc level*/	
-	unsigned int times     = chip->ecc.bytes >> 2;
-	unsigned short ecc_remain;
+
+        unsigned int times = (ALIGN(chip->ecc.bytes, 4) >> 2) - 1;
+        unsigned int ecc_align = ALIGN(chip->ecc.bytes, 4) - chip->ecc.bytes;
+        unsigned int ecc_align_mask[4] = {0xFFFFFFFF,0x00FFFFFF,0x0000FFFF,0x000000FF};
+
+        ecc[times] &= ecc_align_mask[ecc_align];
 
 	nand_writel(info, REG_BCH_ECC_CONTROL, 0x3 + (ecc_unit<<2) + (ecc_level<<4));
 	
 	nand_writel(info, MLC_ECC_REG_CONTROL, 0x108);
 	nand_writel(info, MLC_ECC_REG_CONTROL, 0x104);
 	
-	for(i = 0; i < times; i ++)
+	for(i = 0; i <= times; i ++)
 		nand_writel(info ,(REG_BCH_ECC_DATA_0 + (i<<2)), ecc[i]);
-
-	ecc_remain = *((unsigned short *)(ecc+i));
-	nand_writel(info, (REG_BCH_ECC_DATA_0 + (i<<2)), ecc_remain);
 }
 
 
-int bch_decode_end_correct(struct mtd_info *mtd,unsigned char* pBuff,struct nand_chip * chip)
+int bch_decode_end_correct_old(struct mtd_info *mtd,unsigned char* pBuff,struct nand_chip * chip)
 {
 	struct monza_nand_info *info = container_of(chip,
 						struct monza_nand_info, nand);
@@ -205,3 +206,96 @@ exit:
     return err;
 }
 
+
+int bch_decode_end_correct_new(struct mtd_info *mtd,unsigned char* pBuff,struct nand_chip * chip)
+{
+	struct monza_nand_info *info = container_of(chip,
+						struct monza_nand_info, nand);
+	int err = 0;
+	unsigned int status;
+	unsigned int bitnum;
+	
+	uint8_t *read_ecc = chip->buffers->ecccode;  
+	unsigned int dwCorrection;
+	unsigned int correction;
+	unsigned long deadline = jiffies + MONZA_ECC_BUSY_WAIT_TIMEOUT;
+	
+	do{
+		if(nand_readl(info, REG_BCH_ECC_STATUS) & ECC_STATUS_CORRECTION_VALID)
+			break;
+		else
+			cond_resched();
+	}while (!time_after_eq(jiffies, deadline));    
+
+	if (time_after_eq(jiffies, deadline))
+	{
+		printk("ecc decode timed out\n");
+		err = -ETIMEDOUT;
+		goto exit;
+	}
+	
+	//ecc check 
+	status = nand_readl(info, REG_BCH_ECC_STATUS);
+	if (unlikely(status & ECC_STATUS_UNCORRECTABLE_ERR))
+	{
+                /*
+                 * This is a temporary erase check. A newly erased page read
+                 * would result in an ecc error because the oob data is also
+                 * erased to FF and the calculated ecc for an FF data is not
+                 * FF..FF.
+                 * This is a workaround to skip performing correction in case
+                 * data is FF..FF
+                 *
+                 * Logic:
+                 * For every page, each bit written as 0 is counted until these
+                 * number of bits are greater than ecc level(8bits,24bits) (the maximum correction
+                 * capability of ECC for each page + oob bytes)
+                 */
+		int bits_ecc = count_written_bits(read_ecc, chip->ecc.bytes, chip->ecc.strength);
+		int bits_data = count_written_bits(pBuff, chip->ecc.size, chip->ecc.strength);
+		if ((bits_ecc + bits_data) <= chip->ecc.strength) 
+		{
+			if (bits_data){
+				memset(pBuff, 0xFF, chip->ecc.size);
+				mtd->ecc_stats.corrected += bits_ecc;
+				NAND_DBG("#erased page\n");
+			}
+			goto exit;
+		}	
+		
+		//err = -EIO;  
+		mtd->ecc_stats.failed++;
+		printk("BCH: uncorrectable error,status 0x%x \n",status);
+		goto exit;
+	}
+
+	bitnum = (status & ECC_STATUS_NUM_CORRECTIONS)>>20; 
+	if (bitnum != 0)
+	{
+		NAND_DBG("\nCorrected ecc bit=%d\n",bitnum);
+		dwCorrection = REG_BCH_ECC_CORRECTION_0;
+		do
+		{
+			correction = nand_readl(info, dwCorrection);
+			if (correction == 0)
+			{	
+				break;
+			}
+			NAND_DBG("offset 0x%x,raw 0x%02x XOR 0x%02x\n",(correction>>16)&0x3ff,pBuff[(correction>>16)&0x3ff],correction & 0xff);
+			pBuff[(correction>>16)&0x3ff] ^= (correction & 0xff);
+			dwCorrection += 4;
+		/*
+		 *bitflips occur,record the num of bitflips.
+		 *register REG_BCH_ECC_CORRECTION_x[7:0] is the mask of the bit to correct.
+		 *This is intended to be used as an XOR of the data read from nand device.
+		 */
+		 //mtd->ecc_stats.corrected += get_bitflip_count(correction & 0xffff);
+		} while(1);
+	}
+    
+exit:
+    // clear MCL decode
+    nand_writel(info, MLC_ECC_REG_CONTROL, 0x108);
+    
+    return err;
+}

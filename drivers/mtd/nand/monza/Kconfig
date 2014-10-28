@@ -7,17 +7,15 @@ config MTD_NAND_MONZA
         help 
          Enables NAND Flash support for SX6/SX7.
 
-config MTD_NAND_PHYSMAP_START
-        hex "Physical start address of NAND flash mapping"
-        depends on MTD_NAND && MTD_NAND_MONZA
-	default 0xfb000000
-
-config MTD_NAND_IO_SPACE 
-        hex "Physical start address of NAND IO address space"
-        depends on MTD_NAND && MTD_NAND_MONZA
-	default 0xfc000000
-
 config MTD_NAND_DMA
         bool "DMA enable"
         depends on MTD_NAND && MTD_NAND_MONZA
 	default n
+
+config MTD_MONZA_DEBUG
+        bool "Sigma nand debugging"
+        depends on MTD_NAND && MTD_NAND_MONZA
+	default n
+        help
+          This is an option for use by developers; most people should
+          say N here.  This enables nand driver debugging.

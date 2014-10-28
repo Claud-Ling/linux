@@ -72,8 +72,8 @@ config SIGMA_DTV_ROM_NONE
 	  None. Used to reset all ROM related selections.
 	  switching between SLC and MLC has to by means of NONE: SLC -> NONE -> MLC or MLC -> NONE -> SLC
 
-config SIGMA_DTV_ROM_SLC
-	bool "NAND SLC"
+config SIGMA_DTV_ROM_NAND
+	bool "NAND"
 	select MTD
 	select MTD_PARTITIONS
 	select MTD_CMDLINE_PARTS
@@ -87,26 +87,9 @@ config SIGMA_DTV_ROM_SLC
 	select YAFFS_FS
 	select JFFS2_FS
 	select UBIFS_FS
+	select MTD_NAND_MONZA
 	help
-	  SLC nand flash
-
-config SIGMA_DTV_ROM_MLC
-	bool "NAND MLC"
-	select MTD
-	select MTD_PARTITIONS
-	select MTD_CMDLINE_PARTS
-	select MTD_CHAR
-	select MTD_BLOCK
-	select MTD_OOPS
-	select MTD_NAND
-	select MTD_UBI
-	select MTD_UBI_GLUEBI
-	select MTD_UBI_DEBUG
-	select YAFFS_FS
-	select JFFS2_FS
-	select UBIFS_FS
-	help
-	  MLC nand flash
+	   nand flash on board
 
 config SIGMA_DTV_ROM_MMC
 	bool "eMMC"

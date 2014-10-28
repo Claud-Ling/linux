@@ -4,6 +4,10 @@
 #include <linux/mtd/nand.h>  
 #include <asm/io.h> 
 
+#define DRIVER_NAME "monza-nand"
+#define NAND_DBG(f, x...) \
+	  pr_debug(DRIVER_NAME " [%s()]: " f, __func__,## x)
+
 /* ---------------------------------------------------------------------
                         NAND FLASH REGISTER DEFINE
    ---------------------------------------------------------------------*/
@@ -52,6 +56,8 @@
 #define NAND_CTRL            (0x00000058) /* nand flash control register */
 #define NAND_TIMG            (0x0000005c) /* nand flash timing register */
 
+/*SX7 new nand controller*/
+#define NAND_CCR             (0x000000A0) /* Command list control Register */
 /* ---------------------------------------------------------------------
    address hole in the middle
    ---------------------------------------------------------------------*/
@@ -62,6 +68,11 @@
 #define NAND_MLC_ECC_ENC_DATA1       (0x0000007c) /* MLC ECC encoder data register 1*/
 #define NAND_MLC_ECC_DEC_ERR_POS0    (0x00000080) /* MLC ECC decoder error position egister 0*/
 #define NAND_MLC_ECC_DEC_ERR_POS1    (0x00000084) /* MLC ECC decoder error position egister 1*/
+
+#define NAND_FDMA_SRC_ADDR           (0x00000088) /*FDMA SOURCE ADDR*/
+#define NAND_FDMA_DEST_ADDR          (0x0000008c) /*FDMA DESTINATION ADDR*/
+#define NAND_FDMA_INT_ADDR           (0x00000090) /*FDMA INTERRUPT ADDR*/
+#define NAND_FDMA_LEN_ADDR           (0x00000094) /*FDMA LENGTH ADDR */
 
 /* ---------------------------------------------------------------------
    ECC related register
@@ -126,6 +137,7 @@
 
 #define MONZA_ECC_BUSY_WAIT_TIMEOUT (1 * HZ) 
 
+#define MONZA_DMA_TRANS_TIMEOUT     (2 * HZ) 
 /* ---------------------------------------------------------------------
    ECC related register end
    ---------------------------------------------------------------------*/
@@ -133,9 +145,15 @@
 #define NAND_SW_MODE	0
 #define NAND_HW_MODE	0x44 
 
+#define DMAUNIT	0x400
 enum nand_io {
-        MONZA_NAND_PIO,         /* PIO mode*/
+        MONZA_NAND_PIO = 0,         /* PIO mode*/
         MONZA_NAND_DMA,         /* enabled FDMA mode */
+};
+
+enum nand_host {
+        MONZA_NAND_OLD = 0,
+        MONZA_NAND_NEW,
 };
 
 struct monza_nand_info{
@@ -146,10 +164,12 @@ struct monza_nand_info{
         void __iomem                *host_base;  //nand host base addres
         void __iomem                *io_base;  //nand io space address
         enum nand_io                xfer_type;
+	enum nand_host              nand_ctrler;  //nand host controller
 
+	unsigned char               *data_buff_virt; 
         dma_addr_t                  data_buff_phys;                
-        //struct monza_dma_desc       *data_desc; 
-        dma_addr_t                  data_desc_addr;                
+        unsigned int                *dma_int_descr_virt; 
+        dma_addr_t                  dma_int_descr_phys;                
         
 };
 
@@ -159,5 +179,6 @@ struct monza_nand_platform_data {
         void __iomem         *io_base;    //nand io space address
         enum nand_io         xfer_type;                   
 };
+
 
 #endif
