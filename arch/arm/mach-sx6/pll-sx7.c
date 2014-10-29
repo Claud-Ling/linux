@@ -263,8 +263,8 @@ static int inhouse_pll_get(const unsigned int target, struct inhouse_pll *pll)
 		{
 			pll->ftarget = target;
 			pll->predivsel = 1;
-			pll->postdivsel = 1;
-			pll->seldiv = target / 4000; //feedback_div = Fout * pre_div * post_div / (2 * Fin)
+			pll->postdivsel = 0;
+			pll->seldiv = target / 8000; //feedback_div = Fout * pre_div * post_div / (2 * Fin)
 			pll->fout = 2 * 24000 * pll->seldiv / ((pll->predivsel + 2) * (1 << (pll->postdivsel + 1)));
 			pr_debug("new inhouse pll setting %d-%d: %d %d %d\n", target, pll->fout, 
 				pll->predivsel, pll->seldiv, pll->postdivsel);
@@ -314,7 +314,7 @@ static unsigned int inhouse_pll_getclock(void)
 	return ftarget;
 }
 
-//#define FREQ_ON_THE_FLY_EN
+#define FREQ_ON_THE_FLY_EN
 static int inhouse_pll_setclock(unsigned int target)
 {
 	struct inhouse_pll pll;
@@ -339,11 +339,30 @@ static int inhouse_pll_setclock(unsigned int target)
 #ifdef	FREQ_ON_THE_FLY_EN
 		if ((SRC_A9_PLL == GET_CLK_SRC()) && 
 			(predivsel == pll.predivsel) && (postdivsel == pll.postdivsel)) {
-			/*on-the-fly*/
-			pr_debug("on-the-fly (inhouse) seldiv:%d\n", pll.seldiv);
-			Freq_WriteRegByte(PLL_CFG2_REG, PLL_MK_SELDIV(pll.seldiv));
-			Freq_WriteRegByteMask(PLL_CFG0_REG, (1 << PLL_REQ_SHIFT), PLL_REQ_MASK);
-			Freq_WriteRegByteMask(PLL_CFG0_REG, 0, PLL_REQ_MASK);
+			/*
+			 * on-the-fly (faster)
+			 * currently only support feedback divider change case,
+			 * also it's reliable only by changing feedback divider
+			 * at a step of 1. [by tony.li and tony.wei]
+			 *
+			 * each step consumes ~2us or so per test result (PLL regs in 24M domain)
+			 *
+			 * it might support post divider change case also, but not
+			 * implemented yet.
+			 */
+			int tmp, step;
+			regval = Freq_ReadRegByte(PLL_CFG2_REG);
+			tmp = PLL_GET_SUB(regval, SELDIV);
+			pr_debug("on-the-fly (inhouse) seldiv: %d -> %d\n", tmp, pll.seldiv);
+			step = (tmp > pll.seldiv) ? (-1) : 1;
+			while(tmp != pll.seldiv) {
+				tmp += step;
+				//printk(" -> %d", tmp);
+				Freq_WriteRegByte(PLL_CFG2_REG, PLL_MK_SELDIV(tmp));
+				Freq_WriteRegByteMask(PLL_CFG0_REG, (1 << PLL_REQ_SHIFT), PLL_REQ_MASK);
+				Freq_WriteRegByteMask(PLL_CFG0_REG, 0, PLL_REQ_MASK);
+			}
+			//printk("\n");
 		} else
 #endif
 		{
@@ -359,8 +378,8 @@ static int inhouse_pll_setclock(unsigned int target)
 			CLK_SCALING_POST();
 		}
 	}
-	return 0;
 
+	return 0;
 }
 
 static int inhouse_pll_getconfig(struct pll_config* cfg)
