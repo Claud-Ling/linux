@@ -2,7 +2,6 @@ if  ARCH_SIGMA_TRIX
 
 menu "Sigma SX series SoC Specific Features"
 
-#select SOC type
 choice
 	prompt "Select SIGMA DTV SoC type"
 	depends on ARCH_SIGMA_TRIX
@@ -180,6 +179,58 @@ config SIGMA_MIN_CPUFREQ
 	help
 	  Specify the minimum cpu frequency that is allowed to scale to.
 	  if unsure just give 500000
+
+config SIGMA_NR_UMACS
+	int "Number of UMACs in use"
+	range 1 3 if SIGMA_SOC_SX7
+	range 1 2
+	depends on PM
+	default 2 if SIGMA_SOC_SX6
+	default 3 if SIGMA_SOC_SX7
+	default 1
+	help
+	  Specify the number of UMACs currently in use
+
+choice
+	prompt "UMAC base address options"
+	depends on PM && SIGMA_NR_UMACS != 0
+	default SIGMA_UMAC_BASES_AUTO
+	help
+	  UMAC base address options.
+	  if unsure just select 'auto'
+
+config SIGMA_UMAC_BASES_AUTO
+	bool "auto"
+	help
+	  Auto select base address for each umacs
+
+config SIGMA_UMAC_BASES_MANUAL
+	bool "manual"
+	help
+	  Manually configure base address for each umacs
+
+endchoice
+
+config CONFIG_REG_BASE_UMAC0
+	hex "UMAC0 base"
+	depends on SIGMA_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7)
+	default 0xf5021000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7
+	help
+	  Base address for UMAC0
+
+config CONFIG_REG_BASE_UMAC1
+	hex "UMAC1 base"
+	depends on SIGMA_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7)
+	default 0xf5023000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7
+	help
+	  Base address for UMAC1
+
+config CONFIG_REG_BASE_UMAC2
+	hex "UMAC2 base"
+	depends on SIGMA_UMAC_BASES_MANUAL && SIGMA_SOC_SX7
+	default 0xf503b000 if SIGMA_SOC_SX7
+	help
+	  Base address for UMAC2
 
 endmenu
 

@@ -9,7 +9,12 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  *
- *  Suspend to RAM low level control interfaces for DTV Soc (SX6)
+ *  Suspend to RAM low level control interfaces for DTV Soc (SX6/SX7)
+ *  It supports up to 3 umacs at most by now
+ *
+ *  Usages:
+ *  1. the host has to define CONFIG_SIGMA_NR_UMACS
+ *  2. the host could override UMAC reg base by define CONFIG_REG_BASE_UMACx
  */
 
 #if defined(__PREBOOT__)
@@ -32,6 +37,12 @@
 # define trace_str
 # define trace_int
 # define trace_ch
+#endif
+
+#ifndef CONFIG_SIGMA_NR_UMACS
+	#error "CONFIG_SIGMA_NR_UMACS is NOT set"
+#elif CONFIG_SIGMA_NR_UMACS > 3
+	#error "CONFIG_SIGMA_NR_UMACS exceeds max number (3)"
 #endif
 
 
@@ -90,11 +101,25 @@
 #define TIMER0_OFS_TCRN		0x08
 
 /*
+ * umacs register base
+ */
+.macro umac_regbase_stub id, dft
+ .if \id < CONFIG_SIGMA_NR_UMACS
+  .ifndef CONFIG_REG_BASE_UMAC\id
+	.equ	CONFIG_REG_BASE_UMAC\id, \dft
+	.print "  set CONFIG_REG_BASE_UMAC\id to \dft"
+  .endif
+ .endif
+.endm
+
+umac_regbase_stub 0, 0xf5021000
+umac_regbase_stub 1, 0xf5023000
+umac_regbase_stub 2, 0xf503b000
+
+/*
  * PCTL registers
  */
-#define PCTL_REG_UMAC0_BASE	0xf5021000
-#define PCTL_REG_UMAC1_BASE	0xf5023000
-#define	PCTL_OFS_SCTL		0x004
+#define PCTL_OFS_SCTL		0x004
 #define PCTL_OFS_STAT		0x008
 #define PCTL_OFS_TREFI		0x0D0
 #define PCTL_OFS_PHYPVTUPDI	0x318
@@ -119,15 +144,45 @@
 #define PCTL_STAT_LOWPOWER_EXIT_REQ	0x7
 
 /*
- * DDR training register addr
+ * DDR training registers
  */
-#define PUB_TR_ADDR_BASE	0xf5021494
-#define PUB_TR_ADDR0_OFS	0x00
-#define PUB_TR_ADDR1_OFS	0x04
-#define PUB_TR_ADDR2_OFS	0x08
-#define PUB_TR_ADDR3_OFS	0x0c
+#define PUB_TR_ADDR0_OFS	0x494
+#define PUB_TR_ADDR1_OFS	0x498
+#define PUB_TR_ADDR2_OFS	0x49C
+#define PUB_TR_ADDR3_OFS	0x4A0
 
 #define MCU_TIMEOUT_US	2000000	/*2s*/
+
+.macro umac_lowpower_mode id, flag
+	.if \id < CONFIG_SIGMA_NR_UMACS
+	ldr	r0, pctl_reg_base_umac\id
+	mov	r1, #\flag
+	bl	__sdram_enter_lowpower
+	.endif
+.endm
+
+.macro umac_access_mode id, flag
+	.if \id < CONFIG_SIGMA_NR_UMACS
+	ldr	r0, pctl_reg_base_umac\id
+	mov	r1, #\flag
+	bl	__sdram_leave_lowpower
+	.endif
+.endm
+
+.macro umac_preload_reg id, rd, ofs=PCTL_OFS_STAT
+	.if \id < CONFIG_SIGMA_NR_UMACS
+	ldr	\rd, pctl_reg_base_umac\id
+	ldr	\rd, [\rd, #\ofs]
+	.endif
+.endm
+
+.macro umac_reg_base id, base
+	.if \id < CONFIG_SIGMA_NR_UMACS
+pctl_reg_base_umac\id:
+	.long	\base
+	.endif
+.endm
+
 
 /*
  *void __send_mcu_cmd(unsigned char cmd, void* data, int len);
@@ -174,10 +229,9 @@ ENTRY(__query_mcu_cmd)
 ENDPROC(__query_mcu_cmd)
 
 /*
- *int __ack_mcu_cmd(void);
+ *void __ack_mcu_cmd(void);
  * input: none
- * return: 
- *	r0  - 0 on success, otherwise non-zero
+ * return: none
  */
 ENTRY(__ack_mcu_cmd)
 	stmfd   sp!, {r4 - r5, lr}
@@ -289,57 +343,67 @@ ENTRY(__pctl_set_mode)
 ENDPROC(__pctl_set_mode)
 
 /*
- *int __pctl_in_lowpower(unsigned base, unsigned flag);
- * put one sdram controller in lowpower mode
- * inputs:
- *	base  - sdram controller base addr
- *	flag  - recovery flag
+ *int __sdram_enter_lowpower(unsigned base, bool recovery);
+ * put one sdram (controller) in lowpower mode
+ * inputs: base  - sdram controller base addr
+ *         recovery - flag, 0 or 1
  * return: 0 on success, otherwise non-zero
  */
-ENTRY(__pctl_in_lowpower)
-	stmfd   sp!, {r1 - r3, lr}
-	cmp	r1, #0
+ENTRY(__sdram_enter_lowpower)
+	stmfd   sp!, {r4, r5, lr}
+	mov	r4, r0
+	movs	r5, r1
 	beq	1f
-	mov	r3, r0
 	mov	r1, #PCTL_CMD_CFG
 	mov	r2, #PCTL_STAT_CONFIG
 	bl	__pctl_set_mode
-	mov	r0, r3
+	mov	r0, r4
 	mov	r1, #PCTL_CMD_GO
 	mov	r2, #PCTL_STAT_ACCESS
 	bl	__pctl_set_mode
-	mov	r0, r3
+	mov	r0, r4
 1:
 	mov	r1, #PCTL_CMD_SLEEP
 	mov	r2, #PCTL_STAT_LOWPOWER
 	bl	__pctl_set_mode
-	ldmfd   sp!, {r1 - r3, pc}
-ENDPROC(__pctl_in_lowpower)
+
+	cmp	r5, #0
+	bne	2f
+	mov	r1, #0x0
+	str	r1, [r4, #PCTL_OFS_TREFI]
+	str	r1, [r4, #PCTL_OFS_PHYPVTUPDI]
+	str	r1, [r4, #PCTL_OFS_PVTUPDI]
+2:
+	mov	r0, #0
+	ldmfd   sp!, {r4, r5, pc}
+ENDPROC(__sdram_enter_lowpower)
 
 /*
- *int __pctl_in_access(unsigned base, unsigned flag);
- * put one sdram controller in access mode
- * inputs: 
- * 	base  - sdram controller base addr
- *	flag  - recovery flag
+ *int __sdram_leave_lowpower(unsigned base, int recovery);
+ * make one sdram (controller) leave lowpower mode (to access mode)
+ * inputs: base  - sdram controller base addr
+ *         recovery - flag, 0 or 1
  * return: 0 on success, otherwise non-zero
  */
-ENTRY(__pctl_in_access)
-	stmfd   sp!, {r1 - r4, lr}
-	mov	r3, r0
-	mov	r4, r1
+ENTRY(__sdram_leave_lowpower)
+	stmfd   sp!, {r4, r5, lr}
+	mov	r4, #0x27
+	str	r4, [r0, #PCTL_OFS_TREFI]
+	mov	r4, r0
+	mov	r5, r1
 	mov	r1, #PCTL_CMD_WAKEUP
 	mov	r2, #PCTL_STAT_ACCESS
 	bl	__pctl_set_mode
-	cmp	r4, #0
+	cmp	r5, #0
 	beq	1f
-	mov	r0, r3
+	mov	r0, r4
 	mov	r1, #PCTL_CMD_CFG
 	mov	r2, #PCTL_STAT_CONFIG
 	bl	__pctl_set_mode
 1:
-	ldmfd   sp!, {r1 - r4, pc}
-ENDPROC(__pctl_in_access)
+	ldmfd   sp!, {r4, r5, pc}
+ENDPROC(__sdram_leave_lowpower)
+
 
 
 #ifdef __CONFIG_SRAM_RESUME__
@@ -402,11 +466,9 @@ ENDPROC(s2ramctl_get_boot_mode)
  */
 ENTRY(s2ramctl_sdram_in_access)
 	stmfd   sp!, {r4, lr}
-	mov	r1, #1
-	ldr	r0, pctl_reg_umac0_base
-	bl	__pctl_in_lowpower
-	ldr	r0, pctl_reg_umac1_base
-	bl	__pctl_in_lowpower
+	umac_lowpower_mode 0, 1
+	umac_lowpower_mode 1, 1
+	umac_lowpower_mode 2, 1
 	mov	r0, #HOST_CMD_RMODE_DISABLE
 	mov	r1, #0
 	mov	r2, #0
@@ -423,29 +485,24 @@ ENTRY(s2ramctl_sdram_in_access)
 	orr	r2, #0xA0		@set bit[5] and bit[7]
 	strb	r2, [r1]
 #endif
-	mov	r4, #0x27
-	mov	r1, #1
-	ldr	r0, pctl_reg_umac0_base
-	str	r4, [r0, #PCTL_OFS_TREFI]
-	bl	__pctl_in_access
-	ldr	r0, pctl_reg_umac1_base
-	str	r4, [r0, #PCTL_OFS_TREFI]
-	bl	__pctl_in_access
+	umac_access_mode 0, 1
+	umac_access_mode 1, 1
+	umac_access_mode 2, 1
 	mov	r0, #0
 1:
 	ldmfd   sp!, {r4, pc}
 ENDPROC(s2ramctl_sdram_in_access)
 
 .macro trace_resume_entry
-	stmfd   sp!, {r0, r4}
+	stmfd   sp!, {r0}
 	adr	r0, resume_stage
 	trace_str
-	ldr	r4, resume_entry_ptr
-	ldr	r0, [r4]
+	ldr	r0, resume_entry_ptr
+	ldr	r0, [r0]
 	trace_int
-	mov	r0, #'\n'
-	trace_ch
-	ldmfd   sp!, {r0, r4}
+	adr	r0, cr_stage
+	trace_str
+	ldmfd   sp!, {r0}
 .endm
 
 /*
@@ -462,9 +519,25 @@ ENTRY(s2ramctl_cpu_do_resume)
 1:	b	1b			@shall not reach here
 ENDPROC(s2ramctl_cpu_do_resume)
 
+.macro trace_tr_addr
+#ifdef DEBUG
+	stmfd	sp!, {r0, r1}
+	ldr	r1, [sp, #4]		@id
+	add	r1, #'0'
+	adr	r0, tr_addr_stage
+	strb	r1, [r0, #6]
+	trace_str
+	ldr	r0, [sp]		@addr
+	trace_int
+	adr	r0, cr_stage
+	trace_str
+	ldmfd	sp!, {r0, r1}
+#endif
+.endm
+
 /*
- *int s2ramctl_set_area(unsigned addr);
- * set memory area for DDR training (size=8k)
+ *void __sdram_set_one_area(unsigned addr, unsigned id);
+ * set training memory (size=8k) for one umac
  * criteria on mem area: 32k aligned, and <2G
  * [31..30] Reserved
  * [29..13] Row Address
@@ -475,21 +548,26 @@ ENDPROC(s2ramctl_cpu_do_resume)
  * [12..10] Bank Address, 3'b000
  * [9..0] Colomn Address, start from 0 and increase at a step of 0x8
  * inputs: addr  - area start addr
- * return: 0 on success, otherwise non-zero
+ *         id    - umac index (0, 1...)
+ * return: none
  */
-ENTRY(s2ramctl_set_area)
+ENTRY(__sdram_set_one_area)
 	stmfd   sp!, {r4 - r6, lr}
-	mov	r4, r0, LSR #27
+	trace_tr_addr
+	mov	r4, r0, lsr #27
 	and	r4, #0xf
-	mov	r5, r4, LSL #25		@[28..25]
-	mov	r4, r0, LSL #8
-	mov	r4, r4, LSR #23
-	orr	r5, r4, LSL #16		@[24..16]
-	mov	r4, r0, LSR #24
+	mov	r5, r4, lsl #25		@[28..25]
+	mov	r4, r0, lsl #8
+	mov	r4, r4, lsr #23
+	orr	r5, r4, lsl #16		@[24..16]
+	mov	r4, r0, lsr #24
 	and	r4, #0x7
-	orr	r5, r4, LSL #13		@[15..13]
+	orr	r5, r4, lsl #13		@[15..13]
 
-	ldr	r4, pub_tr_addr_base
+	adr	r4, umacs_base_tbl
+	ldr	r4, [r4, r1, lsl #2]
+	add	r4, #(PUB_TR_ADDR0_OFS & (~0xf))
+	add	r4, #(PUB_TR_ADDR0_OFS & 0xf)
 	add	r6, r4, #16
 1:
 	str	r5, [r4], #4
@@ -497,55 +575,55 @@ ENTRY(s2ramctl_set_area)
 	cmp	r4, r6
 	blo	1b
 	ldmfd   sp!, {r4 - r6, pc}
+ENDPROC(__sdram_set_one_area)
+
+/*
+ *int s2ramctl_set_area(unsigned array, unsigned size);
+ * set training buffer for umacs
+ * inputs: array - training buffer starting addr array sorted in ascending of umac ids
+ *         size  - sizeof(array)
+ * return: 0 on success, otherwise non-zero
+ */
+ENTRY(s2ramctl_set_area)
+	stmfd   sp!, {r4 - r7, lr}
+	mov	r4, r0
+	mov	r5, r1
+	mov	r6, #0
+1:
+	cmp	r6, #CONFIG_SIGMA_NR_UMACS
+	movlo	r7, r6, lsl #2
+	cmplo	r7, r5
+	bge	2f
+	ldr	r0, [r4, r7]
+	mov	r1, r6
+	bl	__sdram_set_one_area
+	add	r6, #1
+	b	1b
+2:
+	cmp	r6, #0
+	moveq	r0, #1
+	movne	r0, #0
+	ldmfd   sp!, {r4 - r7, pc}
 ENDPROC(s2ramctl_set_area)
 
 resume_stage: .ascii "\r\nResume @\0"
 .align 2
 
+cr_stage: .ascii "\r\n\0"
+.align 2
+
+#ifdef DEBUG
+tr_addr_stage: .ascii "\r\numacx training buffer:\0"
+.align 2
+#endif
+
 /*
  * BOOT mode (0-normal, 1-standby, oth-reserved)
  */
 boot_mode:
-	.word	0xffffffff
-
-pub_tr_addr_base:
-	.word	PUB_TR_ADDR_BASE
+	.long	0xffffffff
 
 #elif defined(__CONFIG_SRAM_SUSPEND__) /*__CONFIG_SRAM_RESUME__*/
-
-/*
- *int __sdram_enter_lowpower(unsigned base);
- * put one sdram (controller) in lowpower mode
- * inputs: base  - sdram controller base addr
- * return: 0 on success, otherwise non-zero
- */
-ENTRY(__sdram_enter_lowpower)
-	stmfd   sp!, {r4, lr}
-	mov	r4, r0
-	mov	r1, #0
-	bl	__pctl_in_lowpower
-	mov	r1, #0x0
-	str	r1, [r4, #PCTL_OFS_TREFI]
-	str	r1, [r4, #PCTL_OFS_PHYPVTUPDI]
-	str	r1, [r4, #PCTL_OFS_PVTUPDI]
-	mov	r0, #0
-	ldmfd   sp!, {r4, pc}
-ENDPROC(__sdram_enter_lowpower)
-
-/*
- *int __sdram_leave_lowpower(unsigned base);
- * make one sdram (controller) leave lowpower mode
- * inputs: base  - sdram controller base addr
- * return: 0 on success, otherwise non-zero
- */
-ENTRY(__sdram_leave_lowpower)
-	stmfd   sp!, {r4, lr}
-	mov	r4, #0x27
-	mov	r1, #0
-	str	r4, [r0, #PCTL_OFS_TREFI]
-	bl	__pctl_in_access
-	ldmfd   sp!, {r4, pc}
-ENDPROC(__sdram_enter_lowpower)
 
 /*
  *void __prepare_sram_selfrefresh(void);
@@ -555,10 +633,10 @@ ENDPROC(__sdram_enter_lowpower)
  */
 ENTRY(__prepare_sram_selfrefresh)
 	stmfd   sp!, {r4, lr}
-	ldr	r4, pctl_reg_umac0_base
-	ldr	r4, [r4, #PCTL_OFS_STAT]
-	ldr	r4, pctl_reg_umac1_base
-	ldr	r4, [r4, #PCTL_OFS_STAT]
+	umac_preload_reg 0, r4
+	umac_preload_reg 1, r4
+	umac_preload_reg 2, r4
+
 #ifdef MCUCOMM_SUPPORT_TIMEOUT
 	ldr	r4, timer0_reg_base
 	ldr	r4, [r4, #TIMER0_OFS_TCVRN]
@@ -577,10 +655,9 @@ ENDPROC(__prepare_sram_selfrefresh)
 ENTRY(s2ramctl_sdram_in_selfrefresh)
 	stmfd   sp!, {lr}
 	bl	__prepare_sram_selfrefresh
-	ldr	r0, pctl_reg_umac0_base
-	bl	__sdram_enter_lowpower
-	ldr	r0, pctl_reg_umac1_base
-	bl	__sdram_enter_lowpower
+	umac_lowpower_mode 0, 0
+	umac_lowpower_mode 1, 0
+	umac_lowpower_mode 2, 0
 	mov	r0, #HOST_CMD_RMODE_ENABLE
 	mov	r1, #0
 	mov	r2, #0
@@ -600,10 +677,9 @@ ENTRY(s2ramctl_sdram_in_selfrefresh)
 #endif
 	b	2f			@out
 1:
-	ldr	r0, pctl_reg_umac0_base
-	bl	__sdram_leave_lowpower
-	ldr	r0, pctl_reg_umac1_base
-	bl	__sdram_leave_lowpower
+	umac_access_mode 0, 0
+	umac_access_mode 1, 0
+	umac_access_mode 2, 0
 	mov	r0, #1			@failed
 2:
 	ldmfd   sp!, {pc}
@@ -645,15 +721,21 @@ ENDPROC(s2ramctl_set_resume_entry)
  * resume entry point (physical addr)
  */
 resume_entry_ptr:
-	.word	0x0badc0de
-pctl_reg_umac0_base:
-	.word	PCTL_REG_UMAC0_BASE
-pctl_reg_umac1_base:
-	.word	PCTL_REG_UMAC1_BASE
+	.long	0x0badc0de
+umacs_base_tbl:
+	umac_reg_base 0, CONFIG_REG_BASE_UMAC0
+	umac_reg_base 1, CONFIG_REG_BASE_UMAC1
+	umac_reg_base 2, CONFIG_REG_BASE_UMAC2
+	.equ umacs_base_tbl_sz, (. - umacs_base_tbl)
+
+.ifne umacs_base_tbl_sz - (CONFIG_SIGMA_NR_UMACS << 2)
+.error "CONFIG_SIGMA_NR_UMACS is not equal to the size of the reg base table"
+.endif
+
 mcu_reg_base:
-	.word	MCU_REG_BASE
+	.long	MCU_REG_BASE
 timer0_reg_base:
-	.word	TIMER0_REG_BASE
+	.long	TIMER0_REG_BASE
 mcu_timeout_us:
-	.word	MCU_TIMEOUT_US
+	.long	MCU_TIMEOUT_US
 
