@@ -20,22 +20,57 @@
 
 static void sigma_xhci_start(void)
 {
+#ifdef CONFIG_SIGMA_SOC_SX6
 	MWriteRegByte((volatile void*)0x1500ee20, 0x0, 0x7);	//[2:0]=3'b000
 	MWriteRegByte((volatile void*)0x1500ee87, 0x4, 0x4);	//[2]=1'b1
 	MWriteRegHWord((volatile void*)0x1b005520, 0x4, 0xc);	//[3:2]=2'b01
 	MWriteRegHWord((volatile void*)0x1b005522, 0x2, 0x2);	//[1]=1'b1
 
-	MWriteRegWord((volatile void*)0x1520c12c, 0xa800000, 0xffc00000);	//[31:22]=2'h2a
-	MWriteRegWord((volatile void*)0x1520c110, 0x2fa00000, 0xfff80000);	//[31:19]=3'h5f4
 
-	MWriteRegWord((volatile void*)0x1520cd14, 0x200,0x200);	//[9]=1'b1
+#elif defined(CONFIG_SIGMA_SOC_SX7)
+	/* Set GPIO9 pin as GPIO */
+	MWriteRegByte((volatile void*)0x1500ee22, 0x0, 0x70);
+
+	/* Set GPIO9 output mode */
+	MWriteRegHWord((volatile void*)0x1b005520, 0x4, 0xc);
+	
+	/* Set GPIO9 output val equ 1 */
+	MWriteRegHWord((volatile void*)0x1b005522, 0x2, 0x2);
+
+	/* Set GPIO8 act as USB3_OC */
+	MWriteRegByte((volatile void*)0x1500ee22, 0x2, 0x7);
+	
+	/* Set GPIO7 act as USB3_OC */
+	MWriteRegByte((volatile void*)0x1500ee21, 0x20, 0x70);
+
+#else 
+	#error "Unknow SOC type!!"
+#endif
+
+	/* Reset USB Host */
+	MWriteRegWord((volatile void*)0x15200020, 0x2,0x2);
+
+	/* Set REFCLKPER */	
+	MWriteRegWord((volatile void*)0x1520c12c, 0xa808010, 0xffffffff);
+	
+	/* Set Power down scale */
+	MWriteRegWord((volatile void*)0x1520c110, 0x2fa01004, 0xffffffff);
+
+	/* Set USB3 PIPE Control */
+	MWriteRegWord((volatile void*)0x1520c2c0, 0x030e0002, 0xffffffff);
+
+	/* Set USB2 PHY Configuration */
+	MWriteRegWord((volatile void*)0x1520c200, 0x00002540, 0xffffffff);
+
+	/* Enable SS PHY REF clock */
+	MWriteRegWord((volatile void*)0x1520cd14, 0x200,0x200);
+
 	/* Set USB3.0 PHY TX swing strength to full level */
-	MWriteRegWord((volatile void*)0x1520cd0c, 0x7f, 0x7f);	//[6:0]=0x7f
+	MWriteRegWord((volatile void*)0x1520cd0c, 0x7f, 0x7f);
 
 	/* Enable USB3.0 PHY power */
-	MWriteRegWord((volatile void*)0x1520cd04, 0x00000000, 0xc0000000);	//[31:30]=2'b00
+	MWriteRegWord((volatile void*)0x1520cd04, 0x00000000, 0xc0000000);
 
-	MWriteRegWord((volatile void*)0x15200020, 0x2,0x2);	//[1]=1'b1
 }
 
 static void sigma_xhci_stop(void)
@@ -175,6 +210,15 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	ret = usb_add_hcd(xhci->shared_hcd, irq, IRQF_SHARED);
 	if (ret)
 		goto put_usb3_hcd;
+
+
+	/* Adjust USB3 RX FIFO threshold */
+	MWriteRegWord((volatile void*)0x1520c10c, 
+			((3<<24)|(2<<19)), 0x0ff80000);
+	
+	/* Enable FIFO threshold control */
+	MWriteRegWord((volatile void*)0x1520c10c, 
+					(1<<29), 0x20000000);
 
 	return 0;
 
