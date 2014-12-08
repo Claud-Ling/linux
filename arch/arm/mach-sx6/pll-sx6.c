@@ -480,7 +480,7 @@ static int inhouse_pll_getconfig(struct pll_config* cfg)
 /********************************************************/
 static unsigned int licensed_pll_getclock(void);
 static int licensed_pll_setclock(unsigned int target);
-static int licensed_getconfig(struct pll_config* cfg);
+static int licensed_pll_getconfig(struct pll_config* cfg);
 
 static struct pll_descriptor sx6_licensed_pll = {
 	.name = "licensed PLL",

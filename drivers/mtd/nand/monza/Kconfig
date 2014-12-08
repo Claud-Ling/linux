@@ -19,3 +19,18 @@ config MTD_MONZA_DEBUG
         help
           This is an option for use by developers; most people should
           say N here.  This enables nand driver debugging.
+
+config MTD_HIDTV_PARTS
+	bool "legacy nand partition"
+	depends on MTD_NAND && MTD_NAND_MONZA
+	default n
+	help
+	  Legacy NAND partition method by giving "partdef[ partdef]" in cmdline, where partdef 
+	  shall be in format: MTD_NAME=name,start,length.
+	  For instance, giving "MTD_NAME=boot,0,6M MTD_NAME=kernel,6M,8M MTD_NAME=etc,eM,2M"
+	  to  creat three mtd partitions:
+	  00000000 - 00600000 : "boot"
+	  00600000 - 00e00000 : "kernel"
+	  00e00000 - 01000000 : "etc"
+
+	  If unsure say N here.

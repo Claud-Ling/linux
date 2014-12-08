@@ -24,6 +24,8 @@
 #include "monza_nand.h"
 #include "monza_ecc.h"
 
+#define TRIX_NAND_DEV_NAME "trix-nand"
+
 #ifdef CONFIG_SIGMA_SOC_SX7   
 #define TURING_REG_BASE (0xF1040000)
 #define TURING_REG_SIZE         SZ_8K   /*actually turing reg space is 128k, but 8k is enough for use here*/
@@ -53,24 +55,26 @@ static void __iomem* turing_reg_vbase = NULL;
 
 #define FLASH_SUPPORT_RNDOUT_READ
 
+#if defined(CONFIG_MTD_HIDTV_PARTS)
 extern char *saved_command_line;
 static char mtd_cmd_line[COMMAND_LINE_SIZE];
+#elif defined(CONFIG_MTD_CMDLINE_PARTS)
+static const char *part_probes[] = { "cmdlinepart", NULL };
+#else
+static struct mtd_partition trix_partitions[] = {
+	{
+		name	:	TRIX_NAND_DEV_NAME,
+		offset	:	0,
+		size	:	MTDPART_SIZ_FULL
+	}
+};
+#endif
 
 /*
  * Module stuff
  */
 static char ecc_tmp_read[250]  __attribute__ ((aligned (4))); 
 static char ecc_tmp_write[250] __attribute__ ((aligned (4)));
-/*
- * Define partitions for flash device
- */
-struct mtd_partition nand_physical_partition_info[] = {
-	{
-		name:"NAND",
-		offset:0,
-		size:256*1024*1024
-	}
-};
 
 /* for 2KB page, 64OOB, we use 8bit ECC*/
 static struct nand_ecclayout nand_oob_bch_gf14_64_8 = {
@@ -388,6 +392,7 @@ void hidtv_nand_inithw(struct monza_nand_info *info)
 	return;
 }
 
+#ifdef CONFIG_MTD_HIDTV_PARTS
 #define MTD_MAX_COUNT 10
 static const char MTD_NAME[] = "MTD_NAME=";
 
@@ -412,7 +417,6 @@ static unsigned long long size_parse (char *ptr, char **retptr)
 	return ret;
 }
 
-#ifdef CONFIG_MTD_CMDLINE_PARTS
 // The format for the command line is as follows:
 // mtd_parts	:= partdef[ partdef]
 // partdef		:= MTD_NAME=name,start,offset
@@ -428,7 +432,7 @@ static inline int parse_mtd_cmdline(struct mtd_info *mtd)
 	struct mtd_partition mtd_part[MTD_MAX_COUNT];
 
 	memset(mtd_part, 0, sizeof(mtd_part));
-	printk("%s:%d saved_command_line:%s\n", __func__, __LINE__, saved_command_line);
+	pr_debug("%s:%d saved_command_line:%s\n", __func__, __LINE__, saved_command_line);
 	strncpy(mtd_cmd_line, saved_command_line, sizeof mtd_cmd_line);
 	mtd_cmd_line[sizeof mtd_cmd_line - 1] = 0;
 
@@ -457,20 +461,14 @@ static inline int parse_mtd_cmdline(struct mtd_info *mtd)
 
 	return mtd_count;
 }
-#endif
 
 static int hidtv_nand_add_partition(struct monza_nand_info *info)
 {	
 	int nr_parts = 0;
-	/* register the Master.*/
-	nand_physical_partition_info[0].size = info->mtd.size;
-	add_mtd_partitions(&(info->mtd), nand_physical_partition_info, 1);
-	
-#ifdef CONFIG_MTD_CMDLINE_PARTS
 	nr_parts = parse_mtd_cmdline(&(info->mtd));
-#endif
 	return nr_parts;
 }
+#endif
 
 /*PIO Mode*/
 static void monza_pio_read_buf32(struct mtd_info *mtd, uint8_t *buf, int len)
@@ -798,7 +796,8 @@ static int monza_nand_probe(struct platform_device *pdev)
 	monza_nand_dma_init(info);
 	info->mtd.priv       = &(info->nand);	
 	info->mtd.owner      = THIS_MODULE;	
-	
+	info->mtd.name       = TRIX_NAND_DEV_NAME;
+
 	info->nand.IO_ADDR_R = info->io_base;
 	info->nand.IO_ADDR_W = info->io_base;
 	
@@ -888,8 +887,14 @@ static int monza_nand_probe(struct platform_device *pdev)
 	info->nand.ecc.strength,
 	info->nand.ecc.size,
 	info->nand.ecc.bytes);
-	hidtv_nand_add_partition(info);
 
+#ifdef CONFIG_MTD_HIDTV_PARTS
+	hidtv_nand_add_partition(info);
+#elif defined(CONFIG_MTD_CMDLINE_PARTS)
+	mtd_device_parse_register(&info->mtd, part_probes, NULL, NULL, 0);
+#else
+	mtd_device_register(&info->mtd, trix_partitions, 1);	/*static*/
+#endif
 exit:
 	return err;	
 }
@@ -934,14 +939,4 @@ module_platform_driver(monza_nand_driver);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("SigmaDesigns kernel team");
 MODULE_DESCRIPTION("driver for NAND on HiDTV board");
-
-
-
-
-
-
-
-
-
-
 
