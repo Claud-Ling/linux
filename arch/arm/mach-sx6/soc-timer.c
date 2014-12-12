@@ -26,7 +26,10 @@
 #include <linux/clocksource.h>
 #include <linux/clockchips.h>
 #include <linux/cpu_pm.h>
-
+#ifdef CONFIG_PROC_FS
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
+#endif
 #include <asm/mach/time.h>
 #include <asm/localtimer.h>
 #include <asm/sched_clock.h>
@@ -288,7 +291,7 @@ static void soctimer_init(void)
 	/*start counting and reload*/
 	tmpsh = ReadRegWord((void*)TIMER_TCR0);
 	tmpsh |= 3;
-	WriteRegWord((void*)TIMER_TCR0, tmpsh); 
+	WriteRegWord((void*)TIMER_TCR0, tmpsh);
 }
 
 /* Setup free-running counter for clocksource */
@@ -298,7 +301,6 @@ static void __init sigma_sx6_clocksource_init(void)
 
 	clocksource_register_hz(&clocksource_soc, SOC_TIMER_FREQ);
 }
-
 
 void __init trix_timer_init(void)
 {
@@ -317,3 +319,35 @@ void __init trix_timer_init(void)
 	TRI_DBG("[%d] %s end\n",__LINE__,__func__);	
 }
 
+#ifdef CONFIG_PROC_FS
+struct proc_dir_entry *proc_soctimer = NULL;
+static int soctimer_cycle_show(struct seq_file *m, void *v)
+{
+	u32 temp = (0xffffffff - ReadRegWord((void*)TIMER_TRVR0));
+	seq_printf(m, "%u\n", temp);
+	return 0;
+}
+
+static int soctimer_cycle_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, soctimer_cycle_show, NULL);
+}
+
+static const struct file_operations soctimer_cycle_ops = {
+        .open           = soctimer_cycle_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = seq_release,
+};
+#endif
+
+static int __init soctimer_proc_init(void)
+{
+#ifdef CONFIG_PROC_FS
+	proc_soctimer = proc_mkdir("soctimer", NULL);
+        proc_create("cycle", 0, proc_soctimer, &soctimer_cycle_ops);
+#endif
+	return 0;
+}
+
+late_initcall(soctimer_proc_init);

@@ -21,7 +21,7 @@ config MTD_MONZA_DEBUG
           say N here.  This enables nand driver debugging.
 
 config MTD_HIDTV_PARTS
-	bool "legacy nand partition"
+	bool "Legacy nand partition"
 	depends on MTD_NAND && MTD_NAND_MONZA
 	default n
 	help
