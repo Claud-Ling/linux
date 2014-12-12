@@ -217,7 +217,7 @@ int bch_decode_end_correct_new(struct mtd_info *mtd,unsigned char* pBuff,struct 
 	
 	uint8_t *read_ecc = chip->buffers->ecccode;  
 	unsigned int dwCorrection;
-	unsigned int correction;
+	unsigned int correction, offset;
 	unsigned long deadline = jiffies + MONZA_ECC_BUSY_WAIT_TIMEOUT;
 	
 	do{
@@ -277,12 +277,18 @@ int bch_decode_end_correct_new(struct mtd_info *mtd,unsigned char* pBuff,struct 
 		do
 		{
 			correction = nand_readl(info, dwCorrection);
-			if (correction == 0)
+			/*
+ 			 * [27:16] is the error byte offset in the payload.
+ 			 * in SX7 new nand controller,
+ 			 * payload = eccunit + eccbytes
+ 			 */
+			offset = (correction>>16)&0xFFF;
+			if ( (correction == 0) || (offset >= chip->ecc.size) )
 			{	
 				break;
 			}
-			NAND_DBG("offset 0x%x,raw 0x%02x XOR 0x%02x\n",(correction>>16)&0x3ff,pBuff[(correction>>16)&0x3ff],correction & 0xff);
-			pBuff[(correction>>16)&0x3ff] ^= (correction & 0xff);
+			NAND_DBG("offset 0x%x,raw 0x%02x XOR 0x%02x\n",offset,pBuff[offset],correction & 0xff);
+			pBuff[offset] ^= (correction & 0xff);
 			dwCorrection += 4;
 		/*
 		 *bitflips occur,record the num of bitflips.
