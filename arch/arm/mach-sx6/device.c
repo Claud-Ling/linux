@@ -125,7 +125,7 @@ static struct platform_device sigma_usb_ehci2_device = {
 #if defined(CONFIG_MMC_SDHCI1_SIGMA) 
 static struct platform_device sigma_sdhci_1_device = { 
        .name           = "sigma-sdhci",
-       .id             = 0,    
+       .id             = 1,
        .dev = {
                .dma_mask               = &ehci_dmamask,
                .coherent_dma_mask      = 0xffffffff,
@@ -138,7 +138,7 @@ static struct platform_device sigma_sdhci_1_device = {
 #if defined(CONFIG_MMC_SDHCI2_SIGMA)
 static struct platform_device sigma_sdhci_2_device = { 
        .name           = "sigma-sdhci",
-       .id             = 1,    
+       .id             = 0,
        .dev = {
                .dma_mask               = &ehci_dmamask,
                .coherent_dma_mask      = 0xffffffff,
