@@ -145,8 +145,7 @@ out:
 static void sdhci_sx6_pinshare_init(int dev_id)
 {
 	
-	if (dev_id == 0) {
-#ifdef CONFIG_MMC_SDHCI1_SIGMA
+	if (dev_id == 1) {
 #ifdef CONFIG_SIGMA_SOC_SX6
 		/*
  		* bit[6:4] = 001	SDIO data 1
@@ -194,11 +193,9 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 #else
 	#error "unknown SoC type!"
 #endif
-#endif /*CONFIG_MMC_SDHCI1_SIGMA*/
 	}
 
-	if (dev_id == 1) {
-#ifdef CONFIG_MMC_SDHCI2_SIGMA
+	if (dev_id == 0) {
 #ifdef CONFIG_SIGMA_SOC_SX6
 		/*
  		* bit[6:4] = 001	SDIO_2 data 0
@@ -259,7 +256,6 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 #else
 	#error "unknown SoC type!"
 #endif
-#endif /*CONFIG_MMC_SDHCI2_SIGMA*/
 	}
 
 	return;
@@ -315,14 +311,14 @@ static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 		goto free2;
 	}
 	
-	if (pdev->id == 1) {
+	if (pdev->id == 0) {
 		host->mmc->caps |=MMC_CAP_8_BIT_DATA;
 	} else {
 		host->mmc->caps |=MMC_CAP_4_BIT_DATA;
 	}
 	retval = sdhci_add_host(host);
 	if(!retval){
-		if (pdev->id == 1) {
+		if (pdev->id == 0) {
 		//	host->mmc->caps2 |= MMC_CAP2_HS200;
 			host->mmc->caps |= MMC_CAP_1_8V_DDR;
 		}
