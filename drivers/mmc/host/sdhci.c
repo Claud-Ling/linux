@@ -2406,7 +2406,7 @@ static irqreturn_t sdhci_irq(int irq, void *dev_id)
 		goto out;
 	}
 
-#if defined(CONFIG_ARCH_SIGMA_DTV)
+#if defined(CONFIG_SIGMA_DTV)
 	/*
 	 * Kernel assume R1B type command(i.e MMC_SWITCH) report
 	 * SDHCI_INT_RESPONSE first and then SDHCI_INT_DATA_END
