@@ -25,6 +25,14 @@
 #include <linux/mmc/ioctl.h>
 #include "./inc/crc32_boot.h"
 #include "./inc/klib.h"
+
+#define min(x, y) ({				\
+	typeof(x) _min1 = (x);			\
+	typeof(y) _min2 = (y);			\
+	(void) (&_min1 == &_min2);		\
+	_min1 < _min2 ? _min1 : _min2; })
+
+
 struct envdev_s {
 	char devname[32];		/* Device name */
 	ulong devoff;			/* Device offset */
@@ -51,17 +59,50 @@ static int dev_current = 0;
 #define ENV_DNAME_ANDROID "/dev/block/mmcblk0p2"
 #define ENV_DNAME_GENERIC "/dev/mmcblk0p2"
 
-#define DEVICE1_NAME      ENV_DNAME_GENERIC
-#define DEVICE1_OFFSET    0x0000
 #define ENV1_SIZE         0x1000	/* 4k */
-#define DEVICE1_ESIZE     0x1000	/* 4k TODO */
-#define DEVICE1_ENVSECTORS 8		/* 8 sectors equals to 4k */
-
-#define DEVICE2_NAME      DEVICE1_NAME
-#define DEVICE2_OFFSET    ENV1_SIZE
 #define ENV2_SIZE         ENV1_SIZE
-#define DEVICE2_ESIZE     ENV1_SIZE
-#define DEVICE2_ENVSECTORS     DEVICE1_ENVSECTORS
+
+/*
+ * eMMC device definition
+ */
+#define EMMC_DEV1     ENV_DNAME_GENERIC
+#define EMMC_DEV1_OFFS    0x0000
+#define EMMC_DEV1_ESIZE     0x1000	/* 4k TODO */
+#define EMMC_DEV1_ENVSECTORS 8		/* 8 sectors equals to 4k */
+
+#define EMMC_DEV2      EMMC_DEV1
+#define EMMC_DEV2_OFFS    0x0000
+#define EMMC_DEV2_ESIZE     0x1000	/* 4k TODO */
+#define EMMC_DEV2_ENVSECTORS 8		/* 8 sectors equals to 4k */
+
+/*
+ * NAND device definition
+ */
+#define NAND_DEV1		"/dev/mtd0"
+#define NAND_DEV1_OFFS		0x600000
+/* Erase size  temporary define as 4k,
+ * actually, this value will be overwrite by device specified value. 
+ */
+#define NAND_DEV1_ESIZE		0x1000
+#define NAND_DEV1_ENVSECTORS	8
+
+#define NAND_DEV2		"/dev/mtd0"
+#define NAND_DEV2_OFFS		0x900000
+#define NAND_DEV2_ESIZE		NAND_DEV1_ESIZE
+#define NAND_DEV2_ENVSECTORS	NAND_DEV1_ENVSECTORS
+
+/*
+ * eMMC ENV group define
+ */
+#define EMMC_ENV_GROUP1_OFFS	(0x00000)
+#define EMMC_ENV_GROUP2_OFFS (0x80000)  /* 512k offset */ 
+
+/*
+ * NAND ENV group define
+ */
+#define NAND_ENV_GROUP1_OFFS	(0x00000)
+#define NAND_ENV_GROUP2_OFFS (0x900000)  /* 9MB offset */
+
 
 #define DEVNAME(i)    envdevices[(i)].devname
 #define DEVOFFSET(i)  envdevices[(i)].devoff
@@ -104,6 +145,7 @@ static struct environment environment = {
 	.flag_scheme = FLAG_NONE,
 };
 
+static struct mtd_info_user g_mtd_info = { 0 };
 static int HaveRedundEnv = 0;
 static int double_env = 0;
 
@@ -148,11 +190,8 @@ static int read_extcsd(struct file *filp, __u8 *ext_csd)
 
 	return ret;
 }
-static int auto_detect_env_group(void)
+static int emmc_detect_env_group(void)
 {
-#define ENV_BASE1 (0)
-#define ENV_BASE2 (512*1024)
-
 	int ret = -1, base = 0;
 	unsigned char ext_csd[512] = { 0 };
 	struct file *filp = NULL;
@@ -174,16 +213,28 @@ static int auto_detect_env_group(void)
 	}
 
 	base = (((ext_csd[EXT_CSD_PART_CONFIG] >> 3) & 0x7) == \
-					0x1 ? ENV_BASE1 : ENV_BASE2);
+					0x1 ? \
+					EMMC_ENV_GROUP1_OFFS \
+					: EMMC_ENV_GROUP2_OFFS);
 
 out1:
 	klib_fclose(filp);
 out:
 	return base;
-#undef ENV_BASE1
-#undef ENV_BASE2
 }
+static int auto_detect_env_group(void)
+{
+	if(DEVTYPE(0) == MTD_ABSENT) {
+		return emmc_detect_env_group();
+	} else if (DEVTYPE(0) == MTD_NANDFLASH) {
+		printk("Warning!! NAND doesn't support double ENV yet!\n");
+		return NAND_ENV_GROUP1_OFFS;
 
+	} else {
+		printk("Warning!! Unknown flash type!!\n");
+		return 0;
+	}
+}
 static inline ulong getcmdenvsize (void)
 {
 	ulong rc = CONFIG_ENV_SIZE - sizeof(uint32_t);
@@ -193,7 +244,184 @@ static inline ulong getcmdenvsize (void)
 	return rc;
 }
 
-static int flash_read (int dev_target)
+static int nand_read_buf (struct file *filp, void *buf, size_t count, 
+			off_t offset, struct mtd_info_user *mtd)
+{
+	size_t blocklen;	/* erase / write length - one block on NAND,
+				   0 on NOR */
+	size_t processed = 0;	/* progress counter */
+	size_t readlen = count;	/* current read length */
+	off_t block_seek;	/* offset inside the current block to the start
+				   of the data */
+	loff_t blockstart;	/* running start of the current block -
+				   MEMGETBADBLOCK needs 64 bits */
+	int rc;
+
+	blockstart = (offset / (mtd->erasesize)) * (mtd->erasesize);
+
+	/* Offset inside a block */
+	block_seek = offset - blockstart;
+
+	/*
+	 * NAND: calculate which blocks we are reading. We have
+	 * to read one block at a time to skip bad blocks.
+	 */
+	blocklen = mtd->erasesize;
+
+
+	/* Limit to one block for the first read */
+	if (readlen > blocklen - block_seek)
+		readlen = blocklen - block_seek;
+
+	while (processed < count) {
+		rc = klib_ioctl(filp, MEMGETBADBLOCK, (unsigned long)&blockstart);
+		if (rc < 0) {
+			printk("Cannot read bad block mark\n");
+			return -1;
+		}
+		if (rc) { /* Bad block, continue */
+			blockstart += blocklen;
+			continue;
+		}
+
+		/*
+		 * If a block is bad, we retry in the next block at the same
+		 * offset - see common/env_nand.c::writeenv()
+		 */
+		filp->f_pos = (blockstart + block_seek);
+
+		rc = klib_fread(buf+processed,readlen,filp);
+		if (rc != readlen) {
+			printk ("Read NAND error!!\n");
+			return -1;
+		}
+#ifdef DEBUG
+		printk ("Read 0x%x bytes at 0x%llx\n",
+			 rc, blockstart + block_seek);
+#endif
+		processed += readlen;
+		readlen = min (blocklen, count - processed);
+		block_seek = 0;
+		blockstart += blocklen;
+	}
+
+	return processed;
+}
+static int nand_write_buf (struct file *filp, void *buf, size_t count, 
+			off_t offset, struct mtd_info_user *mtd)
+{
+	void *data;
+	struct erase_info_user erase;
+	size_t blocklen;	/* length of NAND block / NOR erase sector */
+	size_t erase_len;	/* whole area that can be erased - may include
+				   bad blocks */
+	size_t erasesize = 0;	/* erase / write length - one block on NAND,
+				   whole area on NOR */
+	size_t processed = 0;	/* progress counter */
+	size_t write_total;	/* total size to actually write - excluding
+				   bad blocks */
+	off_t erase_offset;	/* offset to the first erase block (aligned)
+				   below offset */
+	off_t block_seek = 0;	/* offset inside the erase block to the start
+				   of the data */
+	loff_t blockstart;	/* running start of the current block -
+				   MEMGETBADBLOCK needs 64 bits */
+	int rc;
+
+	blocklen = mtd->erasesize;
+
+	erase_offset = (offset / blocklen) * blocklen;
+
+	/* Offset inside a block */
+	block_seek = offset - erase_offset;
+
+	blockstart = erase_offset;
+
+	/*
+	 * Data size we actually have to write: from the start of the block
+	 * to the start of the data, then count bytes of data, and to the
+	 * end of the block
+	 */
+	write_total = ((block_seek + count + blocklen - 1) /
+						blocklen) * blocklen;
+	/* Maximum area we may use */
+	erase_len =  write_total;
+
+	/*
+	 * Support data anywhere within erase sectors: read out the complete
+	 * area to be erased, replace the environment image, write the whole
+	 * block back again.
+	 */
+	if (write_total > count) {
+		data = kmalloc (erase_len, GFP_KERNEL);
+		if (!data) {
+			printk ("Cannot malloc %zu bytes\n",
+				 erase_len);
+			return -1;
+		}
+
+		rc = nand_read_buf (filp, data, write_total, 
+				erase_offset, &g_mtd_info);
+		if (write_total != rc)
+			return -1;
+
+		/* Overwrite the old environment */
+		memcpy (data + block_seek, buf, count);
+	} else {
+		/*
+		 * We get here, iff offset is block-aligned and count is a
+		 * multiple of blocklen - see write_total calculation above
+		 */
+		data = buf;
+	}
+
+
+	erase.length = blocklen;
+
+	/* This only runs once on NOR flash and SPI-dataflash */
+	while (processed < write_total) {
+		rc = klib_ioctl(filp, MEMGETBADBLOCK, (unsigned long)&blockstart);
+		if (rc < 0) {
+			printk("Cannot read bad block mark\n");
+			return -1;
+		}
+		if (rc) { /* Bad block, continue */
+			blockstart += blocklen;
+			continue;
+		}
+
+		erase.start = blockstart;
+		klib_ioctl (filp, MEMUNLOCK, (unsigned long)&erase);
+
+		/* Dataflash does not need an explicit erase cycle */
+		if (klib_ioctl (filp, MEMERASE, (unsigned long)&erase) != 0) {
+			printk ("NAND erase error\n");
+			return -1;
+		}
+
+		filp->f_pos = blockstart;
+
+#ifdef DEBUG
+		printk ("Write 0x%x bytes at 0x%llx\n", erasesize, blockstart);
+#endif
+		if (klib_fwrite(data + processed, erasesize, filp) != erasesize) {
+			printk ("NAND write error\n");
+			return -1;
+		}
+
+		klib_ioctl (filp, MEMLOCK, (unsigned long)&erase);
+
+		processed  += blocklen;
+		block_seek = 0;
+		blockstart += blocklen;
+	}
+
+	if (write_total > count)
+		kfree (data);
+
+	return processed;
+}
+static int emmc_read_env(int dev_target)
 {
 	int rc;
 	loff_t offset = DEVOFFSET(dev_target);
@@ -209,8 +437,37 @@ static int flash_read (int dev_target)
 	klib_fclose(filp);	
 	return (!rc) ? -1 : 0;
 }
+static int nand_read_env(int dev_target)
+{
+	int rc;
+	off_t offset = DEVOFFSET(dev_target);
 
-static int flash_write(int dev_target)
+	struct file *filp = klib_fopen(DEVNAME(dev_target), O_RDONLY, 0);
+	if(!filp) {
+		printk("Can't open %s\n", DEVNAME (dev_target));
+		return -1;
+	}
+	
+	filp->f_pos = offset;
+	rc = nand_read_buf(filp, environment.image, 
+				CONFIG_ENV_SIZE, offset, &g_mtd_info);
+	rc = (rc == CONFIG_ENV_SIZE ? 0 : -1);
+
+	klib_fclose(filp);
+	return rc;	
+}
+static int flash_read(int dev_target)
+{
+	if (DEVTYPE(0) == MTD_NANDFLASH) {
+		return nand_read_env(dev_target);
+	} else if (DEVTYPE(0) == MTD_ABSENT) {
+		return emmc_read_env(dev_target);
+	} else {
+		printk("Unknown flash type!!\n");
+		return -1;
+	}
+}
+static int emmc_write_env(int dev_target)
 {
 	int rc;
 	loff_t offset = DEVOFFSET(dev_target);
@@ -220,6 +477,35 @@ static int flash_write(int dev_target)
 		printk("Can't open %s\n", DEVNAME (dev_target));
 		return -1;
 	}
+
+	filp->f_pos = offset;
+	rc = klib_fwrite(environment.image,CONFIG_ENV_SIZE,filp);
+	klib_fclose(filp);	
+	return 0;
+
+}
+static int nand_write_env(int dev_target)
+{
+	int rc;
+	loff_t offset = DEVOFFSET(dev_target);
+
+	struct file *filp = klib_fopen(DEVNAME(dev_target), O_RDWR, 0);
+	if(!filp) {
+		printk("Can't open %s\n", DEVNAME (dev_target));
+		return -1;
+	}
+
+	filp->f_pos = offset;
+
+	rc = nand_write_buf(filp, environment.image,
+				CONFIG_ENV_SIZE, offset, &g_mtd_info);
+
+	rc = (rc == CONFIG_ENV_SIZE ? 0 : -1);
+	klib_fclose(filp);
+	return rc;
+}
+static int flash_write(int dev_target)
+{
 
 	switch (environment.flag_scheme) {
 		case FLAG_NONE:
@@ -239,9 +525,15 @@ static int flash_write(int dev_target)
 	pr_debug ("Writing new environment at 0x%lx on %s\n",
             DEVOFFSET (dev_target), DEVNAME (dev_target));
 
-	filp->f_pos = offset;
-	rc = klib_fwrite(environment.image,CONFIG_ENV_SIZE,filp);
-	klib_fclose(filp);	
+	if (DEVTYPE(0) == MTD_NANDFLASH) {
+		return nand_write_env(dev_target);
+	} else if (DEVTYPE(0) == MTD_ABSENT) {
+		return emmc_write_env(dev_target);
+	} else {
+		printk("Unknown flash type!!\n");
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -260,23 +552,90 @@ static int flash_io (int mode)
 }
 
 
+static int enumerate_env_device(void)
+{
+	struct mtd_info_user *mtd = &g_mtd_info;
+	struct file *filp = NULL;
+
+	/*
+ 	 * Try with NAND device first
+ 	 */ 
+	filp = klib_fopen(NAND_DEV1, O_RDONLY, 0);
+	if (filp == NULL) {
+		goto try_emmc;
+	}
+	
+	if (klib_ioctl(filp, MEMGETINFO, (unsigned long)mtd)) {
+		printk("Can't get device %s MTD info\n", NAND_DEV1);
+		klib_fclose(filp);
+		return -1;
+	}
+#ifdef DEBUG
+	printk("mtd->type = %d\n", mtd->type);
+	printk("mtd->size = %x\n", mtd->size);
+	printk("mtd->erasesize = %x\n", mtd->erasesize);
+	printk("mtd->writesize = %x\n", mtd->writesize);
+	printk("mtd->oobsize = %x\n", mtd->oobsize);
+#endif
+	strcpy(DEVNAME(0), NAND_DEV1);
+	DEVOFFSET (0) = NAND_DEV1_OFFS;
+	ENVSIZE (0) = ENV1_SIZE;
+	DEVESIZE (0) = mtd->erasesize;
+	ENVSECTORS(0) = NAND_DEV1_ENVSECTORS;
+	DEVTYPE(0) = MTD_NANDFLASH;
+#ifdef HAVE_REDUND
+	strcpy(DEVNAME(1), NAND_DEV2);
+	DEVOFFSET (1) = NAND_DEV2_OFFS;
+	ENVSIZE (1) = ENV2_SIZE;
+	DEVESIZE (1) = mtd->erasesize;
+	ENVSECTORS(1) = NAND_DEV2_ENVSECTORS;
+	DEVTYPE(1) = MTD_NANDFLASH;
+#endif
+	klib_fclose(filp);
+	filp = NULL;
+	goto end;
+
+try_emmc:
+	/*
+	 * Try with eMMC device
+	 */ 
+	filp = klib_fopen(EMMC_DEV1, O_RDONLY, 0);
+	if (filp == NULL) {
+		printk("No ENV device found!\n");
+		return -1;
+	}
+	klib_fclose(filp);
+	filp = NULL;
+	strcpy(DEVNAME(0), EMMC_DEV1);
+	DEVOFFSET (0) = EMMC_DEV1_OFFS;
+	ENVSIZE (0) = ENV1_SIZE;
+	DEVESIZE (0) = ENVSIZE (0);
+	ENVSECTORS(0) = EMMC_DEV1_ENVSECTORS;
+#ifdef HAVE_REDUND
+	strcpy(DEVNAME(1), EMMC_DEV2);
+	DEVOFFSET (1) = EMMC_DEV2_OFFS;
+	ENVSIZE (1) = ENV2_SIZE;
+	DEVESIZE (1) = ENVSIZE (1);
+	ENVSECTORS(1) = EMMC_DEV2_ENVSECTORS;
+#endif
+end:
+	return 0;
+}
 static int parse_config(void)
 {
-	int offset = 0;
-	offset = auto_detect_env_group();
-	
-	strcpy(DEVNAME(0), DEVICE1_NAME);
-	DEVOFFSET(0) = DEVICE1_OFFSET + offset;
-	ENVSIZE(0) = ENV1_SIZE;
-	DEVESIZE(0) = ENVSIZE(0);
-	ENVSECTORS(0) = 0x8;
-	if (HaveRedundEnv) {
-		strcpy(DEVNAME(1), DEVICE2_NAME);
-		DEVOFFSET(1) = DEVICE2_OFFSET + offset;
-		ENVSIZE(1) = ENV2_SIZE;
-		DEVESIZE(1) = ENVSIZE(1);
-		ENVSECTORS(1) = 0x8;
+	int rc = 0, offset;
+
+	rc = enumerate_env_device();
+	if (rc) {
+		printk("Enumerate ENV device failed!!\n");
+		return -1;
 	}
+	offset = auto_detect_env_group();
+
+	DEVOFFSET(0) += offset;
+#ifdef HAVE_REDUND
+	DEVOFFSET(1) += offset;
+#endif
 	return 0;
 }
 
