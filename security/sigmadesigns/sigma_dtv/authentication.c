@@ -171,9 +171,17 @@ static unsigned long strtohex(char* str)
 #define PUBLIC_KEY_APP_OFS    0x300 
 static int get_pubkey(unsigned char *key,unsigned int off)
 {
+#if defined(CONFIG_SIGMA_DTV_ROM_MMC)
 	char *dev_name = "/dev/mmcblk0";
 	char *boot_dev = "/dev/mmcblk0bootX";
+#elif defined(CONFIG_SIGMA_DTV_ROM_NAND)
+	char *boot_dev="/dev/mtdblock0";
+#else
+	#error "Unknown ROM type!!"
+#endif
 	struct file *filp = NULL;
+
+#if defined(CONFIG_SIGMA_DTV_ROM_MMC)
 	struct inode *inode;
 	struct block_device *bdev;
 	struct gendisk *disk;
@@ -214,7 +222,8 @@ static int get_pubkey(unsigned char *key,unsigned int off)
                 	PDEBUG(" User Area Enabled for boot,invalid!\n");
                 	break;
 	}
-	
+#endif	
+
 	if(NULL == (filp = klib_fopen(boot_dev,O_RDONLY,0)))
 	{
 		PERROR("Could not open %s at line %d\n",boot_dev,__LINE__);
@@ -229,9 +238,9 @@ static int get_pubkey(unsigned char *key,unsigned int off)
 
 static int do_change_workdir(void)
 {
-	char *s;
-	char new_opt[25] = "mmcblk0.APP_X";
-	char *p = new_opt;
+	char *s = NULL;
+	char new_opt[25] = { 0 };
+	char *p = NULL;
 	s = fw_getenv("opt_partition");
 	if(!s)
 	{
@@ -239,7 +248,10 @@ static int do_change_workdir(void)
 		return -1;
 	}
  	//s = mmcblk0.APP_A or mmcblk0.APP_B
- 	(s[12]=='A')?(p[12]='B'):(p[12]='A');
+ 	strcpy(new_opt, s);
+	s = strstr(s, "APP_");
+	p = strstr(new_opt, "APP_");
+ 	(s[4]=='A')?(p[4]='B'):(p[4]='A');
 	PERROR("new_opt: %s\n",new_opt);
 	fw_env_write("opt_partition",new_opt);
 	return 0;
@@ -333,14 +345,15 @@ struct delayed_work security_check;
 static void verify_signature(struct work_struct *work)
 {
 	int err = 0;
-	char envbuf[20];
+	char envbuf[40] = { 0 };
 	char *s = envbuf;
+	char *p = NULL;
 
 	unsigned char sig[SIGNLEN];
 	unsigned char key[KEY_LEN];
 	
-	char dev_name[40];
-	char size_env[40];
+	char dev_name[40] = { 0 };
+	char size_env[40] = { 0 };
 	unsigned int blocknum = 0;
 	unsigned int length = 0;
 
@@ -369,17 +382,20 @@ static void verify_signature(struct work_struct *work)
 		goto EXIT;
 	}
 	/*
+ 	 * eMMC:
  	 * s = mmcblk0.APP_A or mmcblk0.APP_B
+ 	 * NAND:
+ 	 * s = mtdblock.APP_A or mtdblock.APP_B
  	 */
         sprintf(dev_name,"/dev/%s",s);
-	sprintf(size_env,"APP_%c_size",s[12]);
+	p = strstr(s, "APP_");
+	sprintf(size_env,"APP_%c_size", p[4]);
 	s = fw_getenv(size_env);
 	if(!s)
 	{
 		PERROR( "%s :Could not get %s from env,Exit\n",__func__,size_env);
 		goto EXIT;
 	}
-
 	blocknum = strtohex(s);
 	blocknum = blocknum - 1; //reserved 1 block for signature and public key
 	length = blocknum << 9;  //length = blocknum * 512	
@@ -406,7 +422,7 @@ EXIT:
 	if(err == SECURITY_FAIL)
 	{
 		do_change_workdir();
-		PERROR("\r\n############swtich OPT partition,SX6 system restart##########\r\n");
+		PERROR("\r\n############swtich OPT partition, system restart##########\r\n");
 		mcu_send_rest();
 		while(1); /* wait forever */
 	}
