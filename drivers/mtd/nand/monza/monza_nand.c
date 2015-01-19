@@ -835,6 +835,11 @@ static int monza_nand_probe(struct platform_device *pdev)
 			info->nand.ecc.strength = 24;
 			info->nand.ecc.size     = 1024;
 			info->nand.ecc.layout	= info->nand_ctrler?&nand_oob_bch_gf15_224_24:&nand_oob_bch_gf14_224_24;
+                        /*
+                        * TC58NVG2S0HBAI4 has a wrong description in the ONFI param
+                        * it reports 128-bytes spare size,but 256-bytes actually.
+                        */
+			info->mtd.oobsize	= 224;
 			break;
 		case 8192:
 			info->nand.ecc.strength = 24;
