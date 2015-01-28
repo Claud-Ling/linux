@@ -2413,7 +2413,9 @@ static irqreturn_t sdhci_irq(int irq, void *dev_id)
 	 * But some card have invert sequence. (i.e Toshiba eMMC)
 	 * So, add a temporary patch resolve this issue.
 	 */
-	if (host->cmd != NULL) {
+	if (host->cmd != NULL && 
+		((host->cmd->flags & (MMC_RSP_SPI_R1B | MMC_RSP_R1B))
+				== (MMC_RSP_SPI_R1B | MMC_RSP_R1B))) {
 		while (!(intmask & SDHCI_INT_ERROR_MASK)) {
 
 			if (host->cmd->opcode != MMC_SWITCH)

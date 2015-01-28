@@ -302,6 +302,10 @@ static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 	host->quirks |= SDHCI_QUIRK_FORCE_DMA;/*add by jenny enable DMA*/
 	/* Add by Shown, SDHCI cann't support max frequency */
 	host->quirks |= SDHCI_QUIRK_NONSTANDARD_CLOCK;
+	if (pdev->id == 1) {
+	/* For SD card, currently, no regulator to adjust IO voltage */
+		host->quirks2 |= SDHCI_QUIRK2_NO_1_8_V; 
+	}
 
 	host->irq = pdev->resource[1].start;
 	addr = pdev->resource[0].start;
