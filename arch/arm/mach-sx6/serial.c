@@ -112,7 +112,7 @@ static void printch(const unsigned char c)
 
 #ifdef CONFIG_SIGMA_DBG
 	int timeout = 0;
-#define TIMEOUT 0x20
+#define DBG_TIMEOUT 0x20
 #endif
 	do {
 		/*read UART line status register*/
@@ -120,7 +120,7 @@ static void printch(const unsigned char c)
 		ch = serial_read(SER_CMD);   //MAG
 #ifdef CONFIG_SIGMA_DBG
 		simple_delay(0x10);
-		if(timeout ++ > TIMEOUT)
+		if(timeout ++ > DBG_TIMEOUT)
 			break;
 #endif
 		

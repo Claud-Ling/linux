@@ -3,9 +3,9 @@
 #
 config MTD_NAND_MONZA 
         bool "SigmaDesigns NAND Flash Controller driver" 
-        depends on MTD_NAND && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7)
+        depends on MTD_NAND && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB)
         help 
-         Enables NAND Flash support for SX6/SX7.
+         Enables NAND Flash support for SX6/UXLB/SX7.
 
 config MTD_NAND_DMA
         bool "DMA enable"

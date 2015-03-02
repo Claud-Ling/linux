@@ -190,6 +190,8 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 		WriteRegByte((void*)0x1500ee34, 0x11);
 		WriteRegByte((void*)0x1500ee35, 0x11);
 		WriteRegByte((void*)0x1500ee3f, 0x22);
+#elif defined (CONFIG_SIGMA_SOC_UXLB)
+		pr_warn("TODO: pinshare setting for UXLB SDIO_0!!\n");
 #else
 	#error "unknown SoC type!"
 #endif
@@ -253,6 +255,8 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 		WriteRegByte((void*)0x1500ee2b, 0x11);
 		WriteRegByte((void*)0x1500ee2c, 0x11);
 		MWriteRegByte((void*)0x1500ee2d, 0x01, 0x03);
+#elif defined (CONFIG_SIGMA_SOC_UXLB)
+		pr_warn("TODO: pinshare setting for UXLB SDIO_1!!\n");
 #else
 	#error "unknown SoC type!"
 #endif

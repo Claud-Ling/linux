@@ -9,6 +9,7 @@ obj-y += memtest.o
 # Board specific support
 obj-$(CONFIG_SIGMA_SOC_SX6)		+= board-sx6.o
 obj-$(CONFIG_SIGMA_SOC_SX7)		+= board-sx7.o
+obj-$(CONFIG_SIGMA_SOC_UXLB)		+= board-uxl.o
 
 # SMP support
 obj-$(CONFIG_SMP)			+= smp.o

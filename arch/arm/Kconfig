@@ -874,8 +874,6 @@ config ARCH_OMAP1
 config ARCH_SIGMA_TRIX
 	bool "SDesigns SX series SoC"
 	select HAVE_CLK
-	select HAVE_SMP
-	select SMP
 	select HAVE_ARM_SCU if SMP
 	select HAVE_ARM_TWD if LOCAL_TIMERS
 	select ARCH_REQUIRE_GPIOLIB
@@ -885,11 +883,10 @@ config ARCH_SIGMA_TRIX
 	#select HAVE_SCHED_CLOCK
 	select CLKDEV_LOOKUP
 	select CLKSRC_MMIO
-	select HOTPLUG_CPU
+	select HOTPLUG_CPU if SMP
 	select NEED_MACH_IO_H
 	select SIGMA_DTV
 	select USB_ARCH_HAS_EHCI
-	select USB_ARCH_HAS_XHCI
 	help
 	  Support for Sigma's SX series SoC.
 
@@ -1059,7 +1056,7 @@ source "arch/arm/mach-w90x900/Kconfig"
 
 source "arch/arm/mach-zynq/Kconfig"
 
-source "arch/arm/mach-sx6/Kconfig"
+source "arch/arm/mach-trix/Kconfig"
 
 # Definitions to make life easier
 config ARCH_ACORN

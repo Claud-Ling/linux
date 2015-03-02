@@ -121,7 +121,7 @@ static void sx6_do_suspend(void)
  	 */
 	if (0 == ret)
 	{
-#if CONFIG_SMP
+#ifdef CONFIG_SMP
 		platform_smp_resume_cpus();
 #endif
 	}

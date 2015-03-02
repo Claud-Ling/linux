@@ -17,6 +17,7 @@
 #include <asm/io.h>
 #include <asm/irq.h>
 
+#if defined(CONFIG_USB_ARCH_HAS_EHCI)
 /* EHCI (USB high speed host controller) */
 static struct resource sigma_usb_ehci_resources[] = {
 	[0] = {
@@ -43,7 +44,9 @@ static struct resource sigma_usb_ehci2_resources[] = {
                .flags          = IORESOURCE_IRQ,
        },
 };
+#endif
 
+#if defined(CONFIG_USB_ARCH_HAS_XHCI)
 static struct resource sigma_usb_xhci_resources[] = {
        [0] = {
                .start          = SIGMA_XHCI_BASE,
@@ -56,6 +59,7 @@ static struct resource sigma_usb_xhci_resources[] = {
                .flags          = IORESOURCE_IRQ,
        },
 };
+#endif
 
 #if defined(CONFIG_MMC_SDHCI1_SIGMA)
 static struct resource sigma_sdhci_1_resources[] = {
@@ -89,6 +93,7 @@ static struct resource sigma_sdhci_2_resources[] = {
 
 static u64 ehci_dmamask = ~(u32)0;
 
+#if defined(CONFIG_USB_ARCH_HAS_XHCI)
 static struct platform_device sigma_usb_xhci_device = {
 	.name		= "sigma-xhci",
 	.id		= 0,
@@ -99,7 +104,9 @@ static struct platform_device sigma_usb_xhci_device = {
 	.num_resources	= ARRAY_SIZE(sigma_usb_xhci_resources),
 	.resource	= sigma_usb_xhci_resources,
 };
+#endif
 
+#if defined(CONFIG_USB_ARCH_HAS_EHCI)
 static struct platform_device sigma_usb_ehci_device = {
 	.name		= "sigma-ehci",
 	.id		= 0,
@@ -121,6 +128,7 @@ static struct platform_device sigma_usb_ehci2_device = {
        .num_resources  = ARRAY_SIZE(sigma_usb_ehci2_resources),
        .resource       = sigma_usb_ehci2_resources,
 };
+#endif
 
 #if defined(CONFIG_MMC_SDHCI1_SIGMA) 
 static struct platform_device sigma_sdhci_1_device = { 
@@ -186,10 +194,13 @@ static struct platform_device sigma_pmu_device = {
 };
 
 static struct platform_device *sigma_platform_devices[] __initdata = {
+#if defined(CONFIG_USB_ARCH_HAS_EHCI)
 	&sigma_usb_ehci_device,
 	&sigma_usb_ehci2_device,
-
+#endif
+#if defined(CONFIG_USB_ARCH_HAS_XHCI)
 	&sigma_usb_xhci_device,
+#endif
 #if defined(CONFIG_MMC_SDHCI2_SIGMA)
 	&sigma_sdhci_2_device,
 #endif
