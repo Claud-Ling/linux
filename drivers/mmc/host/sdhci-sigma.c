@@ -191,7 +191,42 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 		WriteRegByte((void*)0x1500ee35, 0x11);
 		WriteRegByte((void*)0x1500ee3f, 0x22);
 #elif defined (CONFIG_SIGMA_SOC_UXLB)
-		pr_warn("TODO: pinshare setting for UXLB SDIO_0!!\n");
+		/*TODO put UMAC setting to a better place.*/
+		MWriteRegHWord((void *)0x1b000072, 0x8000, 0x8000); //set bit 15, what does this mean?
+
+		//UMAC setting
+		MWriteRegWord((void *)0x1502207c, 0x0000ffff, 0x00000021);
+
+		//UMAC setting
+		MWriteRegWord((void *)0x1502206c, 0xffff0000, 0x00210000);
+		
+		//SDIO pin share
+		
+		/* bit[14:15] 2b'11 SDIO_CLK */
+		/* bit[6:7] 2b'11 SDIO_CD */
+		/* bit[4:5] 2b'11 SDIO_CMD & SDIO_D0 */
+		MWriteRegHWord((void *)0x1b000094, 0xc0f0, 0xc0f0); 
+	
+		/* bit[2:1] 2b'11 SDIO_D1 */
+		MWriteRegHWord((void *)0x1b000024, 0x0006, 0x0006); 
+
+		/* bit[15:14] 2b'11 SDIO_D2 */
+		MWriteRegHWord((void *)0x1b00002a, 0xc000, 0xc000);
+ 
+		/* bit[4:3] 2b'11 SDIO_D3 */
+		MWriteRegHWord((void *)0x1b000026, 0x0018, 0x0018);
+		
+		/* SDIO IN sel */
+		MWriteRegHWord((void *)0x1b000026, 0x0000, 0x5000); //clear bit 12 & 14
+
+		/* Enable IO PAD */
+		WriteRegByte((volatile void *)0x1b005798,0x77); //cmd
+		WriteRegByte((volatile void *)0x1b00579b,0x77); //data0
+		WriteRegByte((volatile void *)0x1b00579a,0x77); //data1
+		WriteRegByte((volatile void *)0x1b005795,0x77); //data2
+		WriteRegByte((volatile void *)0x1b005799,0x77); //data2
+		WriteRegByte((volatile void *)0x1b005796,0x77); //clock
+		
 #else
 	#error "unknown SoC type!"
 #endif
@@ -256,7 +291,18 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 		WriteRegByte((void*)0x1500ee2c, 0x11);
 		MWriteRegByte((void*)0x1500ee2d, 0x01, 0x03);
 #elif defined (CONFIG_SIGMA_SOC_UXLB)
-		pr_warn("TODO: pinshare setting for UXLB SDIO_1!!\n");
+
+		/*TODO put UMAC setting to a better place.*/
+		MWriteRegHWord((void *)0x1b000072, 0x8000, 0x8000); //set bit 15, what does this mean?
+
+		//UMAC setting
+		MWriteRegWord((void *)0x1502207c, 0x0000ffff, 0x00000021);
+
+		//UMAC setting
+		MWriteRegWord((void *)0x1502206c, 0xffff0000, 0x00210000);
+
+		MWriteRegHWord((void *)0x1b000026, 0x0000, 0x8000); //clear bit 15
+		MWriteRegHWord((void *)0x1b000026, 0x0020, 0x0020); //set bit 5, Enable SDIO2(CD, WP, CMD, CLK, D0, D1, D2, D3)
 #else
 	#error "unknown SoC type!"
 #endif
