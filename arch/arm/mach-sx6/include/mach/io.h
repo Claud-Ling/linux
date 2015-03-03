@@ -18,14 +18,24 @@
 
 #include <plat/io.h>
 /*usb*/
+
+#if defined(CONFIG_SIGMA_SOC_SX6) || defined(CONFIG_SIGMA_SOC_SX7)
+
 #define SIGMA_EHCI_BASE     0xf502f100
 #define SIGMA_EHCI_LEN      0x200
-#define SIGMA_EHCI_PTR               IO_PTR(SIGMA_SX6_EHCI_BASE)
-
 
 #define SIGMA_EHCI2_BASE    0xfb008100
 #define SIGMA_EHCI2_LEN     0x200
-#define SIGMA_EHCI2_PTR               IO_PTR(SIGMA_SX6_EHCI2_BASE)
+
+#elif defined(CONFIG_SIGMA_SOC_UXLB)
+
+#define SIGMA_EHCI_BASE     0xfb003100
+#define SIGMA_EHCI_LEN      0x200
+
+#define SIGMA_EHCI2_BASE    0xfb007100
+#define SIGMA_EHCI2_LEN     0x200
+
+#endif
 
 //#define SIGMA_GIC_BASE		0xF2100000 
 //#define SIGMA_L2C_BASE		0xF2102000 

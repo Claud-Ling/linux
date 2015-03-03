@@ -9,6 +9,7 @@
  */
 
 #include <linux/platform_device.h>
+#include <asm/io.h>
 
 extern int usb_disabled(void);
 
@@ -16,46 +17,45 @@ extern int usb_disabled(void);
 
 static void trihidtv_start_ehc(struct platform_device *dev)
 {
-        unsigned int temp;
         pr_debug(__FILE__ ": starting TriHidtv EHCI USB Controller\n");
 	if(dev->id == 0)
         {
 		pr_debug("USB EHCI%d %s____%d\n", dev->id,__func__, __LINE__);
-		temp = ReadRegByte((void *)0xf500ee23);
-		temp &= 0x8f;//bit[6:4]
-		WriteRegByte((void *)0xf500ee23, temp);
 
-		temp = ReadRegHWord((void *)0xfb005540);
-		temp |= 0x1;//[1:0]=0x01
-		temp &= 0xfffd;//[1:0]=0x01
-		WriteRegHWord((void*)0xfb005540, temp);/*bit 7~6 = 11*/
+#if defined(CONFIG_SIGMA_SOC_SX6) || defined (CONFIG_SIGMA_SOC_SX7)
+		
+		/* Set GPIO16 functionally as GPIO */
+		MWriteRegByte((void *)0xf500ee23, 0x00, 0x70);
+		MWriteRegHWord((void *)0xfb005540, 0x0001, 0x0003);
 	
-		temp = ReadRegHWord((void*)0xfb005542); //gpio used as output
-		temp |= 0x1;//[0]=0x1
-		WriteRegHWord((void*)0xfb005542, temp);/*bit 7~6 = 11*/		
+		/* Set GPIO16 output high */
+		MWriteRegHWord((void *)0xfb005542, 0x0001, 0x0001);
+
+#elif defined(CONFIG_SIGMA_SOC_UXLB)
+		/* Set GPIO7 output high */
+		MWriteRegHWord((void *)0x1b0055a0, 0x4000, 0x4000);
+		MWriteRegHWord((void *)0x1b0055a2, 0x0080, 0x0080);
+#endif	
 	
 	}
 	if(dev->id == 1){
 		pr_debug("USB EHCI%d %s____%d\n", dev->id,__func__, __LINE__);
-	/*	temp = ReadRegByte((void *)0xf500ee1e);
-		temp |= 0x30;//bit[6:4]
-		WriteRegByte((void *)0xf500ee1e, temp);*/
-		temp = ReadRegByte((void*)0xf500ee1e);
-		temp &= 0x8f; //[6:4]=0x0
-		WriteRegByte((void*)0xf500ee1e, temp);/*bit 15~12=0101*/
+#if defined(CONFIG_SIGMA_SOC_SX6) || defined (CONFIG_SIGMA_SOC_SX7)
 
-		/*gpio output*/
-		temp = ReadRegHWord((void*)0xfb005500);
-		temp |= 0x1000;//[13:12]=0x01
-		temp &= 0xdfff;//[13:12]=0x01
-		WriteRegHWord((void*)0xfb005500, temp);/*bit 13~12 = 0x01*/
-		/*gpio output value*/
-		temp = ReadRegHWord((void*)0xfb005502); //gpio used as output
-		temp |= 0x40;//[6]=0x4
-		WriteRegHWord((void*)0xfb005502, temp);/*bit 7~6 = 11*/
+		/* Set GPIO6 functionally as GPIO */
+		MWriteRegByte((void *)0xf500ee1e, 0x00, 0x70);
+		MWriteRegHWord((void *)0xfb005500, 0x0100, 0x0300);
+		
+		/* Set GPIO6 output high */
+		MWriteRegHWord((void *)0xfb005502, 0x0040, 0x0040);
 
 		/*usb2 clock control*/
 		WriteRegByte((void*)0xf500e84d, 0x08);
+#elif defined(CONFIG_SIGMA_SOC_UXLB)
+		/* Set GPIO6 output high */
+		MWriteRegHWord((void *)0x1b0055a0, 0x1000, 0x1000);
+		MWriteRegHWord((void *)0x1b0055a2, 0x0040, 0x0040);
+#endif	
 	}
 
 }
