@@ -54,3 +54,9 @@ config GMAC_MODE_MII
 	 Trix Board uses MII mode.
 
 endchoice
+
+config GBIT_PHY_MICREL
+	bool "Micrel KSZ9031"
+	depends on GMAC_MODE_RGMII
+	help
+	   use ksz9031 for giga ethernet.

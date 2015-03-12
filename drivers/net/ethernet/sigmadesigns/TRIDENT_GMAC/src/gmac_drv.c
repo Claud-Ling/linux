@@ -1287,6 +1287,43 @@ static __s32 setup_phy( struct net_device *dev )
 #if defined(CONFIG_GMAC_MODE_RGMII)
     priv->u_speed = LX_SPEED_1000;
     priv->u_mode = LX_MODE_FULL_DUPLEX;
+
+    #if defined(CONFIG_GBIT_PHY_MICREL)
+        #define SX7A_KSZ9031_CTRL_SKEW 0x0000
+	#define SX7A_KSZ9031_RX_SKEW   0x0000
+	#define SX7A_KSZ9031_TX_SKEW   0x3330
+	#define SX7A_KSZ9031_CLK_SKEW  0x03ef
+
+	#define MII_KSZ9031_MOD_DATA_NO_POST_INC        0x4000
+	#define MII_KSZ9031_MOD_DATA_POST_INC_RW        0x8000
+	#define MII_KSZ9031_MOD_DATA_POST_INC_W         0xC000
+	/* PHY Registers */
+	#define MII_KSZ9031_MMD_ACCES_CTRL      0x0d
+	#define MII_KSZ9031_MMD_REG_DATA        0x0e
+
+	#define MII_KSZ9031_EXT_RGMII_CTRL_SIG_SKEW     0x4
+	#define MII_KSZ9031_EXT_RGMII_RX_DATA_SKEW      0x5
+	#define MII_KSZ9031_EXT_RGMII_TX_DATA_SKEW      0x6
+	#define MII_KSZ9031_EXT_RGMII_CLOCK_SKEW        0x8
+    /*PHY Interface Control Register - bit0 phy interface select rgmii*/
+    WriteRegWord(0xf5031f00, 0x01);
+    /* control data pad skew - devaddr = 0x02, register = 0x04 */
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_ACCES_CTRL,0x02);
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_REG_DATA,MII_KSZ9031_EXT_RGMII_CTRL_SIG_SKEW);
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_ACCES_CTRL,MII_KSZ9031_MOD_DATA_NO_POST_INC|0x02);
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_REG_DATA,SX7A_KSZ9031_CTRL_SKEW);
+    /* tx data pad skew - devaddr = 0x02, register = 0x06 */
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_ACCES_CTRL,0x02);
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_REG_DATA,MII_KSZ9031_EXT_RGMII_TX_DATA_SKEW);
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_ACCES_CTRL,MII_KSZ9031_MOD_DATA_NO_POST_INC|0x02);
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_REG_DATA,SX7A_KSZ9031_TX_SKEW);
+    /* gtx and rx clock pad skew - devaddr = 0x02, register = 0x08 */
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_ACCES_CTRL,0x02);
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_REG_DATA,MII_KSZ9031_EXT_RGMII_CLOCK_SKEW);
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_ACCES_CTRL,MII_KSZ9031_MOD_DATA_NO_POST_INC|0x02);
+    Write_Phy_Reg(priv->phy_addr_val,MII_KSZ9031_MMD_REG_DATA,SX7A_KSZ9031_CLK_SKEW);
+    #endif /*CONFIG_GBIT_PHY_MICREL*/
+
 #elif defined(CONFIG_GMAC_MODE_RMII)
     if(priv->u_autoneg == LX_AUTONEG_DISABLE){
 	/*auto-negotiation disable ,we force to 100M Full*/
