@@ -13,7 +13,7 @@
 
 /*
  * NOTE: these have been copied from
- * repo/hwdep_xos/xos/xboot4/armor/include/armor_smc.h
+ * repo/hwdep_xos/xos/xboot4/armor/include/armor_smc_call.h
  * Report any modification over there!
  */
 #define ARMOR_SMC_set_l2_control		0x102
@@ -24,6 +24,11 @@
 #define ARMOR_SMC_set_l2_aux_control		0x109
 
 #define ARMOR_SMC_set_l2_reg			0x119
+#define ARMOR_SMC_alloc				0x11a
+#define ARMOR_SMC_free				0x11b
+#define ARMOR_SMC_read_reg			0x11d
+#define ARMOR_SMC_write_reg			0x11e
+#define ARMOR_SMC_otp_access			0x11f
 
 #ifdef __ASSEMBLY__
 
@@ -193,10 +198,13 @@ static inline type armor_smc_##name(type1 arg1, type2 arg2, type3 arg3, type4 ar
  * you're supposed to land here after having #defined armor_smc_* to a macro that implements your
  * layer crossing facility. Note and observe the absence of semi-colon below.
  */
-armor_smc_call1(int, set_l2_control, int, val)
-armor_smc_call1(int, set_l2_debug, int, val)
-armor_smc_call1(int, set_l2_aux_control, int, val)
-armor_smc_call2(int, set_l2_reg, int, ofs, int, val)
+armor_smc_call1(uint32_t, set_l2_control, uint32_t, val)
+armor_smc_call1(uint32_t, set_l2_debug, uint32_t, val)
+armor_smc_call1(uint32_t, set_l2_aux_control, uint32_t, val)
+armor_smc_call2(uint32_t, set_l2_reg, uint32_t, ofs, uint32_t, val)
+armor_smc_call2(uint32_t, read_reg, uint32_t, mode, uint32_t, addr)
+armor_smc_call4(uint32_t, write_reg, uint32_t, mode, uint32_t, addr, uint32_t, val, uint32_t, mask)
+armor_smc_call4(uint32_t, otp_access, uint32_t, opc, uint32_t, arg0, uint32_t, arg1, uint32_t, arg2)
 
 #undef armor_smc_call0v
 #undef armor_smc_call0
@@ -208,15 +216,23 @@ armor_smc_call2(int, set_l2_reg, int, ofs, int, val)
 #undef armor_smc_call3
 #undef armor_smc_call4
 
+/*
+ * Return current security state
+ * 0 - Non-secure, 1 - secure
+ */
+int get_security_state(void);
+
 /* smc wrapper api */
-void sx6_smc_l2x0_enable(void);
-void sx6_smc_l2x0_disable(void);
-void sx6_smc_l2x0_set_auxctrl(unsigned long val);
-void sx6_smc_l2x0_set_debug(unsigned long val);
-void sx6_smc_l2x0_set_prefetchctrl(unsigned long val);
-void sx6_smc_set_actlr(unsigned long val);
+void secure_l2x0_enable(void);
+void secure_l2x0_disable(void);
+void secure_l2x0_set_auxctrl(uint32_t val);
+void secure_l2x0_set_debug(uint32_t val);
+void secure_l2x0_set_prefetchctrl(uint32_t val);
+void secure_set_actlr(uint32_t val);
+
 #endif /*__ASSEMBLY__*/
 
+#include "secure.h"
 
 #endif /*__DTV_SMC_H__*/
 

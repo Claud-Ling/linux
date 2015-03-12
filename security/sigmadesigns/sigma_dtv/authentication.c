@@ -22,6 +22,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/blkdev.h>
+#include <mach/otp.h>
 
 #include "./inc/rsa.h"
 #include "./inc/sha2.h"
@@ -34,6 +35,7 @@
 
 
 extern void mcu_send_rest( void );
+
 //#define SIG_DEBUG 1
 
 #ifdef SIG_DEBUG
@@ -49,43 +51,6 @@ extern void mcu_send_rest( void );
 #define KEY_LEN  256
 
 #define SECURITY_FAIL 127
-
-#define TURING_FC_2		0x110C	/*Fuction Control 2*/
-#define TURING_REG_SIZE		SZ_8K	/*actually turing reg space is 128k, but 8k is enough for use here */
-
-#ifdef CONFIG_SIGMA_SOC_SX6
-# define TURING_REG_BASE 	0xf5100000
-# define TURING_SETUP()		do{}while(0)
-# define TURING_CLEANUP()	do{}while(0)
-# define TURING_READL(a)	ReadRegWord((volatile void*)(TURING_REG_BASE + (a)))
-# define TURING_WRITEL(v,a)	WriteRegWord((volatile void*)(TURING_REG_BASE + (a)), v)
-#else /*CONFIG_SIGMA_SOC_SX6*/
-static void __iomem* turing_reg_vbase = NULL;
-# define TURING_REG_BASE 0xf1040000
-# define TURING_SETUP()	do{									\
-				turing_reg_vbase = ioremap(TURING_REG_BASE, TURING_REG_SIZE);	\
-				if (!turing_reg_vbase)						\
-					pr_err("turing iomap failed!\n");			\
-			}while(0)
-# define TURING_CLEANUP() do{									\
-				if (turing_reg_vbase) iounmap(turing_reg_vbase);		\
-				turing_reg_vbase = NULL;					\
-			}while(0)
-# define TURING_READL(a) ({									\
-				long _ret = 0;							\
-				if (turing_reg_vbase && ((a) > 0 && (a) < TURING_REG_SIZE))	\
-					_ret = readl((volatile void*)(turing_reg_vbase + (a)));	\
-				else								\
-					pr_warn("failed to read turing reg:%x\n", (a));		\
-				_ret;								\
-			})
-# define TURING_WRITEL(v,a) do{									\
-				if (turing_reg_vbase && ((a) > 0 && (a) < TURING_REG_SIZE))	\
-					writel(v, (volatile void*)(turing_reg_vbase + (a)));	\
-				else								\
-					pr_warn("failed to write turing reg:%x\n", (a));	\
-			}while(0)
-#endif /*CONFIG_SIGMA_SOC_SX6*/
 
 #ifdef CONFIG_PROC_FS
 #include "proc_security.c"
@@ -105,11 +70,8 @@ __setup("security_debug=", sx6_security_debug);
 static int is_secure_enable(void)
 {
 	int security_otp;
-	unsigned long val;	
 	
-	val = TURING_READL(TURING_FC_2);
-	//PDEBUG("Secure OTP val:0x%08lx\n", val);
-	security_otp = (val&0x2)?1:0;
+	security_otp = otp_get_security_boot_state();
 
 	/*
 	 * we check the kernel param "security_debug" for debug mode:
@@ -433,7 +395,6 @@ EXIT:
 
 static int __init secure_check_init(void)
 {
-	TURING_SETUP();
 #ifdef CONFIG_PROC_FS
 	proc_security_init();	
 #endif
@@ -457,7 +418,6 @@ late_initcall(secure_check_init);
 #else
 static void __exit cleanup_secure_check(void)
 {
-	TURING_CLEANUP();
 	return;
 }
 module_init(secure_check_init);

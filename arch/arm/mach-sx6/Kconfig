@@ -27,6 +27,7 @@ config SIGMA_SOC_SX6
 	select PM_OPP if PM
 	select ARM_ERRATA_720789 if SMP
 	select USB_ARCH_HAS_XHCI
+	select SIGMA_OTP_SYS
 	help
 	  HiDTV-PRO SX6
 
@@ -49,6 +50,7 @@ config SIGMA_SOC_SX7
 	select PM_OPP if PM
 	select ARM_ERRATA_720789 if SMP
 	select USB_ARCH_HAS_XHCI
+	select SIGMA_OTP_SYS
 	help
 	  HiDTV-PRO SX7
 
@@ -68,6 +70,7 @@ config SIGMA_SOC_UXLB
 	select ARCH_HAS_OPP
 	select PM_OPP if PM
 	select ARM_ERRATA_720789 if SMP
+	select SIGMA_OTP_EFUSE
 	help
 	  HiDTV-PRO UXLB
 
@@ -81,6 +84,16 @@ config SIGMA_SOC_NAME
 	default "TRIX"
 	help
 	  SoC name
+
+config SIGMA_OTP_SYS
+	bool
+	help
+	  Select sigma OTP_SYS that is embedded in Turing
+
+config SIGMA_OTP_EFUSE
+	bool
+	help
+	  Select sigma efuse
 
 choice
 	prompt "Select ROM device type"

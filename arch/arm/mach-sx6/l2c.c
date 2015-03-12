@@ -46,7 +46,7 @@ void sigma_sx6_l2x0_enable(void)
 {
 	/* Disable PL310 L2 Cache controller */
 #ifdef CONFIG_SIGMA_SMC
-	sx6_smc_l2x0_enable();
+	secure_l2x0_enable();
 #else
 	writel_relaxed(1, l2cache_base + L2X0_CTRL);
 #endif
@@ -55,7 +55,7 @@ void sigma_sx6_l2x0_disable(void)
 {
 	/* Disable PL310 L2 Cache controller */
 #ifdef CONFIG_SIGMA_SMC
-	sx6_smc_l2x0_disable();
+	secure_l2x0_disable();
 #else
 	writel_relaxed(0, l2cache_base + L2X0_CTRL);
 #endif
@@ -65,7 +65,7 @@ void sigma_sx6_l2x0_set_auxctrl(unsigned long val)
 {
 	/* Set L2 Cache auxiliary control register */
 #ifdef CONFIG_SIGMA_SMC
-	sx6_smc_l2x0_set_auxctrl(val);
+	secure_l2x0_set_auxctrl(val);
 #else
 	writel_relaxed(val, l2cache_base + L2X0_AUX_CTRL);
 #endif
@@ -75,7 +75,7 @@ void sigma_sx6_l2x0_set_debug(unsigned long val)
 {
 #ifdef CONFIG_SIGMA_SMC
 	/* Program PL310 L2 Cache controller debug register */
-	sx6_smc_l2x0_set_debug(val);
+	secure_l2x0_set_debug(val);
 #else
 	writel_relaxed(val, l2cache_base + L2X0_DEBUG_CTRL);
 #endif
@@ -85,7 +85,7 @@ void sigma_sx6_l2x0_set_prefetchctrl(unsigned long val)
 {
 #ifdef CONFIG_SIGMA_SMC
 	/* Program PL310 L2 Cache controller prefetch control register */
-	sx6_smc_l2x0_set_prefetchctrl(val);
+	secure_l2x0_set_prefetchctrl(val);
 #else
 	writel_relaxed(val, l2cache_base + L2X0_PREFETCH_CTRL);
 #endif

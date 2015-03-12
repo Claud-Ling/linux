@@ -39,7 +39,7 @@ static inline void cpu_enter_lowpower(void)
 
 	/* ACTLR, RO in Non-secure state if NSACR.NS_SMP=0, RW if NSACR.NS_SMP=1 */
 #ifdef CONFIG_SIGMA_SMC
-	sx6_smc_set_actlr(v);
+	secure_set_actlr(v);
 #else
 	asm volatile(
 	"	mcr	p15, 0, %0, c1, c0, 1\n"
@@ -72,7 +72,7 @@ static inline void cpu_leave_lowpower(void)
 
 	/* ACTLR, RO in Non-secure state if NSACR.NS_SMP=0, RW if NSACR.NS_SMP=1 */
 #ifdef CONFIG_SIGMA_SMC
-	sx6_smc_set_actlr(v);
+	secure_set_actlr(v);
 #else
 	asm volatile(
 	"	mcr	p15, 0, %0, c1, c0, 1\n"
