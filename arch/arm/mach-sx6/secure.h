@@ -57,22 +57,23 @@ void secure_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mask);
 #define secure_write_uint32(pa, val, m) secure_write_reg(2, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
 
 /*
- * @fn		uint32_t secure_otp_read_fuse(const uint32_t offset);
- * @brief	ask armor to read generic fuse, must from NS world
+ * @fn		uint32_t secure_otp_get_fuse_mirror(const uint32_t offset);
+ * @brief	ask armor to read fuse mirror, must from NS world
  * @param[in]	<offset>  - fuse offset
  * @return	fuse value on success
  */
-uint32_t secure_otp_read_fuse(const uint32_t offset);
+uint32_t secure_otp_get_fuse_mirror(const uint32_t offset);
 
 /*
- * @fn		uint32_t secure_otp_read_rsa_key(uint32_t *buf, uint32_t nbytes);
- * @brief	ask armor to read rsa key from OTP, must from NS world
+ * @fn		uint32_t secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nbytes);
+ * @brief	ask armor to read fuse array, must from NS world
+ * @param[in]	<offset> - fuse offset
  * @param[in]	<buf>    - buffer pointer
  * @param[in]	<nbytes> - buffer length
- * @return	fuse value on success
+ * @return	return 0 and fuse value filled in buf on success. Otherwise non-zero
  */
 
-uint32_t secure_otp_read_rsa_key(uint32_t *buf, uint32_t nbytes);
+uint32_t secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nbytes);
 
 #endif /*__ASSEMBLY__*/
 

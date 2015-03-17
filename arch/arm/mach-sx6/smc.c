@@ -69,8 +69,8 @@ static const char* reg_access_mode(int mode)
  * this enum is inherited from armor/include/otp.h
  */
 enum otp_access_code{
-	OTP_ACCESS_CODE_FUSE = 0,	/*read generic fuse, arg0 - fuse offset, return fuse value on success*/
-	OTP_ACCESS_CODE_RSA_KEY,	/*read rsa pub_key, arg0 - phy addr of buf, return RM_OK on success*/
+	OTP_ACCESS_CODE_FUSE_MIRROR = 0,	/*read fuse mirror, arg0 - fuse offset, return fuse value on success*/
+	OTP_ACCESS_CODE_FUSE_ARRAY,		/*read fuse array, arg0 - fuse offset, arg1 - phy addr of buf, arg2 - buf length, return RM_OK on success*/
 };
 
 /**************************************************************************/
@@ -213,27 +213,27 @@ void secure_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mask)
 	}
 }
 
-uint32_t secure_otp_read_fuse(const uint32_t offset)
+uint32_t secure_otp_get_fuse_mirror(const uint32_t offset)
 {
 	if ( security_state ) {
 		printk(KERN_ERR "error: call to %s in Secure world!\n", __func__);
 		return 0;
 	}
 
-	return (uint32_t)armor_call(otp_access, OTP_ACCESS_CODE_FUSE, offset, 0, 0);
+	return (uint32_t)armor_call(otp_access, OTP_ACCESS_CODE_FUSE_MIRROR, offset, 0, 0);
 }
 
-uint32_t secure_otp_read_rsa_key(uint32_t *buf, uint32_t nbytes)
+uint32_t secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nbytes)
 {
 	if ( security_state ) {
 		printk(KERN_ERR "error: call to %s in Secure world!\n", __func__);
 		return 1;
 	} else {
-		uint32_t ret, a0;
+		uint32_t ret, addr;
 		BUG_ON(buf == NULL);
-		a0 = virt_to_phys((void*)buf); /*addr must in low memory*/
-		outer_inv_range(a0, a0 + nbytes);
-		ret = (uint32_t)armor_call(otp_access, OTP_ACCESS_CODE_RSA_KEY, a0, nbytes, 0);
+		addr = virt_to_phys((void*)buf); /*buf must in low memory*/
+		outer_inv_range(addr, addr + nbytes);
+		ret = (uint32_t)armor_call(otp_access, OTP_ACCESS_CODE_FUSE_ARRAY, offset, addr, nbytes);
 		ret = armor2linuxret(ret);
 		return ret;
 	}

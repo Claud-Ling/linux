@@ -61,10 +61,9 @@ static uint32_t read_fuse(const uint32_t offset)
 {
 #ifdef CONFIG_SIGMA_SMC
 	if (!get_security_state())
-		return secure_otp_read_fuse(offset);
-	else
+		return secure_otp_get_fuse_mirror(offset);
 #endif
-		return OTP_READL(OTP_FUSE_BASE + offset);
+	return OTP_READL(OTP_FUSE_BASE + offset);
 }
 
 /** read fuse data from data-addr register
@@ -122,6 +121,22 @@ static int read_fuse_data(uint32_t fuseOffset, uint32_t bQuadWord, uint32_t* buf
 	return 0;
 }
 
+static uint32_t get_fuse_array(uint32_t ofs, uint32_t *buf, uint32_t nbytes)
+{
+	int i, j;
+
+#ifdef CONFIG_SIGMA_SMC
+	if (!get_security_state())
+		return secure_otp_get_fuse_array(ofs, buf, nbytes);
+#endif
+
+	BUG_ON(buf == NULL);
+	for(i=0,j=0; i<(nbytes>>2); i+=4,j+=16) {
+		read_fuse_data(ofs+j, 1, buf+i);
+	}
+	return 0;
+}
+
 /*
  * get security boot state from OTP
  * return value
@@ -155,19 +170,14 @@ static int get_rsa_key_index(void)
  */
 static uint32_t get_rsa_key(uint32_t *buf, uint32_t nbytes)
 {
-	int i,j;
 	uint32_t otp_rsa_key_off = 0x290;
 	BUG_ON(otp_base == NULL);
-	BUG_ON(buf == NULL);
 	if (nbytes < OTP_RSA_KEY_NBYTES) {
 		printk(KERN_WARNING "small buffer for rsa key: %d\n", nbytes);
 		return 1;
 	}
 
-	for(i=0,j=0; i<(OTP_RSA_KEY_NBYTES>>2); i+=4,j+=16) {
-		read_fuse_data(otp_rsa_key_off+j, 1, buf+i);
-	}
-	return 0;
+	return get_fuse_array(otp_rsa_key_off, buf, OTP_RSA_KEY_NBYTES);
 }
 
 #elif defined(CONFIG_SIGMA_OTP_EFUSE) /*CONFIG_SIGMA_OTP_SYS*/
@@ -206,10 +216,9 @@ static uint32_t read_fuse(const uint32_t offset)
 {
 #ifdef CONFIG_SIGMA_SMC
 	if (!get_security_state())
-		return secure_otp_read_fuse(offset);
-	else
+		return secure_otp_get_fuse_mirror(offset);
 #endif
-		return OTP_READL(OTP_FUSE_BASE + offset);
+	return OTP_READL(OTP_FUSE_BASE + offset);
 }
 
 /*
@@ -258,6 +267,22 @@ static int read_fuse_data (uint32_t addr, uint32_t *buf)
 	return 0;
 }
 
+static uint32_t get_fuse_array(uint32_t ofs, uint32_t *buf, uint32_t nbytes)
+{
+	int i, j;
+
+#ifdef CONFIG_SIGMA_SMC
+	if (!get_security_state())
+		return secure_otp_get_fuse_array(ofs, buf, nbytes);
+#endif
+
+	BUG_ON(buf == NULL);
+	for(i=0,j=0; i<(nbytes>>2); i++,j+=4) {
+		read_fuse_data(ofs+j, buf+i);
+	}
+	return 0;
+}
+
 /*
  * get security boot state from OTP
  * return value
@@ -297,19 +322,14 @@ static int get_rsa_key_index(void)
  */
 static uint32_t get_rsa_key(uint32_t *buf, uint32_t nbytes)
 {
-	int i,j;
 	uint32_t otp_rsa_key_off = 0x400;
 	BUG_ON(otp_base == NULL);
-	BUG_ON(buf == NULL);
 	if (nbytes < OTP_RSA_KEY_NBYTES) {
 		printk(KERN_WARNING "small buffer for rsa key: %d\n", nbytes);
 		return 1;
 	}
 
-	for(i=0,j=0; i<(OTP_RSA_KEY_NBYTES>>2); i++,j+=4) {
-		read_fuse_data(otp_rsa_key_off+j, buf+i);
-	}
-	return 0;
+	return get_fuse_array(otp_rsa_key_off, buf, OTP_RSA_KEY_NBYTES);
 }
 
 #else /*CONFIG_SIGMA_OTP_SYS*/
@@ -392,13 +412,6 @@ int otp_get_rsa_key_index(void)
  */
 uint32_t otp_get_rsa_key(uint32_t *buf, uint32_t nbytes)
 {
-	uint32_t (*func)(uint32_t *, uint32_t);
-
-	func = get_rsa_key;
-#ifdef CONFIG_SIGMA_SMC
-	if (!get_security_state())
-		func = secure_otp_read_rsa_key;
-#endif
-	return func((uint32_t*)buf, nbytes);
+	return get_rsa_key((uint32_t*)buf, nbytes);
 }
 
