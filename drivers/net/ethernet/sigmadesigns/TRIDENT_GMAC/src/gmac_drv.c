@@ -4103,6 +4103,23 @@ static int trident_gmacEth_resume(struct platform_device *pdev)
 	 IntrMask |= 0x40; 	
 	 WriteRegWord((volatile void *)INTERRUPTCTL_REG, IntrMask );
 	
+#if defined(CONFIG_SIGMA_SOC_SX7)
+/*
+ * since these pin(s) are INPUT pin when power on,
+ * in resume routine,we MUST configure the following RMII pin as output:
+ * TXEN, TXC ,TXD0~TXD3,MDC
+ * 
+ * NOTE:
+ * this only valid on SX7, SX6 doesn't need these settings
+ */
+	 WriteRegByte((volatile void *)0xf500ea2c, 0x7f); //GBE_TXEN
+	 WriteRegByte((volatile void *)0xf500ea2d, 0x7f); //GBE_TXC
+	 WriteRegByte((volatile void *)0xf500ea2e, 0x7f); //GBE_TXD0
+	 WriteRegByte((volatile void *)0xf500ea2f, 0x7f); //GBE_TXD1
+	 WriteRegByte((volatile void *)0xf500ea30, 0x7f); //GBE_TXD2
+	 WriteRegByte((volatile void *)0xf500ea31, 0x7f); //GBE_TXD3
+	 WriteRegByte((volatile void *)0xf500ea38, 0x7f); //GBE_MDC
+#endif
 	if (!netif_running(dev))
 		return 0;
 
