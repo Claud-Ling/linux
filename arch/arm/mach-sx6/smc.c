@@ -169,6 +169,12 @@ void secure_set_actlr(uint32_t val)
 		;				/*armor N/A yet*/
 }
 
+void secure_scale_cpufreq(uint32_t target)
+{
+	if ( !security_state )
+		armor_call(scale_cpufreq, target);
+}
+
 uint32_t secure_read_reg(uint32_t mode, uint32_t pa)
 {
 	SMC_DEBUG("read_reg_%s(%#x)\n", reg_access_mode(mode), pa);

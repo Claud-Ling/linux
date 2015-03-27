@@ -28,6 +28,9 @@
 #include <asm/io.h>
 #include <asm/delay.h>
 #include "chipver.h"
+#ifdef CONFIG_SIGMA_SMC
+#include "smc.h"
+#endif
 
 #define Freq_ReadRegByte(addr) ReadRegByte((void*)addr)
 #define Freq_WriteRegByte(addr, val) WriteRegByte((void*)addr, val)
@@ -62,9 +65,10 @@ struct pll_operations {
 
 static struct cpufreq_frequency_table trix_freq_table[] = {
 	//{ 0,  24000  }, //TODO: risk due to its another clk src than others. do we realy need clk lower than 75M?
-	{ 1,  75000  },
-	{ 2,  100000 },
-	{ 3,  300000 },
+	{ 0,  75000  },
+	{ 1,  100000 },
+	{ 2,  300000 },
+	{ 3,  400000 },
 	{ 4,  500000 },
 	{ 5,  600000 },
 	{ 6,  700000 },
@@ -205,6 +209,12 @@ static int trix_cpufreq_set_target(struct cpufreq_policy *policy,
 		freqs.new = freqs.old;
 		pr_warn("[FAIL]\n");
 	}
+
+#ifdef CONFIG_SIGMA_SMC
+	/* notify secure world */
+	if (freqs.new != freqs.old)
+		secure_scale_cpufreq(freqs.new);
+#endif
 
 	/* notifiers */
 	for_each_cpu(cpu, policy->cpus) {

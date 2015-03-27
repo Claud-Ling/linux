@@ -151,6 +151,10 @@ static struct inhouse_pll{
 	// clock source: in-house PLL, 75M ~ 1.2G
 	// Fvco must be bigger than 1200M and post divider is mostly 16.
 	// So the lowest in-house pll output frequency is 75Mhz
+	{100000,  100000,  1, 100, 3},
+	{200000,  200000,  1, 100, 2},
+	{300000,  300000,  1, 75,  1},
+	{400000,  400000,  1, 100, 1},
 	{500000,  496000,  1, 124, 1},
 	{600000,  600000,  1, 75,  0},
 	{700000,  696000,  1, 87,  0},

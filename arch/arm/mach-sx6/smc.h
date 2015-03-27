@@ -30,6 +30,8 @@
 #define ARMOR_SMC_write_reg			0x11e
 #define ARMOR_SMC_otp_access			0x11f
 
+#define ARMOR_SMC_scale_cpufreq			0x122
+
 #ifdef __ASSEMBLY__
 
 #define armor_smc(call_name, val)            \
@@ -205,6 +207,7 @@ armor_smc_call2(uint32_t, set_l2_reg, uint32_t, ofs, uint32_t, val)
 armor_smc_call2(uint32_t, read_reg, uint32_t, mode, uint32_t, addr)
 armor_smc_call4(uint32_t, write_reg, uint32_t, mode, uint32_t, addr, uint32_t, val, uint32_t, mask)
 armor_smc_call4(uint32_t, otp_access, uint32_t, opc, uint32_t, arg0, uint32_t, arg1, uint32_t, arg2)
+armor_smc_call1(uint32_t, scale_cpufreq, uint32_t, target)
 
 #undef armor_smc_call0v
 #undef armor_smc_call0
@@ -229,6 +232,7 @@ void secure_l2x0_set_auxctrl(uint32_t val);
 void secure_l2x0_set_debug(uint32_t val);
 void secure_l2x0_set_prefetchctrl(uint32_t val);
 void secure_set_actlr(uint32_t val);
+void secure_scale_cpufreq(uint32_t target);
 
 #endif /*__ASSEMBLY__*/
 
