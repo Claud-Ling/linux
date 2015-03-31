@@ -590,6 +590,17 @@ static int sdhci_adma_table_pre(struct sdhci_host *host,
 		goto unmap_entries;
 	BUG_ON(host->adma_addr & 0x3);
 
+#if defined(CONFIG_SIGMA_DTV)
+
+	volatile __le16 *cmdlen = (__le16 __force *)desc;
+	do {
+		nop();
+		dma_map_single(mmc_dev(host->mmc),
+		host->adma_desc, (128 * 2 + 1) * 4, DMA_FROM_DEVICE);
+
+	}while(cmdlen[0] != 0x3);
+
+#endif
 	return 0;
 
 unmap_entries:
