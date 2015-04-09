@@ -1677,8 +1677,18 @@ static void handle_port_status(struct xhci_hcd *xhci,
 			goto cleanup;
 		} else {
 			xhci_dbg(xhci, "resume HS port %d\n", port_id);
+#if defined(CONFIG_SIGMA_DTV)
+			/*
+			 * Due to kernel timer's precision is 10ms per jiffies
+			 * so directly set to 20ms can't guarantee the resume signal
+			 * at least 20ms on physical bus(refer to USB2.0 spec 7.1.7.7)
+			 */ 
+			bus_state->resume_done[faked_port_index] = jiffies +
+				msecs_to_jiffies(21);
+#else
 			bus_state->resume_done[faked_port_index] = jiffies +
 				msecs_to_jiffies(20);
+#endif
 			set_bit(faked_port_index, &bus_state->resuming_ports);
 			mod_timer(&hcd->rh_timer,
 				  bus_state->resume_done[faked_port_index]);
@@ -3029,6 +3039,16 @@ static void giveback_first_trb(struct xhci_hcd *xhci, int slot_id,
 		start_trb->field[3] |= cpu_to_le32(start_cycle);
 	else
 		start_trb->field[3] &= cpu_to_le32(~TRB_CYCLE);
+
+	/*
+ 	 * Before ring doorbell we need make sure the first trb cycle bit
+ 	 * is already write to memory.(In some low bandwidth case, memory
+ 	 * is slower than IO space register)
+ 	 */
+	wmb();
+	if (start_trb->field[3] & TRB_CYCLE) {
+		nop();
+	}
 	xhci_ring_ep_doorbell(xhci, slot_id, ep_index, stream_id);
 }
 
