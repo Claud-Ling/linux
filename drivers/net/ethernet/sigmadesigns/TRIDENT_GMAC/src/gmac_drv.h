@@ -689,6 +689,7 @@ typedef struct trident_gmacEth_PRIV
     #endif
 
     __u32 phy_addr_val; /* PHY address value */
+    __u32 phy_id; 	/* phy_id: UID for this device found during discovery */
 
     __u32 clk_csr_val;  /* Clock used for reading & writing PHY registers */
 

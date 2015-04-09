@@ -167,6 +167,10 @@ static __s32 trident_gmacEth_ethtool_set_pauseparam(struct net_device *dev, \
 
 static __u32 trident_gmacEth_ethtool_get_link_status(struct net_device *dev);
 
+static void trident_gmacEth_get_wol(struct net_device *dev, struct ethtool_wolinfo *wol);
+
+static int trident_gmacEth_set_wol(struct net_device *dev, struct ethtool_wolinfo *wol);
+
 #ifdef CONFIG_SIGMA_GMAC_CSUMOFFLOAD
 //static __u32 trident_gmacEth_ethtool_get_rx_csum(struct net_device *dev);
 #endif
@@ -258,6 +262,8 @@ static struct ethtool_ops trident_gmacEth_ethtool_ops =
     .get_pauseparam = trident_gmacEth_ethtool_get_pauseparam,
     .set_pauseparam = trident_gmacEth_ethtool_set_pauseparam,
     .get_link = trident_gmacEth_ethtool_get_link_status,
+    .get_wol = trident_gmacEth_get_wol,
+    .set_wol = trident_gmacEth_set_wol,
 } ;
 #endif
 
@@ -396,6 +402,193 @@ static int __init set_phy_addr(char *p)
 }
 #endif
 
+/*--------------------------------------------------------------------------
+ * WoL(Wake-On-Lan) support:
+ *--------------------------------------------------------------------------*/
+#define phy_read _phy_read
+#define phy_write _phy_write
+
+static inline int _phy_read(trident_gmacEth_PRIV_t * priv ,int reg)
+{
+	u16 val;
+
+	Read_Phy_Reg(priv->phy_addr_val, reg, &val);
+	return val;
+}
+
+static inline int _phy_write(trident_gmacEth_PRIV_t * priv, int reg, int val)
+{
+	return Write_Phy_Reg(priv->phy_addr_val, reg, val);
+}
+
+static int get_phy_id(trident_gmacEth_PRIV_t * priv)
+{
+	u32 phy_reg;
+
+	/* Grab the bits from PHYIR1, and put them in the upper half */
+	phy_reg = phy_read(priv, MII_PHYSID1);
+	priv->phy_id = (phy_reg & 0xffff) << 16;
+	/* Grab the bits from PHYIR2, and put them in the lower half */
+	phy_reg = phy_read(priv, MII_PHYSID2);
+	priv->phy_id |= (phy_reg & 0xffff);
+
+	//GMAC_PRINT_DBG("Get phy uid 0x%08x\n", priv->phy_id);
+	printk("Get phy uid 0x%08x\n", priv->phy_id);
+}
+
+/*Phy ID: for fixup the WOL routine*/
+#define RTL8201_FRVB_PHYID		(0x001cc816)
+#define RTL8201_FRVB_PHYID_MASK		(0xffffffff)
+
+static void trident_gmacEth_get_wol(struct net_device *dev, struct ethtool_wolinfo *wol)
+{
+	trident_gmacEth_PRIV_t * priv = NETDEV_PRIV( dev ) ;
+
+	GMAC_PRINT_DBG("%s called for %s\n",__func__, dev->name);
+
+	if(priv->phy_id == RTL8201_FRVB_PHYID){
+		wol->supported	= WAKE_MAGIC;
+		wol->wolopts	= WAKE_MAGIC;
+	}
+	else{
+		//TODO:easy to put more PHYs here
+		wol->supported	= 0;
+		wol->wolopts	= 0;
+	}
+}
+
+/*
+ * RTL8201-FR-VB WoL processing flow
+ */
+#define MII_RTL8201_PHY_PAGE	31
+static int rtl8201_frvb_set_wol(struct net_device *dev, struct ethtool_wolinfo *wol)
+{
+	trident_gmacEth_PRIV_t * priv = NETDEV_PRIV( dev ) ;
+	int temp;
+
+	if (wol->wolopts & ~WAKE_MAGIC)
+		return -EOPNOTSUPP;
+
+	if (wol->wolopts & WAKE_MAGIC) {
+		/*enter Enter WOL*/
+
+		/*****************************
+		 * step-1 PMEB pin selection
+		 * page7 reg19 bit[10]=1
+		 ****************************/
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 7);
+		temp = phy_read(priv, 0x13);
+		temp |= 0x400;
+		phy_write(priv, 0x13, temp);
+		/************************************
+		 * step-2
+		 * Set MAC addr page18 reg16~18
+		 * Set Max packet length page17 reg17
+		 ************************************/
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x12);
+		phy_write(priv, 0x10, (dev->dev_addr[0]) |((dev->dev_addr[1] << 8)) );
+		phy_write(priv, 0x11, (dev->dev_addr[2]) |((dev->dev_addr[3] << 8)) );
+		phy_write(priv, 0x12, (dev->dev_addr[4]) |((dev->dev_addr[5] << 8)) );
+		GMAC_PRINT_DBG("Mac Address : %02x:%02x:%02x:%02x:%02x:%02x\n",dev->dev_addr[0],dev->dev_addr[1],dev->dev_addr[2],dev->dev_addr[3],dev->dev_addr[4],dev->dev_addr[5]);
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x11);
+		phy_write(priv, 0x11, 0x1fff);
+		/*********************************************
+		 * step-3
+		 * WOL event select and enable
+		 * page17 reg16 bit12:
+		 * PMEB asserted due to Reciept a Magic Packet
+		 ********************************************/
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x11);
+		phy_write(priv, 0x10, 0x1000);
+		/****************************************************
+		 * step-4
+		 * Change to link at 10M (Suggested by Realtek's doc)
+		 ****************************************************/
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x0);
+		phy_write(priv, 0x0, 0x100);
+		/****************************************************
+		 * step-5
+		 * MII/RMII TX Isolate Enable(page7 reg20 bit[15]=1)
+		 * MII/RMII RX Isolate Enable(page17 reg19 bit[15]=1)
+		 ****************************************************/
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x7);
+		temp = phy_read(priv, 0x14);
+		temp |= 0x8000;
+		phy_write(priv, 0x14, temp);
+
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x11);
+		temp = phy_read(priv, 0x14);
+		temp |= 0x8000;
+		phy_write(priv, 0x13, temp);
+
+		/****************************************************
+		* Wait for WoL(Magic Packet)
+		****************************************************/
+	}
+	else{
+		/*Exit WOL*/
+		/****************************************************
+		 * step-1
+		 * Restore to original link speed
+		 ****************************************************/
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x0);
+		phy_write(priv, 0x0, 0x3100);
+		/****************************************************
+		 * step-2
+		 * MII/RMII TX Isolate Disable(page7 reg20 bit[15]=0)
+		 * MII/RMII RX Isolate Disable(page17 reg19 bit[15]=0)
+		 ****************************************************/
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x7);
+		temp = phy_read(priv, 0x14);
+		temp &= ~0x8000;
+		phy_write(priv, 0x14, temp);
+
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x11);
+		temp = phy_read(priv, 0x14);
+		temp &= ~0x8000;
+		phy_write(priv, 0x13, temp);
+		/*********************************************
+		 * step-3
+		 * Disable all WOL event
+		 * page17 reg16 bit12:
+		 ********************************************/
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x11);
+		phy_write(priv, 0x10, 0x0000);
+		/*********************************************
+		 * step-4
+		 * WOL reset
+		 * page17 reg17 bit[15] = 1:
+		 ********************************************/
+		phy_write(priv, MII_RTL8201_PHY_PAGE, 0x11);
+		phy_write(priv, 0x11, 0x9fff);
+	}
+
+	return 0;
+}
+
+static int trident_gmacEth_set_wol(struct net_device *dev, struct ethtool_wolinfo *wol)
+{
+	trident_gmacEth_PRIV_t * priv = NETDEV_PRIV( dev ) ;
+
+	GMAC_PRINT_DBG("%s called for %s\n",__func__, dev->name);
+
+	if(priv->phy_id == RTL8201_FRVB_PHYID){
+		return rtl8201_frvb_set_wol(dev, wol);
+	}
+	else{
+		//TODO:easy to put more PHYs here
+		return -EOPNOTSUPP;
+	}
+}
+
+static void trident_gmacEth_wol_init(struct net_device *dev)
+{
+	trident_gmacEth_PRIV_t * priv = NETDEV_PRIV( dev ) ;
+
+	get_phy_id(priv);
+
+	return;
+}
 /*--------------------------------------------------------------------------*/
 /* Control functions:                                                                                              */
 /*--------------------------------------------------------------------------*/
@@ -721,6 +914,7 @@ static __s32 trident_gmacEth_probe(struct platform_device *pdev)
 
 #ifdef ENABLE_ETH_TOOL
     dev->ethtool_ops = &trident_gmacEth_ethtool_ops;
+    trident_gmacEth_wol_init(dev);
 #endif
 
     /* Receive all multicast packets */
