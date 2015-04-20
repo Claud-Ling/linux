@@ -104,7 +104,7 @@ static int sx6_security_proc_show(struct seq_file *m, void *v)
 	else
 	{
  	  	// use customer's key
-		otp_get_rsa_key(customer_key, sizeof(customer_key));
+		otp_get_rsa_key((uint32_t*)customer_key, sizeof(customer_key));
 		for(i=0; i<256; i++)
 		{
  	  		snprintf(p,3,"%02X",customer_key[i]);

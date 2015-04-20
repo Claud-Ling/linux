@@ -20,6 +20,7 @@
 #define __ASM_ARM_ARCH_IO_H
 
 #include <mach/hardware.h>
+#include <plat/secure_io.h>
 
 #define IO_SPACE_LIMIT 0xffffffff
 
@@ -96,32 +97,56 @@
 
 static inline unsigned char ReadRegByte(volatile void *pa)
 {
+#ifdef CONFIG_SIGMA_SMC
+	return secure_read_uint8((uint32_t)SIGMA_IO_ADDRESS(pa));
+#else
 	return __raw_readb(SIGMA_IO_ADDRESS(pa));
+#endif
 }
 
 static inline unsigned short ReadRegHWord(volatile void *pa)
 {
+#ifdef CONFIG_SIGMA_SMC
+	return secure_read_uint16((uint32_t)SIGMA_IO_ADDRESS(pa));
+#else
 	return __raw_readw(SIGMA_IO_ADDRESS(pa));
+#endif
 }
 
 static inline unsigned int ReadRegWord(volatile void *pa)
 {
+#ifdef CONFIG_SIGMA_SMC
+	return secure_read_uint32((uint32_t)SIGMA_IO_ADDRESS(pa));
+#else
 	return __raw_readl(SIGMA_IO_ADDRESS(pa));
+#endif
 }
 
 static inline void WriteRegByte(volatile void *pa, unsigned char v)
 {
+#ifdef CONFIG_SIGMA_SMC
+	secure_write_uint8((uint32_t)SIGMA_IO_ADDRESS(pa), v, 0xff);
+#else
 	__raw_writeb(v, SIGMA_IO_ADDRESS(pa));
+#endif
 }
 
 static inline void WriteRegHWord(volatile void *pa, unsigned short v)
 {
+#ifdef CONFIG_SIGMA_SMC
+	secure_write_uint16((uint32_t)SIGMA_IO_ADDRESS(pa), v, 0xffff);
+#else
 	__raw_writew(v, SIGMA_IO_ADDRESS(pa));
+#endif
 }
 
 static inline void WriteRegWord(volatile void *pa, unsigned int v)
 {
+#ifdef CONFIG_SIGMA_SMC
+	secure_write_uint32((uint32_t)SIGMA_IO_ADDRESS(pa), v, 0xffffffff);
+#else
 	__raw_writel(v, SIGMA_IO_ADDRESS(pa));
+#endif
 }
 
 #define MaskWriteReg(op, pa, v, m)	do{			\
@@ -134,18 +159,39 @@ static inline void WriteRegWord(volatile void *pa, unsigned int v)
 
 static inline void MWriteRegByte(volatile void *pa, unsigned char v, unsigned char m)
 {
-	MaskWriteReg(b, pa, v, m);
+#ifdef CONFIG_SIGMA_SMC
+	secure_write_uint8((uint32_t)SIGMA_IO_ADDRESS(pa), v, m);
+#else
+	if (m != 0xff)
+		MaskWriteReg(b, pa, v, m);
+	else
+		__raw_writeb(v, SIGMA_IO_ADDRESS(pa));
+#endif
 }
 
 static inline void MWriteRegHWord(volatile void *pa, unsigned short v, unsigned short m)
 {
-	MaskWriteReg(w, pa, v, m);
+#ifdef CONFIG_SIGMA_SMC
+	secure_write_uint16((uint32_t)SIGMA_IO_ADDRESS(pa), v, m);
+#else
+	if (m != 0xffff)
+		MaskWriteReg(w, pa, v, m);
+	else
+		__raw_writew(v, SIGMA_IO_ADDRESS(pa));
+#endif
 }
 
 static inline void MWriteRegWord(volatile void *pa, unsigned int v, unsigned int m)
 {
-	MaskWriteReg(l, pa, v, m);
-}
+#ifdef CONFIG_SIGMA_SMC
+	secure_write_uint32((uint32_t)SIGMA_IO_ADDRESS(pa), v, m);
+#else
+	if (m != 0xffffffff)
+		MaskWriteReg(l, pa, v, m);
+	else
+		__raw_writel(v, SIGMA_IO_ADDRESS(pa));
 #endif
+}
+#endif /* __ASSEMBLY__ */
 
 #endif
