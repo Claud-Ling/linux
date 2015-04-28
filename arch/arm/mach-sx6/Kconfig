@@ -115,6 +115,7 @@ config SIGMA_DTV_ROM_NAND
 	select MTD_CMDLINE_PARTS
 	select MTD_CHAR
 	select MTD_BLOCK
+	select MTD_BLOCK_ROBBS
 	select MTD_OOPS
 	select MTD_NAND
 	select MTD_UBI

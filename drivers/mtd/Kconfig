@@ -198,6 +198,13 @@ config MTD_BLOCK_RO
 	  You do not need this option for use with the DiskOnChip devices. For
 	  those, enable NFTL support (CONFIG_NFTL) instead.
 
+config MTD_BLOCK_ROBBS
+	tristate "Readonly MTD block devices with NAND bad block skip"
+	depends on BLOCK
+	select MTD_BLKDEVS
+	---help---
+	 Direct MTD block device access, readonly with NAND bad block skipping
+
 config FTL
 	tristate "FTL (Flash Translation Layer) support"
 	depends on BLOCK
