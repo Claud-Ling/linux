@@ -32,7 +32,7 @@ static inline void cpu_enter_lowpower(void)
 	 * Turn off coherency
 	 */
 	"	mrc	p15, 0, %0, c1, c0, 1\n"
-	"	bic	%0, %0, #0x20\n"
+	"	bic	%0, %0, #0x40\n"
 	  : "=&r" (v)
 	  : "r" (0)
 	  : "cc");
@@ -65,7 +65,7 @@ static inline void cpu_leave_lowpower(void)
 	 * Turn on coherency
 	 */
 	"	mrc	p15, 0, %0, c1, c0, 1\n"
-	"	orr	%0, %0, #0x20\n"
+	"	orr	%0, %0, #0x40\n"
 	  : "=&r" (v)
 	  : "Ir" (CR_C)
 	  : "cc");
