@@ -137,7 +137,7 @@ static int get_pubkey(unsigned char *key,unsigned int off)
 	char *dev_name = "/dev/mmcblk0";
 	char *boot_dev = "/dev/mmcblk0bootX";
 #elif defined(CONFIG_SIGMA_DTV_ROM_NAND)
-	char *boot_dev="/dev/mtdblock0";
+	char *boot_dev="/dev/mtdblock_robbs0";
 #else
 	#error "Unknown ROM type!!"
 #endif
