@@ -21,10 +21,9 @@ void bch_encode_start(struct nand_chip *chip)
 	unsigned int ecc_unit  = (chip->ecc.size >> 9) & 0x3; /*[3:2] 01-512bytes 10-1024bytes*/
 	unsigned int ecc_level = chip->ecc.strength & 0x1F;   /*[9:4] ecc level*/	
 
+	nand_writel(info,REG_BCH_ECC_CONTROL, 0x403 + (ecc_unit<<2) + (ecc_level<<4));
 	// enable the MLC encoder
 	nand_writel(info,MLC_ECC_REG_CONTROL, 0x101);
-	
-	nand_writel(info,REG_BCH_ECC_CONTROL, 0x403 + (ecc_unit<<2) + (ecc_level<<4));
 }
 
 int bch_encode_end(unsigned int ecc[],struct nand_chip *chip)
