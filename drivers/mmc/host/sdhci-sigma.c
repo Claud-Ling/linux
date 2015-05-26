@@ -39,6 +39,9 @@ void sx6_sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 
 
 	switch(timing) {
+		case MMC_TIMING_SD_HS:
+			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1d00, 0x1fff);
+			break;
 		case MMC_TIMING_MMC_HS:
 		case MMC_TIMING_UHS_SDR50:
 			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1600, 0x1fff);
