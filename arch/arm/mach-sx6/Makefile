@@ -4,7 +4,7 @@
 
 # Common support
 obj-y := board-generic.o io.o irq.o local_timer.o serial.o soc-timer.o clock.o plat.o device.o mcuctrl.o chipver.o otp.o
-obj-y += memtest.o thermal.o regtest.o
+obj-y += memtest.o thermal.o regtest.o sist-common.o ringo.o sist-soc.o sist-a9.o
 
 # Board specific support
 obj-$(CONFIG_SIGMA_SOC_SX6)		+= board-sx6.o
