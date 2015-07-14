@@ -784,7 +784,15 @@ static int ehci_hub_control (
 			temp &= ~PORT_WAKE_BITS;
 			ehci_writel(ehci, temp | PORT_RESUME, status_reg);
 			ehci->reset_done[wIndex] = jiffies
+#if defined(CONFIG_SIGMA_DTV)
+			/*
+			 * Guarantee the resume signal no less than 20ms, due to 
+			 * low precision jiffies
+			 */ 
+					+ msecs_to_jiffies(21);
+#else
 					+ msecs_to_jiffies(20);
+#endif
 			break;
 		case USB_PORT_FEAT_C_SUSPEND:
 			clear_bit(wIndex, &ehci->port_c_suspend);
@@ -856,7 +864,15 @@ static int ehci_hub_control (
 			if (!ehci->reset_done[wIndex]) {
 				/* resume signaling for 20 msec */
 				ehci->reset_done[wIndex] = jiffies
+#if defined(CONFIG_SIGMA_DTV)
+				/*
+				 * Guarantee the resume signal no less than 20ms, due to 
+				 * low precision jiffies
+				 */ 
+						+ msecs_to_jiffies(21);
+#else
 						+ msecs_to_jiffies(20);
+#endif
 				usb_hcd_start_port_resume(&hcd->self, wIndex);
 				/* check the port again */
 				mod_timer(&ehci_to_hcd(ehci)->rh_timer,
@@ -1063,7 +1079,15 @@ static int ehci_hub_control (
 				 * usb 2.0 spec says 50 ms resets on root
 				 */
 				ehci->reset_done [wIndex] = jiffies
+#if defined(CONFIG_SIGMA_DTV)
+					/*
+			 		* Guarantee the reset signal no less than 50ms, due to 
+			 		* low precision jiffies
+			 		*/ 
+						+ msecs_to_jiffies (51);
+#else
 						+ msecs_to_jiffies (50);
+#endif
 			}
 			ehci_writel(ehci, temp, status_reg);
 			break;
