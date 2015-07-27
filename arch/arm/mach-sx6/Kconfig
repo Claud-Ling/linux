@@ -242,7 +242,7 @@ config SIGMA_UMAC_BASES_MANUAL
 
 endchoice
 
-config CONFIG_REG_BASE_UMAC0
+config REG_BASE_UMAC0
 	hex "UMAC0 base"
 	depends on SIGMA_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB)
 	default 0xf5021000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7
@@ -250,19 +250,25 @@ config CONFIG_REG_BASE_UMAC0
 	help
 	  Base address for UMAC0
 
-config CONFIG_REG_BASE_UMAC1
+config REG_BASE_UMAC1
 	hex "UMAC1 base"
 	depends on SIGMA_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7)
 	default 0xf5023000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7
 	help
 	  Base address for UMAC1
 
-config CONFIG_REG_BASE_UMAC2
+config REG_BASE_UMAC2
 	hex "UMAC2 base"
 	depends on SIGMA_UMAC_BASES_MANUAL && SIGMA_SOC_SX7
 	default 0xf503b000 if SIGMA_SOC_SX7
 	help
 	  Base address for UMAC2
+
+config SIGMA_DCSN
+	bool "DCSN Support"
+	default n
+	help
+	  Enable DCSN driver support, if unsure say N
 
 endmenu
 

@@ -30,6 +30,9 @@ ifeq ($(CONFIG_PM_DEBUG),y)
 CFLAGS_pm.o += -DDEBUG
 endif
 
+# DCSN Driver
+obj-$(CONFIG_SIGMA_DCSN)	+= dcsn.o
+
 plus_sec := $(call as-instr,.arch_extension sec,+sec)
 AFLAGS_sigma-headsmp.o			:=-Wa,-march=armv7-a$(plus_sec)
 AFLAGS_sigma-smc.o			:=-Wa,-march=armv7-a$(plus_sec)
