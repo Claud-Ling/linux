@@ -1,14 +1,6 @@
 #
 # Ethernet GMAC driver configuration
 #
-
-config NET_VENDOR_SIGMADESIGNS
-	bool "Sigma Designs SX series SoC"
-	default y
-	depends on ARCH_SIGMA_TRIX
-	help
-	  Support Sigma Designs' TRIx SoC
-
 config SIGMA_TRIX_ENET
 	tristate "Trix / SX Builtin Gigabit Ethernet support"
 	depends on ETHERNET && ARCH_SIGMA_TRIX && NET_VENDOR_SIGMADESIGNS

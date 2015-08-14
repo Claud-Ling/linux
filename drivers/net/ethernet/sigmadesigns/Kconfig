@@ -7,5 +7,13 @@
 #endif	#TANGOX
 
 if SIGMA_DTV
+config NET_VENDOR_SIGMADESIGNS
+        bool "Sigma Designs SX series SoC"
+        default y
+        depends on ARCH_SIGMA_TRIX
+        help
+          Support Sigma Designs' TRIx SoC
+
 source "drivers/net/ethernet/sigmadesigns/TRIDENT_GMAC/Kconfig"
+source "drivers/net/ethernet/sigmadesigns/ftmac/Kconfig"
 endif	#SIGMA_DTV

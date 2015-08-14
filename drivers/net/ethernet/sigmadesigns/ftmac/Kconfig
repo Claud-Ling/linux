@@ -1,0 +1,14 @@
+#
+# Ethernet GMAC driver configuration
+#
+config SIGMA_TRIX_FTMAC
+	tristate "Trix / UXL Builtin 10/100M Ethernet support"
+	depends on ETHERNET && ARCH_SIGMA_TRIX && NET_VENDOR_SIGMADESIGNS
+	select CRC32
+	select MII
+	select PHYLIB
+	help
+	 This option adds support for the UXL integrated 10/100M Ethernet
+	 controller.  This driver uses NAPI and generic Linux MII
+	 support.
+

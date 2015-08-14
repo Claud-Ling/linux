@@ -4,4 +4,5 @@
 
 #obj-$(CONFIG_TANGOX) += tangox/
 obj-$(CONFIG_SIGMA_DTV) += TRIDENT_GMAC/
+obj-$(CONFIG_SIGMA_DTV) += ftmac/
 
