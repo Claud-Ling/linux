@@ -9,4 +9,7 @@ else
  ifeq ($(CONFIG_SIGMA_SOC_SX7),y)
    hidtv_nand-objs += platform_sx6_nand.o  #TODO
  endif
+ ifeq ($(CONFIG_SIGMA_SOC_UXLB),y)
+   hidtv_nand-objs += platform_sx6_nand.o  #TODO
+ endif
 endif

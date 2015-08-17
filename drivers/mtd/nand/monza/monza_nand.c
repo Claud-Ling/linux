@@ -567,7 +567,7 @@ static void monza_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 	struct monza_nand_info *info = container_of(mtd,
 					struct monza_nand_info, mtd);
 	unsigned long nand_reg = 0x0; 
-        
+
         if(likely(MONZA_NAND_NEW == info->nand_ctrler))
                 nand_reg = NAND_CCR;   
         else if( MONZA_NAND_OLD == info->nand_ctrler)
@@ -575,7 +575,7 @@ static void monza_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
         set_nand_mode(info, NAND_HW_MODE);      /*set HC as hw mode to fast read*/
         MWriteRegWord((void *)(info->host_base + NAND_CTRL), len<<16, 0xFFFF0000);
         MWriteRegWord((void *)(info->host_base + nand_reg), 1, 0x1);
-	
+
 	/* only use DMA for bigger than oob size: better performances */	
 	if( (MONZA_NAND_DMA == info->xfer_type) && (len > mtd->oobsize) )
 	{
@@ -734,7 +734,7 @@ static void monza_ecc_hwctl(struct mtd_info *mtd, int param)
 	uint8_t *ecc_code = chip->buffers->ecccode; 
 	
 	int mode = param & 0xFF;
-	int offset = (param >> 8) & 0xFF;
+	int offset = (param >> 8) & 0xFFFF;
 
 	switch(mode)
 	{
@@ -845,6 +845,8 @@ static int monza_nand_probe(struct platform_device *pdev)
 			info->nand.ecc.strength = 24;
 			info->nand.ecc.size     = 1024;
 			info->nand.ecc.layout	= info->nand_ctrler?&nand_oob_bch_gf15_448_24:&nand_oob_bch_gf14_448_24;
+			/* we assume oob size is 448 on 8k page NAND device */
+			info->mtd.oobsize       = 448;
 			break;
 		default:
 			printk("ERROR: unsupport NAND device.\n");
