@@ -44,14 +44,40 @@
 #include <asm/hardware/cache-l2x0.h>
 #include "common.h"
 
+/*
+ * UXLB A9 sub-system register is at 0x10004000
+ * 0x1000_4012[7:4] dbg_swen
+ */
+static void __iomem *a9_sub_regbase = NULL;
+#define UXLB_A9_SUB_BASE_PHYS (0x10004000|0xf0000000)
+#define sub_sys_a9_readb(regaddr)	readb((unsigned long)a9_sub_regbase + (regaddr) - UXLB_A9_SUB_BASE_PHYS)
+#define sub_sys_a9_writeb(value, regaddr) writeb((value), (unsigned long)a9_sub_regbase + (regaddr) - UXLB_A9_SUB_BASE_PHYS)
+
+static int sub_a9_io_init(void)
+{
+	a9_sub_regbase = ioremap_nocache(0xf0004000, 0x1000);
+	if(a9_sub_regbase == NULL) {
+		pr_err("%s: Fail to map uxl a9 sub-system register;this will be fatal\n",__func__);
+		return -1;
+	}
+	pr_notice("UXLB A9 sub-system iomap '%x' -> '%p'\n", UXLB_A9_SUB_BASE_PHYS, a9_sub_regbase);
+	return 0;
+}
+
+static void sub_a9_io_exit(void)
+{
+	iounmap(a9_sub_regbase);
+	a9_sub_regbase = NULL;
+}
+
 static int uxl_set_dbg_swen(unsigned int cpu, bool state)
 {
-#define A9_CFG2_REG ((void*)0x1000ef12)	/*
+#define A9_CFG2_REG ((void*)0xf0004012)	/*
 					 * UXLB: [7..4] sw debug enable (to access dbg regs), each bit for one core
 					 */
 #define DBG_SWEN_MASK	0xf0
 #define DBG_SWEN_SHIFT	4
-	u8 val = 0;
+	u8 temp8, val = 0;
 	if (-1u == cpu) {
 		val = (state ? DBG_SWEN_MASK : 0);	/*enable/disable sw debug on all cores*/
 	} else if (cpu < NR_CPUS) {
@@ -61,9 +87,18 @@ static int uxl_set_dbg_swen(unsigned int cpu, bool state)
 		return 1;
 	}
 
-	MWriteRegByte(A9_CFG2_REG, val, DBG_SWEN_MASK);	/*enable sw debug on two cores*/
+	if( sub_a9_io_init() )
+		return -1;
+
+	temp8 = sub_sys_a9_readb(A9_CFG2_REG);
+	temp8 &= ~(DBG_SWEN_MASK);
+	temp8 |= val & (DBG_SWEN_MASK);
+	sub_sys_a9_writeb(val, A9_CFG2_REG);	/*enable sw debug on two cores*/
 	mb();		/*drain write buffer*/
 	ndelay(200);	/*explicit delay (~200ns) is required here as dbg_swen is in 24M clock domain*/
+
+	/* No longer require this region to be mapped */
+	sub_a9_io_exit();
 	return 0;
 }
 
