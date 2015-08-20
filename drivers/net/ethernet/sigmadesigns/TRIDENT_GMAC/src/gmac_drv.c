@@ -434,6 +434,8 @@ static int get_phy_id(trident_gmacEth_PRIV_t * priv)
 
 	//GMAC_PRINT_DBG("Get phy uid 0x%08x\n", priv->phy_id);
 	printk("Get phy uid 0x%08x\n", priv->phy_id);
+
+	return 0;
 }
 
 /*Phy ID: for fixup the WOL routine*/
@@ -620,7 +622,7 @@ static __s32 trident_gmacEth_probe(struct platform_device *pdev)
     __u8 *pMacAdr=NULL;
     __u8 tMAC[6];
     hwTRIDENTGMACEth_Int_t IntDis;
-    __u32 Ref_Clk, IntrMask;
+    __u32 IntrMask;
 #ifdef CONFIG_GMAC_MODE_RGMII
     __u32 phy_intr_en,ChipVer;
 #endif
@@ -628,12 +630,7 @@ static __s32 trident_gmacEth_probe(struct platform_device *pdev)
 #if (TMFL_SD_ALL || TMFL_TRIDENTGMACETHSD_OTHERS)
     __u32 hwVer;
 #endif
-#if 0   //pcl used external phy clk  
-/*Set the clock input mux */
-    Ref_Clk = ReadRegWord((volatile void*)PINSHARE_REG_A0);
-    Ref_Clk &= ~0x38; 	
-    WriteRegWord((volatile void *)PINSHARE_REG_A0, Ref_Clk | 0x10);
-#endif 
+
 #ifdef CONFIG_GMAC_MODE_RGMII
     phy_intr_en = ReadRegWord((volatile void*)0x15031f00);
     phy_intr_en &= ~0x07; 	
@@ -3338,7 +3335,7 @@ static void handle_tx_packets( struct net_device * dev)
     hwTRIDENTGMACEth_IntDisable(priv->hwUnitNum,&IntEn);
 #endif
     if(priv->tx_submit_count > MAX_TX_PKTS_TO_PROCESS)
-	   printk("priv->tx_submit_count = 0x%x \n",priv->tx_submit_count);
+	   printk("%s: priv->tx_submit_count = 0x%x \n",__func__,priv->tx_submit_count);
     do {
 /* Loop till the consume index is not equal to produce index AND own bit is zero
 ** When there are no packets to transmit, at that time, all own bits will be zero
@@ -3374,6 +3371,12 @@ static void handle_tx_packets( struct net_device * dev)
 
         /* Buffer transmitted */
         skb = priv->p_vtx_skb_list[priv->tx_consume_index];
+
+	/* sanity check on pointer before use it */
+	if( unlikely(!(ptx_descr && skb)) ) {
+		pr_err("%s: Invalid descriptors, they will be considered fatal\n",DRV_NAME);
+		break;
+	}
 
         /* Check whether any error is present for transmitted frames by
         ** checking the status
