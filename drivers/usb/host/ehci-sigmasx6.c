@@ -159,6 +159,87 @@ void usb_ehci_trihidtv_remove(struct usb_hcd *hcd, struct platform_device *dev)
 }
 
 /*-------------------------------------------------------------------------*/
+#if defined(CONFIG_SIGMA_SOC_UXLB)
+struct eop_flag {
+	volatile unsigned int flag;
+	unsigned int __iomem base;
+	unsigned int dummy[6];
+};
+
+static struct eop_flag sync[2] __aligned(32) = {
+	{
+		.flag = 0,
+		.base = 0x1b000078,
+	},
+	{
+		.flag = 0,
+		.base = 0x1b000170,
+	}
+
+};
+
+#define EOP_VAL_L	(0x0)
+#define EOP_VAL_H	(0x2)
+#define EOP_ADDR_L	(0x4)
+#define EOP_ADDR_H	(0x6)
+
+#define EOP_FETCH_ADDR	(0x3000)
+#define EOP_START_SYNC	(0xb000)
+
+
+static irqreturn_t uxl_ehci_irq (struct usb_hcd *hcd)
+{
+	
+	struct platform_device *pdev = to_platform_device(hcd->self.controller);
+	unsigned int pattern = 0xc0dedead;
+	unsigned int id = pdev->id;
+	unsigned int base = sync[id].base;
+	unsigned long timeout = 0;
+	dma_addr_t sync_dma_addr = 0;
+
+	memset(&sync[id], 0x0, sizeof(unsigned int));
+
+	sync_dma_addr = dma_map_single(hcd->self.controller, &sync[id], 
+					sizeof(struct eop_flag), DMA_TO_DEVICE);
+
+	if (dma_mapping_error(hcd->self.controller, sync_dma_addr)) {
+		printk(KERN_ERR"DMA mapping error!!! Skip ehci patch\n");
+
+		goto skip;
+	}
+
+	MWriteRegHWord((void *)(base + EOP_VAL_L), (pattern & 0xffff), 0xffff);
+	MWriteRegHWord((void *)(base + EOP_VAL_H), ((pattern>>16) & 0xffff), 0xffff);
+
+	
+	MWriteRegHWord((void *)(base + EOP_ADDR_L), 
+					(sync_dma_addr & 0xffff), 0xffff);
+
+	MWriteRegHWord((void *)(base + EOP_ADDR_H), 
+			(((sync_dma_addr >> 16) & 0x0fff) | EOP_FETCH_ADDR), 0xffff);
+
+	MWriteRegHWord((void *)(base + EOP_ADDR_H), 
+			(((sync_dma_addr >> 16) & 0x0fff) | EOP_START_SYNC), 0xffff);
+
+
+	/* Set 20ms timeout */
+	timeout = jiffies + msecs_to_jiffies(20);
+	while (sync[id].flag != pattern) {
+
+		dma_unmap_single(hcd->self.controller, sync_dma_addr, 
+					sizeof(struct eop_flag), DMA_FROM_DEVICE);
+
+		if (time_after_eq(jiffies, timeout)) {
+			printk(KERN_ERR"%s Never write back memory sync_flag = %08x\n!!!!!!\n", dev_name(hcd->self.controller), sync[id].flag);
+			break;
+		}
+	}
+
+skip:
+	return ehci_irq(hcd);
+
+}
+#endif
 
 static const struct hc_driver ehci_trihidtv_hc_driver = {
 	.description = hcd_name,
@@ -168,7 +249,11 @@ static const struct hc_driver ehci_trihidtv_hc_driver = {
 	/*
 	 * generic hardware linkage
 	 */
+#if defined (CONFIG_SIGMA_SOC_UXLB)
+	.irq = uxl_ehci_irq,
+#else
 	.irq = ehci_irq,
+#endif
 	.flags = HCD_MEMORY | HCD_USB2,
 	.reset			= ehci_init,
 	.start			= ehci_run,
