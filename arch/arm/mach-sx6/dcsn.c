@@ -88,7 +88,7 @@ struct dcsn_ctrl{
 static const char *g_initiators[] =
 {
 #if defined(CONFIG_SIGMA_SOC_SX6)
-#define CFG_NUM_INITIATOR 9
+#define CFG_NUM_INITIATOR 10
 	"Coresight DAP",	/* 0 */
 	"A9 SECURE READ",	/* 1 */
 	"A9 SECURE WRITE",	/* 2 */
@@ -101,7 +101,7 @@ static const char *g_initiators[] =
 	"EJTAG MMIO",		/* 9 */
 	NULL,
 #elif defined(CONFIG_SIGMA_SOC_SX7)
-#define CFG_NUM_INITIATOR 9
+#define CFG_NUM_INITIATOR 10
 	"Coresight DAP",	/* 0 */
 	"A9 SECURE READ",	/* 1 */
 	"A9 SECURE WRITE",	/* 2 */
