@@ -145,6 +145,7 @@ out:
 	host->clock = clock;
 	return;
 }
+
 static void sdhci_sx6_pinshare_init(int dev_id)
 {
 	
@@ -313,6 +314,7 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 
 	return;
 }
+
 static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 {
 	int retval = 0;
@@ -376,7 +378,16 @@ static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 	retval = sdhci_add_host(host);
 	if(!retval){
 		if (pdev->id == 0) {
+			/* Enable HS200 mode */
 		//	host->mmc->caps2 |= MMC_CAP2_HS200;
+			
+			/* Enable poweroff notify*/
+			host->mmc->caps2 |= MMC_CAP2_POWEROFF_NOTIFY;
+		
+			/* Enable cache control */
+			host->mmc->caps2 |= MMC_CAP2_CACHE_CTRL;
+
+			/* Enable 1.8V DDR mode*/
 			host->mmc->caps |= MMC_CAP_1_8V_DDR;
 		}
 		return 0;
@@ -431,7 +442,21 @@ const struct dev_pm_ops sdhci_sx6_pmops = {
 	.suspend	= sdhci_sx6_suspend,
 	.resume		= sdhci_sx6_resume,
 };
+
+static void sdhci_sx6_shutdown(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct sdhci_trihidtv_chip *chip = platform_get_drvdata(pdev);
+	struct sdhci_host *host = chip->host;
+
+	pr_debug("In %s \n",__func__);
+	sdhci_suspend_host(host);
+
+	return;
+}
+
 #endif
+
 
 static struct platform_driver sdhci_trihidtv_driver = {
 	.probe = sdhci_trihidtv_drv_probe,
@@ -439,7 +464,10 @@ static struct platform_driver sdhci_trihidtv_driver = {
 	.driver = {
 		.name = "sigma-sdhci",
 		.bus = &platform_bus_type,
+#ifdef CONFIG_PM
+		.shutdown = sdhci_sx6_shutdown,
 		.pm = &sdhci_sx6_pmops,
+#endif
 	}
 };
 
