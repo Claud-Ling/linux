@@ -1,109 +1,190 @@
-#include <linux/linkage.h>    
+#include <linux/linkage.h>
 #include <asm/assembler.h>
 #include <asm/asm-offsets.h>
+#ifdef CONFIG_CACHE_L2X0
 #include <asm/hardware/cache-l2x0.h>
+#endif
+#include <asm/memory.h>
+#include <mach/smp.h>
 
 #include "pm.h"
 
+.align 5
+.pushsection	.idmap.text,"ax"
 /*
- * void sx6_flush_cache(void);
- * Flush all data from L1 and L2 data cache
+ * void trix_call_with_stack_nommu(void(*fn)(void* arg), void* arg, void* stack);
+ * fn and stack shall be given in physical addr form
  */
-ENTRY(sx6_flush_cache)
-	stmfd	sp!, {r4 - r11, lr}
-	/*
-	 * Flush all data from L1 data cache.
-	 */
-	bl	v7_flush_dcache_all
+ENTRY(trix_call_with_stack_nommu)
+	mrc	p15, 0, r3, c1, c0, 0		@ ctrl register
+	bic	r3, r3, #0x1			@ clear M bit
+	mcr	p15, 0, r3, c1, c0, 0		@ disable MMU
+	isb
 
-	ldmfd	sp!, {r4 - r11, pc}
-ENDPROC(sx6_flush_cache)
+	str	sp, [r2, #-4]!
+	str	lr, [r2, #-4]!
+	mov	sp, r2
+	mov	r2, r0
+	mov	r0, r1
+	adr	lr, BSYM(1f)
+	mov	pc, r2				@ fn(arg)
+
+1:	ldr	lr, [sp]
+	ldr	sp, [sp, #4]
+
+	mrc	p15, 0, r2, c1, c0, 0		@ ctrl register
+	orr	r2, r2, #0x1			@ set M bit
+	mcr	p15, 0, r2, c1, c0, 0		@ enable MMU
+	isb
+	nop
+
+	mov	pc, lr
+ENDPROC(trix_call_with_stack_nommu)
+
+.popsection
 
 /*
  * =============================
- * == CPU suspend finisher == 
+ * == CPU suspend finisher ==
  * =============================
  *
- * void sx6_finish_suspend(unsigned long cpu_state)                                                                               
- *
+ * void sx6_finish_suspend(unsigned long cpu_state)
  *
  * @cpu_state :  (reserv)
- *	 contains context save state (r0)
+ *	contains context save state (r0)
+ *	CPU_PWSTS_NONE     - none
+ *	CPU_PWSTS_INACTIVE - L1 and logic lost only
+ *	CPU_PWSTS_OFF      - power lost
  * @return: This function never returns for CPU OFF and DORMANT power states. 
  */
 ENTRY(sx6_finish_suspend)
         stmfd   sp!, {r4 - r11,lr}	@save register on stack
-	
-/*
- * prepare to run code in SRAM
- */
-	bl	sx6_flush_cache
-	bl	sx6_flush_tlb
+	mov	r4, r0			@backup power state
+	mrc	p15, 0, r5, c0, c0, 5
+	and	r5, r5, #0xf		@cpu id
+	cmp	r0, #CPU_PWSTS_NONE
+	beq	Do_idle
 
-	mov	r4, sp
-	ldr	r5, sram_sp_base_addr
-	ldr	sp, [r5]
-	bic     sp, sp, #7      @8-byte alignment for ABI compliance
-	stmfd	sp!, {r4}
+	bl	cpu_enter_lowpower	@turn off dcache and take cpu out of coherency
 
-	ldr     r4, sx6_do_wfi_sram_addr
-	ldr	r5, [r4]
+	/*
+	 * Only boot core is allowed to execute L2 cleanup and power-off code
+	 */
 	cmp	r5, #0
+	bne	Do_idle
 
-/***********************************/
-	ldr	r5, =IRAM_BASE		@save physical entry addr
-	
-	ldr	sp, =IRAM_SP_BASE
-	bic	sp, sp, #7		@8-byte alignment for ABI compliance
-        /*
-         * Invalidate L1 I/D  
-         */
-        mov     r0, #0                  @ set up for MCR
-        mcr     p15, 0, r0, c8, c7, 0   @ invalidate TLBs
-        mcr     p15, 0, r0, c7, c5, 0   @ invalidate icache
-        mcr     p15, 0, r0, c7, c5, 6   @ invalidate BP array
-        mcr     p15, 0, r0, c7, c10, 4  @ DSB  
-        mcr     p15, 0, r0, c7, c5, 4   @ ISB                                                                                       
+#ifdef CONFIG_CACHE_L2X0
+	tst	r4, #CPU_PM_L2_LOST
+	beq	skip_cleanup_l2
+	/* TODO: Clean and invalidate the L2 cache */
 
-        /*
-         * disable MMU stuff and caches 
-         */
-        mrc     p15, 0, r0, c1, c0, 0  
-        bic     r0, r0, #0x00002000     @ clear bits 13 (--V-)
-        bic     r0, r0, #0x00000007     @ clear bits 2:0 (-CAM)
-        orr     r0, r0, #0x00000002     @ set bit 1 (--A-) Align
-        @orr     r0, r0, #0x00000800     @ set bit 11 (Z---) BTB 
-	bic     r0, r0, #0x00001000     @ clear bit 12 (I) I-cache
-	mcr	p15, 0, r0, c1, c0, 0	@ turn MMU and cache off
-	
-	mov	pc, r5			@  jump to the WFI code in SRAM
-		
-/***********************************/
-/*
- * CPU is here when it failed to enter OFF/DORMANT or
- * no low power state was attempted.
- */  
-	ldmfd	sp!, {r4}
-	mov	sp, r4
+skip_cleanup_l2:
+#endif
+	tst	r4, #CPU_PM_OFF
+	beq	Do_idle
 
+	/*
+	 * prepare to run code in SRAM
+	 */
+
+	/*
+	 * fixup v2p offset
+	 */
+	bl	sx6_fixup_v2p_offset
+
+	/*
+	 * switch to identity mapping, for mmu off (on) code
+	 */
+	bl	setup_mm_for_reboot
+
+	mrc	p15, 0, r0, c1, c0, 0
+	bic	r0, r0, #0x00003000	@ clear bits 13,12 (--V,I-)
+	bic	r0, r0, #0x00000002	@ clear bits 1 (--A-)
+	mcr	p15, 0, r0, c1, c0, 0	@ turn icache off
+	isb
+
+	adr	r6, __trix_sram_loc
+	ldmia	r6, {r0 - r3, r6}
+	add	r3, r3, r6		@ phys trix_call_with_stack_nommu
+	blx	r3
+
+	/*
+	 * CPU is here when it failed to enter OFF/DORMANT or
+	 * no low power state was attempted.
+	 */
+	mrc	p15, 0, r0, c1, c0, 0
+	orr	r0, r0, #0x00003000	@ set bits 13,12 (--V,I-)
+	orr	r0, r0, #0x00000002	@ set bits 1 (--A-)
+	mcr	p15, 0, r0, c1, c0, 0	@ turn icache on
+	isb
+
+	/*
+	 * recovery page tables
+	 */
+	adr	lr, BSYM(Do_exit)
+	b	sx6_recovery_mm
+
+Do_idle:
+	adr	lr, BSYM(Do_exit)
+	tst	r4, #CPU_PM_OFF
+	beq	sx6_do_idle
+
+	/* have to execute do_idle in SRAM */
+	adr	r3, BSYM(sx6_do_wfi_sram_addr)
+	ldmia	r3, {r6, r7}
+	ldr	r0, [r6]
+	add	r0, r0, r7		@ sx6_do_idle"_sram"
+
+	/* null param */
+	mov	r1, #0
+
+	/* fixup stack for processor in SRAM */
+	ldr	r6, BSYM(sram_sp_base_addr)
+	ldr	r6, [r6]
+	sub	r6, r6, #IRAM_MAIN_SP_SZ
+	lsl	r7, r5, #IRAM_STACK_BITS_PER_CPU
+	sub	r2, r6, r7
+
+	/*
+	 * Continue execution in SRAM with replaced stack.
+	 * Note that we only have a small stack on SRAM for do_idle,
+	 * so should only do as little thing as possible in there
+	 */
+	ldr	r6, BSYM(boot_reg_addr)
+	ldr	r6, [r6]		@ fake load just to fill TLB if possible
+
+	b	call_with_stack
 /*
  * ===================================
  * == Exit point from non-OFF modes ==
  * ===================================
  */
-       ldmfd   sp!, {r4 - r11, pc}     @ restore regs and return
+Do_exit:
+	bl	cpu_leave_lowpower	@ turn on dcache and bring cpu back in coherency if needed
+	ldmfd   sp!, {r4 - r11, pc}     @ restore regs and return
 ENDPROC(sx6_finish_suspend)
 
 /*
  * Local variables
  */
 sx6_do_wfi_sram_addr:
-        .word sx6_do_wfi_sram
+	.word sx6_do_wfi_sram
+	.word sx6_do_idle - sx6_do_wfi
 kernel_flush:
-        .word v7_flush_dcache_all
+	.word v7_flush_dcache_all
 sram_sp_base_addr:
 	.word sx6_sp_base_sram
 
+__trix_sram_loc:
+	.word IRAM_BASE			@ phy fn addr
+	.word 0				@ arg
+	.word (IRAM_SP_BASE & ~(0x7))	@ phy stack
+	.word trix_call_with_stack_nommu
+trix_v2p_offset:
+	.global trix_v2p_offset
+	.word (0 - PAGE_OFFSET) 	@ virt->phys offset.
+					@ Note: can't put PHYS_OFFSET here. Just give 0
+					@ instead as it will be fixup any way
 
 /* ===================================
  * == WFI instruction => Enter idle ==
@@ -115,8 +196,8 @@ sram_sp_base_addr:
  *
  * This code gets copied to internal SRAM and is accessible
  * from both SDRAM and SRAM:
- * - executed from SRAM  (sx6_do_wfi_sram),DDR self-refresh mode
- * - executed from SDRAM (sx6_do_wfi),continue with wfi.
+ * OFF Mode     - executed from SRAM  (sx6_do_wfi_sram),DDR self-refresh mode
+ * Non-OFF Mode - executed from SDRAM (sx6_do_wfi),continue with wfi.
  */
         .align  3
 ENTRY(sx6_do_wfi)
@@ -126,35 +207,60 @@ ENTRY(sx6_do_wfi)
 	dmb
 	bl	s2ramctl_sdram_in_selfrefresh
 	cmp	r0, #0
-	bne	1f			@ failed, abandon
-	bl	s2ramctl_system_poweroff	
-	/*****************3*******/
-	isb
-        /* Data memory barrier and Data sync barrier */
-        dsb
-        dmb
-
-        wfi                             @ wait for interrupt
-
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-1:
-       ldmfd   sp!, {pc}     @ return from non-OFF mode
+	bne	BSYM(2f)	@ failed, abandon
+	bl	s2ramctl_system_poweroff
+1:	bl	sx6_do_idle
+	b	BSYM(1b)	@ just trap here as we have no choice other than wait for OFF
+2:	ldmfd   sp!, {pc}	@ return from non-OFF mode
 ENDPROC(sx6_do_wfi)
+
+ENTRY(sx6_do_idle)
+	isb
+	/* Data memory barrier and Data sync barrier */
+	dsb
+	dmb
+
+1:	wfi			@ wait for interrupt
+
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+	mrc	p15, 0, r0, c0, c0, 5
+	ands	r0, r0, #0xf
+	beq	BSYM(2f)
+
+	/*
+	 * For secondary cores: check if we are
+	 * released from the holding pen.
+	 */
+	ldr	r1, BSYM(boot_reg_addr)
+	ldr	r1, [r1]
+	and	r1, r1, #0xf
+	cmp	r0, r1
+	bne	BSYM(1b)
+
+2:	mov	pc, lr		@ return from non-OFF mode
+ENDPROC(sx6_do_idle)
+
+boot_reg_addr:
+	.word	SMP_BOOT_REG_ADDR
 
 #include "s2ramctrl.S"
 ENTRY(sx6_do_wfi_sz)
         .word   . - sx6_do_wfi
-
-
 
 
 /*
@@ -168,16 +274,18 @@ ENTRY(sx6_do_wfi_sz)
  * OFF or DORMANT state. Physical address of the function is
  * stored in the MCU(?)  while entering to OFF or DORMANT mode.
  *
+ * Note that resume_entry should locate at 16-byte aligned addr
+ *
  */
 /*
- *	 The following code is located into the .data section. This is to
- *	 allow l2x0_regs_phys to be accessed with a relative load while we
- *	 can't rely on any MMU translation. We could have put l2x0_regs_phys
+ *	 The following code is located into the .cpuint.data section. This is
+ *	 to allow pen_release_loc to be accessed with a relative load while we
+ *	 can't rely on any MMU translation. We could have put pen_release_loc
  *	 in the .text section as well, but some setups might insist on it to
  *	 be truly read-only. (Reference from: arch/arm/kernel/sleep.S)
  */
-	.data
-	.align
+	.pushsection .cpuinit.data, "ax"
+	.align 4
 
 	/*
 	 * resume magic, to allow the bootloader to check for an valid
@@ -185,7 +293,28 @@ ENTRY(sx6_do_wfi_sz)
 	 * sx6_cpu_resume entry.
 	 */
 
+	.word	0x0bedf00d
+	.word	0x1bedf00d
+	.word	0x2bedf00d
 	.word	0x8bdef50d
 ENTRY(sx6_cpu_resume)
-	b	cpu_resume	@ Jump to generic resume
+	mrc	p15, 0, r0, c0, c0, 5
+	ands	r0, r0, #0xf		@ get CPUID
+	beq	BSYM(2f)
+	adr	r4, BSYM(pen_release_loc)
+	ldmia	r4, {r5, r6}
+	sub	r4, r4, r5
+	add	r6, r6, r4
+1:
+	ldr	r7, [r6]
+	cmp	r7, r0
+	bne	BSYM(1b)
+2:
+	b	BSYM(cpu_resume)	@ Jump to generic resume
 ENDPROC(sx6_cpu_resume)
+
+pen_release_loc:
+	.long	.
+	.long	pen_release
+	.popsection
+

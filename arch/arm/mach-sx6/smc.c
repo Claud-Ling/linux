@@ -201,10 +201,11 @@ void secure_l2x0_set_prefetchctrl(uint32_t val)
 void secure_set_actlr(uint32_t val)
 {
 	/* Program PL310 L2 Cache controller debug register */
-	if ( security_state )
+	if ( security_state ) {
 		__asm__ __volatile__("mcr	p15, 0, %0, c1, c0, 1": : "r" (val):);
-	else
-		;				/*armor N/A yet*/
+	} else {
+		;	/*armor N/A yet*/
+	}
 }
 
 void secure_scale_cpufreq(uint32_t target)

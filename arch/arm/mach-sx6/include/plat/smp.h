@@ -28,13 +28,26 @@
 *0x1502_4154: IRQ handler address
 *0x1502_4158: FIQ handler address
 
-*0x1502_415c: CPU1 start address     
+*0x1502_415c: CPU1 start address
 *cpu1 while loop to check this register. if 0, loop. If != 0, jump to the address specified in this 
 */
 
-/*phyical address of boot secnond core*/
-#define SMP_BOOT_REG_ADDR               0xf502415c
-
+/*
+ * secondary boot register (32-bit)
+ *
+ * +--------------------------------+
+ * |31                        4|3  0|
+ * +---------------------------+----+
+ * | physical entry address    | id |
+ * +---------------------------+----+
+ *
+ * Note:
+ * entry address must be 16-byte aligned at least
+ */
+#define SMP_BOOT_REG_ADDR	0xf502415c
+#define SMP_BOOT_ID_BITS	4
+#define SMP_BOOT_ID_MASK	((1 << SMP_BOOT_ID_BITS) - 1)
+#define SMP_BOOT_ADDR_MASK	(~SMP_BOOT_ID_MASK)
 
 #ifndef __ASSEMBLY__
 

@@ -21,9 +21,11 @@
 #include <linux/init.h>
 
 	__INIT
+	.align 4
 
 /*
  * specific entry point for secondary CPU to jump from ROM code.
+ * should be 16-byte aligned at least
  */
 ENTRY(sigma_secondary_startup)
 	mrc	p15, 0, r0, c0, c0, 5

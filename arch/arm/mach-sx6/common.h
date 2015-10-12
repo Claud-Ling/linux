@@ -7,6 +7,10 @@
 #include "smc.h"
 #endif
 
+#ifdef CONFIG_PM
+#include "pm.h"
+#endif
+
 #ifndef __ASSEMBLY__
 
 struct trix_board_ops{
@@ -38,7 +42,7 @@ extern volatile int pen_release;
 extern struct smp_operations trix_smp_ops;
 
 extern void sigma_secondary_startup(void);
-
+extern void __iomem *platform_get_scu_base(void);
 #ifdef CONFIG_PM
 extern void platform_smp_resume_cpus(void);
 #endif /*CONFIG_PM*/
@@ -49,6 +53,10 @@ extern void platform_smp_resume_cpus(void);
 extern const char* trix_board_name(void);
 extern int trix_set_dbg_swen(unsigned int cpu, bool state);
 extern u32 trix_make_l2x_auxctrl(void);
+
+//power control
+extern void cpu_enter_lowpower(void);
+extern void cpu_leave_lowpower(void);
 
 #endif /*__ASSEMBLY__*/
 #endif

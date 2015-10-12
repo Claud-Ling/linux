@@ -63,12 +63,13 @@ static DEFINE_RAW_SPINLOCK(boot_lock);
 /*kernel init stage of this cpu*/
 static void __cpuinit sx6_secondary_init(unsigned int cpu)
 {
-	TRI_DBG("[%d] %s\n",__LINE__,__func__);	
+	TRI_DBG("[%d] %s\n",__LINE__,__func__);
 
 	/*
 	* let the primary processor know we're out of the
 	* pen, then head off into the C entry point
 	*/
+	MWriteRegWord((void *)SMP_BOOT_REG_ADDR, 0, SMP_BOOT_ID_MASK);	/*reset id from boot reg*/
 	write_pen_release(-1);
 
 	/*
@@ -77,7 +78,7 @@ static void __cpuinit sx6_secondary_init(unsigned int cpu)
 	raw_spin_lock(&boot_lock);
 	raw_spin_unlock(&boot_lock);
 
-	TRI_DBG("[%d] %s\n",__LINE__,__func__);	
+	TRI_DBG("[%d] %s\n",__LINE__,__func__);
 }
 
 static int __cpuinit sx6_boot_secondary(unsigned int cpu, struct task_struct *idle)
@@ -100,6 +101,16 @@ static int __cpuinit sx6_boot_secondary(unsigned int cpu, struct task_struct *id
      * "cpu" is Linux's internal ID.
      */
     write_pen_release(cpu);
+
+    /*
+     * In case secondary processor is waiting to be release from
+     * the holding pen in boot reg - release it.
+     *
+     * Note that: this is required when take cores back from non-OFF
+     * suspend mode.
+     */
+    MWriteRegWord((void *)SMP_BOOT_REG_ADDR, cpu, SMP_BOOT_ID_MASK);
+
 
     /*
      * Send the secondary CPU a soft interrupt, thereby causing
@@ -196,7 +207,12 @@ static void __init sx6_smp_prepare_cpus(unsigned int max_cpus)
 	 */
 	wakeup_secondary(sigma_secondary_startup);
 
-	TRI_DBG("[%d] %s\n",__LINE__,__func__);	
+	TRI_DBG("[%d] %s\n",__LINE__,__func__);
+}
+
+void __iomem *platform_get_scu_base(void)
+{
+	return scu_base;
 }
 
 #ifdef CONFIG_PM
@@ -226,7 +242,7 @@ void platform_smp_resume_cpus(void)
 		/*
 		 * Initialise the SCU and wake up the secondary core using
 		 */
-		wakeup_secondary(cpu_resume);
+		wakeup_secondary(sx6_cpu_resume);
 	}
 }
 #endif
