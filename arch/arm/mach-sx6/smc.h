@@ -61,6 +61,7 @@ static inline type armor_smc_##name(void)                         \
 {                                                                 \
 	register uint32_t code asm("ip") = ARMOR_SMC_ ##name;     \
 	register uint32_t v0 asm("r0");                           \
+	register uint32_t v1 asm("r1");                           \
 								  \
 	__asm__ __volatile__( ".arch_extension sec\n"             \
 				"dsb\n"                           \
@@ -69,7 +70,7 @@ static inline type armor_smc_##name(void)                         \
 				: "r" (v0), "r" (code)            \
 				: "r1", "r2", "r3", "memory"      \
 				);                                \
-	return (type)v0;                                          \
+	return (type)((((uint64_t)v1) << 32) + (uint64_t)v0);     \
 }
 
 /* can't use RMuint64from2RMuint32 below, cpp doesn't seem to replace it
@@ -110,6 +111,7 @@ static inline type armor_smc_##name(type1 arg1)                         \
 static inline type armor_smc_##name(type1 arg1)                         \
 {									\
 	register uint32_t v0 asm("r0") = (uint32_t)arg1;		\
+	register uint32_t v1 asm("r1");					\
 	register uint32_t code asm("ip") = ARMOR_SMC_ ##name;           \
 									\
 	__asm__ __volatile__( ".arch_extension sec\n"                   \
@@ -120,7 +122,7 @@ static inline type armor_smc_##name(type1 arg1)                         \
 			     : "r1", "r2", "r3", "memory"               \
 			     );                                         \
 									\
-	return (type)v0;                                                \
+	return (type)((((uint64_t)v1) << 32) + (uint64_t)v0);           \
 }
 
 #define armor_smc_call2v(type, name, type1, arg1, type2, arg2)          \
@@ -154,7 +156,7 @@ static inline type armor_smc_##name(type1 arg1, type2 arg2)             \
 			     : "r2", "r3", "memory"                     \
 			     );                                         \
 									\
-	return (type)v0;                                                \
+	return (type)((((uint64_t)a1) << 32) + (uint64_t)v0);           \
 }
 
 #define armor_smc_call3(type, name, type1, arg1, type2, arg2, type3, arg3) \
@@ -173,7 +175,7 @@ static inline type armor_smc_##name(type1 arg1, type2 arg2, type3 arg3) \
 			     : "r3", "memory"                           \
 			     );                                         \
 									\
-	return (type)v0;                                                \
+	return (type)((((uint64_t)a1) << 32) + (uint64_t)v0);           \
 }
 
 #define armor_smc_call4(type, name, type1, arg1, type2, arg2, type3, arg3, type4, arg4)	\
@@ -193,7 +195,7 @@ static inline type armor_smc_##name(type1 arg1, type2 arg2, type3 arg3, type4 ar
 			     : "memory"                                 \
 			     );                                         \
 									\
-	return (type)v0;                                                \
+	return (type)((((uint64_t)a1) << 32) + (uint64_t)v0);           \
 }
 
 /*
@@ -204,9 +206,9 @@ armor_smc_call1(uint32_t, set_l2_control, uint32_t, val)
 armor_smc_call1(uint32_t, set_l2_debug, uint32_t, val)
 armor_smc_call1(uint32_t, set_l2_aux_control, uint32_t, val)
 armor_smc_call2(uint32_t, set_l2_reg, uint32_t, ofs, uint32_t, val)
-armor_smc_call2(uint32_t, read_reg, uint32_t, mode, uint32_t, addr)
+armor_smc_call2(uint64_t, read_reg, uint32_t, mode, uint32_t, addr)
 armor_smc_call4(uint32_t, write_reg, uint32_t, mode, uint32_t, addr, uint32_t, val, uint32_t, mask)
-armor_smc_call4(uint32_t, otp_access, uint32_t, opc, uint32_t, arg0, uint32_t, arg1, uint32_t, arg2)
+armor_smc_call4(uint64_t, otp_access, uint32_t, opc, uint32_t, arg0, uint32_t, arg1, uint32_t, arg2)
 armor_smc_call1(uint32_t, scale_cpufreq, uint32_t, target)
 
 #undef armor_smc_call0v

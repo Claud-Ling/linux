@@ -25,7 +25,7 @@
 
 #ifndef __ASSEMBLY__
 /*
- * @fn		uint32_t secure_read_reg(uint32_t mode, uint32_t pa);
+ * @fn		int secure_read_reg(uint32_t mode, uint32_t pa, uint32_t *pval);
  * @brief	secure read one register
  * 		user shall rarely use this API, go with secure_read_uintx for instead.
  * @param[in]	<mode> - specifies access mode
@@ -33,13 +33,14 @@
  * 		1 - halfword
  * 		2 - word
  * 		others - reserved
- * @param[in]	<pa> - specifies reg physical addr
- * @return	value on success. Otherwise 0
+ * @param[in]	<pa>   - specifies reg physical addr
+ * @param[out]	<pval> - pointer of buffer
+ * @return	0 on success. Otherwise error code
  */
-uint32_t secure_read_reg(uint32_t mode, uint32_t pa);
+int secure_read_reg(uint32_t mode, uint32_t pa, uint32_t *pval);
 
 /*
- * @fn		uint32_t secure_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mask);
+ * @fn		int secure_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mask);
  * @brief	secure write one register, supports mask
  * 		user shall rarely use this API, go with secure_write_uintx for instead.
  * @param[in]	<mode> - specifies access mode
@@ -50,15 +51,20 @@ uint32_t secure_read_reg(uint32_t mode, uint32_t pa);
  * @param[in]	<pa>   - specifies reg physical addr
  * @param[in]	<val>  - value to write
  * @param[in]	<mask> - mask for write
- * @return	void
+ * @return	0 on success. Otherwise error code
  */
-void secure_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mask);
-#define secure_read_uint8(pa) (uint8_t)secure_read_reg(0, (uint32_t)pa)
-#define secure_read_uint16(pa) (uint16_t)secure_read_reg(1, (uint32_t)pa)
-#define secure_read_uint32(pa) (uint32_t)secure_read_reg(2, (uint32_t)pa)
-#define secure_write_uint8(pa, val, m) secure_write_reg(0, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
-#define secure_write_uint16(pa, val, m) secure_write_reg(1, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
-#define secure_write_uint32(pa, val, m) secure_write_reg(2, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
+int secure_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mask);
+#define secure_read_generic(pa, m, t) ({					\
+				uint32_t _tmp;					\
+				secure_read_reg(m, (uint32_t)pa, &_tmp);	\
+				(t)_tmp;					\
+})
+#define secure_read_uint8(pa)	secure_read_generic(pa, 0, uint8_t)
+#define secure_read_uint16(pa)	secure_read_generic(pa, 1, uint16_t)
+#define secure_read_uint32(pa)	secure_read_generic(pa, 2, uint32_t)
+#define secure_write_uint8(pa, val, m)	secure_write_reg(0, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
+#define secure_write_uint16(pa, val, m)	secure_write_reg(1, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
+#define secure_write_uint32(pa, val, m)	secure_write_reg(2, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
 
 #endif /* __ASSEMBLY__ */
 #endif /* CONFIG_SIGMA_SMC */

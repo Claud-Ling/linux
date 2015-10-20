@@ -24,22 +24,23 @@
 #ifndef __ASSEMBLY__
 
 /*
- * @fn		uint32_t secure_otp_get_fuse_mirror(const uint32_t offset);
+ * @fn		int secure_otp_get_fuse_mirror(const uint32_t offset, uint32_t *pval);
  * @brief	ask armor to read fuse mirror, must from NS world
  * @param[in]	<offset>  - fuse offset
- * @return	fuse value on success
+ * @param[out]	<pval>    - buffer pointer
+ * @return	0 on success. Otherwise error code
  */
-uint32_t secure_otp_get_fuse_mirror(const uint32_t offset);
+int secure_otp_get_fuse_mirror(const uint32_t offset, uint32_t *pval);
 
 /*
- * @fn		uint32_t secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nbytes);
+ * @fn		int secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nbytes);
  * @brief	ask armor to read fuse array, must from NS world
  * @param[in]	<offset> - fuse offset
- * @param[in]	<buf>    - buffer pointer
+ * @param[out]	<buf>    - buffer pointer
  * @param[in]	<nbytes> - buffer length
- * @return	return 0 and fuse value filled in buf on success. Otherwise non-zero
+ * @return	return 0 and fuse value filled in buf on success. Otherwise error code
  */
-uint32_t secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nbytes);
+int secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nbytes);
 
 #endif /*__ASSEMBLY__*/
 

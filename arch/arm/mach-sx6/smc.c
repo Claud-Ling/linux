@@ -27,6 +27,7 @@
 #include <linux/platform_device.h>
 #include <asm/hardware/cache-l2x0.h>
 #include <mach/hardware.h>
+#include <asm/cacheflush.h>
 
 #include "smc.h"
 
@@ -228,31 +229,49 @@ void secure_scale_cpufreq(uint32_t target)
 	_ret;								\
 })
 
-uint32_t secure_read_reg(uint32_t mode, uint32_t pa)
+int secure_read_reg(uint32_t mode, uint32_t pa, uint32_t *pval)
 {
 	//SMC_DEBUG("read_reg_%s(%#x)\n", reg_access_mode(mode), pa);
+	BUG_ON(pval == NULL);
 	if ( !security_state && is_secure_accessible(pa, OP_ACCESS_RD)) {
-		return (uint32_t)armor_call(read_reg, mode, pa);
+		union {
+			uint64_t data;
+			struct {
+				uint32_t val;	/* [31:0] */
+				uint32_t ret;	/* [63:32] */
+			};
+		} tmp;
+
+		tmp.data = armor_call(read_reg, mode, pa);
+		if (RM_OK == tmp.ret) {
+			*pval = tmp.val;
+		} else {
+			WARN(1, "read_reg_uint%d(0x%08x) failed!\n", 8 << mode, pa);
+			*pval = 0;	/*fill with 0 whatever*/
+			return -EACCES;
+		}
 	} else {
 		if (mode == 0)
-			return __raw_readb((void*)pa);
+			*pval = __raw_readb((void*)pa);
 		else if (mode == 1)
-			return __raw_readw((void*)pa);
+			*pval = __raw_readw((void*)pa);
 		else if (mode == 2)
-			return __raw_readl((void*)pa);
+			*pval = __raw_readl((void*)pa);
 		else
-			return 0;
+			*pval = 0;
 	}
+	return 0;
 }
 EXPORT_SYMBOL(secure_read_reg);
 
-void secure_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mask)
+int secure_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mask)
 {
 	//SMC_DEBUG("write_reg_%s(%#x, %#x, %#x)\n", reg_access_mode(mode), pa, val, mask);
 	if ( !security_state && is_secure_accessible(pa, OP_ACCESS_WR)) {
 		uint32_t ret = armor_call(write_reg, mode, pa, val, mask);
 		if (ret != RM_OK) {
-			pr_warning("write_reg_uint%d(0x%08x, 0x%08x, 0x%08x) failed!\n", 8 << mode, pa, val, mask);
+			WARN(1, "write_reg_uint%d(0x%08x, 0x%08x, 0x%08x) failed!\n", 8 << mode, pa, val, mask);
+			return -EACCES;
 		}
 	} else {
 		if (mode == 0) {
@@ -274,31 +293,61 @@ void secure_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mask)
 			pr_warning("unknown access mode value (%d)\n", mode);
 		}
 	}
+	return 0;
 }
 EXPORT_SYMBOL(secure_write_reg);
 
-uint32_t secure_otp_get_fuse_mirror(const uint32_t offset)
+int secure_otp_get_fuse_mirror(const uint32_t offset, uint32_t *pval)
 {
+	union {
+		uint64_t data;
+		struct {
+			uint32_t val;	/* [31:0] */
+			uint32_t ret;	/* [63:32] */
+		};
+	} tmp;
+
 	if ( security_state ) {
 		pr_err("error: call to %s in Secure world!\n", __func__);
-		return 0;
+		return -EAGAIN;
 	}
 
-	return (uint32_t)armor_call(otp_access, OTP_ACCESS_CODE_FUSE_MIRROR, offset, 0, 0);
+	tmp.data = armor_call(otp_access, OTP_ACCESS_CODE_FUSE_MIRROR, offset, 0, 0);
+	BUG_ON(pval == NULL);
+	if (RM_OK == tmp.ret) {
+		*pval = tmp.val;
+		return 0;
+	} else {
+		*pval = 0;
+		return -EACCES;
+	}
 }
 
-uint32_t secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nbytes)
+int secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nbytes)
 {
 	if ( security_state ) {
 		pr_err("error: call to %s in Secure world!\n", __func__);
-		return 1;
+		return -EAGAIN;
 	} else {
 		uint32_t ret, addr;
-		BUG_ON(buf == NULL);
-		addr = virt_to_phys((void*)buf); /*buf must in low memory*/
-		outer_inv_range(addr, addr + nbytes);
-		ret = (uint32_t)armor_call(otp_access, OTP_ACCESS_CODE_FUSE_ARRAY, offset, addr, nbytes);
-		ret = armor2linuxret(ret);
+		void *tmp = NULL;
+		if ((tmp = kzalloc(nbytes, GFP_KERNEL)) != NULL) {
+			addr = virt_to_phys(tmp);
+			__cpuc_flush_dcache_area(tmp, nbytes);
+			outer_inv_range(addr, addr + nbytes);
+			ret = (uint32_t)armor_call(otp_access, OTP_ACCESS_CODE_FUSE_ARRAY,
+							offset, addr, nbytes);
+			if (RM_OK == ret) {
+				BUG_ON(buf == NULL);
+				memcpy(buf, tmp, nbytes);
+				ret = 0;
+			} else {
+				ret = -EACCES;
+			}
+			kfree(tmp);
+		} else {
+			ret = -ENOMEM;
+		}
 		return ret;
 	}
 }

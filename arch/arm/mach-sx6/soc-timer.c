@@ -337,7 +337,7 @@ static const struct file_operations soctimer_cycle_ops = {
         .open           = soctimer_cycle_open,
         .read           = seq_read,
         .llseek         = seq_lseek,
-        .release        = seq_release,
+        .release        = single_release,
 };
 #endif
 
