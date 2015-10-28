@@ -66,9 +66,9 @@ static inline type armor_smc_##name(void)                         \
 	__asm__ __volatile__( ".arch_extension sec\n"             \
 				"dsb\n"                           \
 				"smc #1\n"                        \
-				: "=r" (v0)                       \
+				: "=r" (v0), "=r" (v1)            \
 				: "r" (v0), "r" (code)            \
-				: "r1", "r2", "r3", "memory"      \
+				: "r2", "r3", "memory"            \
 				);                                \
 	return (type)((((uint64_t)v1) << 32) + (uint64_t)v0);     \
 }
@@ -117,9 +117,9 @@ static inline type armor_smc_##name(type1 arg1)                         \
 	__asm__ __volatile__( ".arch_extension sec\n"                   \
 				"dsb\n"                                 \
 				"smc #1\n"                              \
-			     : "=r" (v0)                                \
+			     : "=r" (v0), "=r" (v1)                     \
 			     : "r" (v0), "r" (code)                     \
-			     : "r1", "r2", "r3", "memory"               \
+			     : "r2", "r3", "memory"                     \
 			     );                                         \
 									\
 	return (type)((((uint64_t)v1) << 32) + (uint64_t)v0);           \
@@ -151,7 +151,7 @@ static inline type armor_smc_##name(type1 arg1, type2 arg2)             \
 	__asm__ __volatile__( ".arch_extension sec\n"                   \
 				"dsb\n"                                 \
 				"smc #1\n"                              \
-			     : "=r" (v0)                                \
+			     : "=r" (v0), "=r" (a1)                     \
 			     : "r" (v0), "r" (a1), "r" (code)           \
 			     : "r2", "r3", "memory"                     \
 			     );                                         \
@@ -170,7 +170,7 @@ static inline type armor_smc_##name(type1 arg1, type2 arg2, type3 arg3) \
 	__asm__ __volatile__( ".arch_extension sec\n"                   \
 				"dsb\n"                                 \
 				"smc #1\n"                              \
-			     : "=r" (v0)                                \
+			     : "=r" (v0), "=r" (a1)                     \
 			     : "r" (v0), "r" (a1), "r" (a2), "r" (code) \
 			     : "r3", "memory"                           \
 			     );                                         \
@@ -190,7 +190,7 @@ static inline type armor_smc_##name(type1 arg1, type2 arg2, type3 arg3, type4 ar
 	__asm__ __volatile__( ".arch_extension sec\n"                   \
 				"dsb\n"                                 \
 				"smc #1\n"                              \
-			     : "=r" (v0)                                \
+			     : "=r" (v0), "=r" (a1)                     \
 			     : "r" (v0), "r" (a1), "r" (a2), "r" (a3), "r" (code) \
 			     : "memory"                                 \
 			     );                                         \
