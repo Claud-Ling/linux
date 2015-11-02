@@ -413,17 +413,30 @@ struct node_descriptor {
 	struct file_operations fops;
 };
 
+/*
+ * present <n> bytes data array
+ */
+static int seq_print_data(struct seq_file *m, void *d, int n)
+{
+	int i = 0;
+	char *t = (char*)d;
+	for (i = 0; i < n; i++) {
+		seq_printf(m, "%02x", *t++);
+	}
+	seq_printf(m, "\n");
+	return i;
+}
+
 #ifdef GET_BITS
 # undef GET_BITS
 #endif
 #define GET_BITS(v, s, n) (((v) & (((1 << (n)) - 1) << (s))) >> (s))
 
 #define otp_fuse_field(s, l, fn) {s, l, #fn}
-#define otp_fuse_entry(name, ofs, syntax...) 				\
+#define otp_fuse_entry(name, ofs, fields...) 				\
 static struct field_descriptor fuse_e##name##_desc[] =			\
 {									\
-	syntax,								\
-	{-1, -1, NULL}		/*EOT*/					\
+	fields								\
 };									\
 									\
 static int fuse_e##name##_create(struct node_descriptor *self)		\
@@ -439,8 +452,9 @@ static int fuse_e##name##_create(struct node_descriptor *self)		\
 static int fuse_e##name##_helper(struct seq_file *m)			\
 {									\
 	struct field_descriptor *f = &fuse_e##name##_desc[0];		\
+	int i, nr = ARRAY_SIZE(fuse_e##name##_desc);			\
 	seq_printf(m, "[%03x] 004 "#name"\n", ofs);			\
-	for(; f->fn != NULL; f++) {					\
+	for(i = 0; i < nr; f++, i++) {					\
 		if (f->nbits > 1)					\
 			seq_printf(m, "\tbit[%-2d:%-2d]  - %s\n",	\
 			f->bit+f->nbits-1, f->bit, f->fn);		\
@@ -454,8 +468,9 @@ static int fuse_e##name##_helper(struct seq_file *m)			\
 static int fuse_e##name##_parser(struct seq_file *m, uint32_t val)	\
 {									\
 	struct field_descriptor *f = &fuse_e##name##_desc[0];		\
-	for(; f->fn != NULL; f++) {					\
-		seq_printf(m, "%s: %d\n", f->fn,			\
+	int i, nr = ARRAY_SIZE(fuse_e##name##_desc);			\
+	for(i = 0; i < nr; f++, i++) {					\
+		seq_printf(m, "%s: %x\n", f->fn,			\
 				GET_BITS(val, f->bit, f->nbits));	\
 	}								\
 	return 0;							\
@@ -463,10 +478,11 @@ static int fuse_e##name##_parser(struct seq_file *m, uint32_t val)	\
 									\
 static int fuse_e##name##_show(struct seq_file *m, void *v)		\
 {									\
-	int ret; uint32_t temp;						\
-	if ((ret = read_fuse(ofs, &temp)) == 0)	{			\
-		seq_printf(m, "%08x\n", temp);				\
-		fuse_e##name##_parser(m, temp);				\
+	int ret; uint32_t _t1, _t2;					\
+	if ((ret = read_fuse(ofs, &_t1)) == 0)	{			\
+		_t2 = htonl(_t1); /*network byte order for reading*/	\
+		seq_print_data(m, (void*)&_t2, 4);			\
+		fuse_e##name##_parser(m, _t1);				\
 	}								\
 	return ret;							\
 }									\
@@ -507,15 +523,10 @@ static int fuse_g##name##_helper(struct seq_file *m)			\
 									\
 static int fuse_g##name##_show(struct seq_file *m, void *v)		\
 {									\
-	int i, ret; char *p;						\
+	int ret;							\
 	uint32_t temp[(len)>>2];					\
 	if ((ret = get_fuse_array(ofs, temp, len)) == 0) {		\
-		for (i = 0, p = (char*)temp; i < len; i++, p++) {	\
-			if (i && !(i & 0xf))				\
-				seq_printf(m, "\n");			\
-			seq_printf(m, "%02x", *p);			\
-		}							\
-		seq_printf(m, "\n");					\
+		seq_print_data(m, (void*)temp, len);			\
 	}								\
 	return ret;							\
 }									\
@@ -597,7 +608,7 @@ static int otp_proc_create(void)
 	INIT_LIST_HEAD(&otp_fuse_list);
 	list_add_tail(&otp_index.items, &otp_fuse_list);
 #define otp_fuse_field(s, n, fn) s
-#define otp_fuse_entry(name, ofs, syntax...) list_add_tail(&fuse_e##name.items, &otp_fuse_list);
+#define otp_fuse_entry(name, ofs, fields...) list_add_tail(&fuse_e##name.items, &otp_fuse_list);
 #define otp_fuse_generic(name, ofs, len) list_add_tail(&fuse_g##name.items, &otp_fuse_list);
 #include "fuse_data_map.inc"
 #undef otp_fuse_field

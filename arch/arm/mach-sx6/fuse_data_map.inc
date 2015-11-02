@@ -1,6 +1,6 @@
 /*
  * Brief: DTV Fuse data mapping descriptor file
- * File: fuse_data_map.inc
+ * File: arch/arm/mach-trix/fuse_data_map.inc
  * Author: Tony He <tony_he@sigmadesigns.com>
  * Date: 2015-10-20
  *
@@ -12,7 +12,7 @@
  * To be noted, Fuse array are secure assets to be with secure monitor.
  *
  * Primitive definitions
- * otp_fuse_entry(name, offset, field[, field[, ...]])
+ * otp_fuse_entry(name, offset[, field[, field[, ...]]])
  *	used to describe directly accessible fuse values, 4 byte long each.
  *
  * otp_fuse_field(bstart, nbits, name)
@@ -79,6 +79,8 @@ otp_fuse_entry(FC_2,     0x00C, otp_fuse_field(0, 1, BOOT_FROM_ROM),
 otp_fuse_entry(FC_3,     0x010, otp_fuse_field(0, 1, SEC_DIS),
 				otp_fuse_field(1, 1, BOOT_FROM_ROM_DIS))
 
-otp_fuse_entry(DIE_ID_0, 0x038, otp_fuse_field(0, 8, DESIGN_ID))
+otp_fuse_entry(DIE_ID_0, 0x038, otp_fuse_field(0, 8, DESIGN_ID),
+				otp_fuse_field(8, 1, DTS_SOUND_EN),
+				otp_fuse_field(9, 1, DTS_DECODE_EN))
 
 otp_fuse_generic(RSA_PUB_KEY, 0x290, 0x100)
