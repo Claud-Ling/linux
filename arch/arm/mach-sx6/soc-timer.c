@@ -57,6 +57,8 @@
 #define SOC_TIMER_FREQ 		(60UL * 1000)		// timer are clk @60KHz for emulation
 #endif
 
+static u32 notrace trix_clock_read_cycle(void);
+
 /*
  * This driver configures the 2 32-bit count-down timers as follows:
  *
@@ -205,7 +207,7 @@ static void __init sigma_sx6_clockevent_init(void)
  */
 static cycle_t clocksource_read_cycles(struct clocksource *cs)
 {
-	return (cycle_t)(0xffffffff - ReadRegWord((void*)TIMER_TRVR0));
+	return (cycle_t)trix_clock_read_cycle();
 }
 
 #ifdef CONFIG_PM
@@ -302,6 +304,11 @@ static void __init sigma_sx6_clocksource_init(void)
 	clocksource_register_hz(&clocksource_soc, SOC_TIMER_FREQ);
 }
 
+static u32 notrace trix_clock_read_cycle(void)
+{
+	return (u32)(0xffffffff - ReadRegWord((void*)TIMER_TRVR0));
+}
+
 void __init trix_timer_init(void)
 {
 	TRI_DBG("[%d] %s\n",__LINE__,__func__);	
@@ -311,6 +318,8 @@ void __init trix_timer_init(void)
 
 	sigma_sx6_clocksource_init();
 	sigma_sx6_clockevent_init();
+
+	setup_sched_clock(trix_clock_read_cycle, 32, SOC_TIMER_FREQ);
 
 #ifdef CONFIG_LOCAL_TIMERS
 	trix_local_timer_setup();
@@ -323,7 +332,7 @@ void __init trix_timer_init(void)
 struct proc_dir_entry *proc_soctimer = NULL;
 static int soctimer_cycle_show(struct seq_file *m, void *v)
 {
-	u32 temp = (0xffffffff - ReadRegWord((void*)TIMER_TRVR0));
+	u32 temp = trix_clock_read_cycle();
 	seq_printf(m, "%u\n", temp);
 	return 0;
 }
