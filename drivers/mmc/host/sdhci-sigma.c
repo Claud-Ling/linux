@@ -385,7 +385,7 @@ static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 			host->mmc->caps2 |= MMC_CAP2_POWEROFF_NOTIFY;
 		
 			/* Enable cache control */
-			host->mmc->caps2 |= MMC_CAP2_CACHE_CTRL;
+		//	host->mmc->caps2 |= MMC_CAP2_CACHE_CTRL;
 
 			/* Enable 1.8V DDR mode*/
 			host->mmc->caps |= MMC_CAP_1_8V_DDR;
