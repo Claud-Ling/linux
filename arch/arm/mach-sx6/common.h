@@ -25,6 +25,7 @@ struct trix_board_object{
 
 extern void trix_map_io(void);
 extern void mcu_send_rest(void);
+extern void mcu_send_poweroff(void);
 extern void __init trix_init_irq(void);
 extern void __init trix_timer_init(void);
 

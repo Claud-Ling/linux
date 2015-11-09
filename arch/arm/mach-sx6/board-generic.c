@@ -53,9 +53,22 @@ static void __init trix_init_early(void)
 	//printk("[%d]%s\n",__LINE__,__func__);
 }
 
+static void trix_poweroff(void)
+{
+	printk("%s power off\n", dtv_chip_name(dtv_get_chip_id()));
+
+	mcu_send_poweroff();
+
+	while (1); /* wait forever */
+
+	return;
+}
+
 static void __init trix_init(void)
 {
 	//printk("[%d]%s\n",__LINE__,__func__);
+
+	pm_power_off = trix_poweroff;
 }
 
 static void trix_reserve(void)

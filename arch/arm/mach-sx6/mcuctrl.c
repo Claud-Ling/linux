@@ -25,6 +25,7 @@
 
 #define MAX_PACKAGE_COUNT		(1<<4)	// 4 bit
 #define MCU_SET_MIPS_RESET      0x27
+#define MCU_SET_MIPS_POWER_OFF  0x01
 #define MCU_COMM_BUFCOUNT_MAX   210
 
 
@@ -108,7 +109,7 @@ static int send_one_frame(mcu_comm_param_t * param)
 }
 
 
-void mcu_send_rest( void )
+static void mcu_send_cmd( unsigned char action )
 {
     int len;
     unsigned char msg[5];
@@ -119,7 +120,7 @@ void mcu_send_rest( void )
 
     memset(msg, 0, sizeof(msg));
     
-    msg[0] = MCU_SET_MIPS_RESET;
+    msg[0] = action;
     
 	len = protocol_wrap_puart(tmpbuf, msg, sizeof(msg));
     
@@ -129,4 +130,14 @@ void mcu_send_rest( void )
 
     send_one_frame( &mcu_comm_param );
 
+}
+
+void mcu_send_rest( void )
+{
+	mcu_send_cmd(MCU_SET_MIPS_RESET);
+}
+
+void mcu_send_poweroff( void )
+{
+	mcu_send_cmd(MCU_SET_MIPS_POWER_OFF);
 }
