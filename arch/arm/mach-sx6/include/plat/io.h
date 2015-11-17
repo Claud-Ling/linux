@@ -70,6 +70,10 @@
 #define SIGMA_IO_ARM_BASE_VIRT	IOMEM(0xF2100000)
 #define SIGMA_IO_ARM_SIZE	0x3000
 
+/* AV mips uart */
+#define SIGMA_IO_AVMIPS_UART_PHYS	(0xf0012000)
+#define SIGMA_IO_AVMIPS_UART_VIRT	IOMEM(0xf0012000)
+
 
 #define SIGMA_IO_TO_VIRT_BETWEEN(p, st, sz)   ((p) >= (st) && (p) < ((st) + (sz)))
 #define SIGMA_IO_TO_VIRT_XLATE(p, pst, vst)   (((p) - (pst) + (vst)))

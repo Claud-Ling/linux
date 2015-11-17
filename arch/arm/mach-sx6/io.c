@@ -36,6 +36,12 @@ static struct map_desc sigma_io_desc[] __initdata = {
 		.length		= SIGMA_IO_0_SIZE,
 		.type		= MT_DEVICE
 	},
+	{
+		.virtual	= (unsigned long)(SIGMA_IO_AVMIPS_UART_VIRT),
+		.pfn		= __phys_to_pfn(SIGMA_IO_AVMIPS_UART_PHYS),
+		.length		= SZ_4K,
+		.type		= MT_DEVICE
+	},
 #if 0
 	{
 		.virtual	= (unsigned long)SIGMA_IO_1_BASE_VIRT,
