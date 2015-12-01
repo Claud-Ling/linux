@@ -1,7 +1,7 @@
 #include <linux/kernel.h>
 #include <linux/io.h>
 #include <linux/string.h>
-
+#include <linux/delay.h>
 
 #define MIPS_COMM_BASEREG		0xf5000000 //0x15000000
 #define CMD_MIPS_INTR_MCU_MASK	(1<<3)
@@ -24,10 +24,13 @@
 #define MCU_DATASEG_START		(MCU_REGFILE_START + CTRLSEG_LEN)
 
 #define MAX_PACKAGE_COUNT		(1<<4)	// 4 bit
-#define MCU_SET_MIPS_RESET      0x27
-#define MCU_SET_MIPS_POWER_OFF  0x01
 #define MCU_COMM_BUFCOUNT_MAX   210
 
+typedef enum _tag_mcu_cmd
+{
+	MCU_SET_MIPS_POWER_OFF	= 0x01,
+	MCU_SET_MIPS_RESET	= 0x27,
+}mcu_cmd_t;
 
 typedef struct _tag_mcu_comm_param{
 	unsigned int buf_len;
@@ -109,7 +112,7 @@ static int send_one_frame(mcu_comm_param_t * param)
 }
 
 
-static void mcu_send_cmd( unsigned char action )
+static void mcu_send_cmd( mcu_cmd_t action )
 {
     int len;
     unsigned char msg[5];
@@ -132,12 +135,28 @@ static void mcu_send_cmd( unsigned char action )
 
 }
 
-void mcu_send_rest( void )
+/*
+ * NOTE:
+ * we put the reboot/poweroff task in infinity loop,
+ * it's a guarantee of MCU8051 won't loss reboot/poweroff command
+ */
+#define MCU_REBOOT_TIMEOUT_IN_MS	500
+#define MCU_SHUTDOWN_TIMEOUT_IN_MS	200
+
+void __noreturn mcu_send_rest( void )
 {
-	mcu_send_cmd(MCU_SET_MIPS_RESET);
+	for(;;)
+	{
+		mcu_send_cmd(MCU_SET_MIPS_RESET);
+		mdelay(MCU_REBOOT_TIMEOUT_IN_MS);
+	}
 }
 
-void mcu_send_poweroff( void )
+void __noreturn mcu_send_poweroff( void )
 {
-	mcu_send_cmd(MCU_SET_MIPS_POWER_OFF);
+	for(;;)
+	{
+		mcu_send_cmd(MCU_SET_MIPS_POWER_OFF);
+		mdelay(MCU_SHUTDOWN_TIMEOUT_IN_MS);
+	}
 }
