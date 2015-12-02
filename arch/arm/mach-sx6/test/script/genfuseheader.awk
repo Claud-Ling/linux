@@ -25,11 +25,11 @@ NR == 1 {
 	printf("OTP_FUSE_ENTRY(%s)\n", op);
 
 	# otp_fuse_entry(name, ofs, otp_fuse_field(bit, nbits, fname),
-	if (match($0, /otp_fuse_field\([0-9]+,[ \t]+[0-9]+,[ \t_A-Z0-9]+)/) > 0) {
+	if (match($0, /otp_fuse_field\([0-9]+,[ \t]+[0-9]+,[ \t_A-Z0-9]+\)/) > 0) {
 		field = substr($0, RSTART, RLENGTH);
 		if (split(field, fnodes, ",") > 2) {
 			op = fnodes[3];
-			gsub(")","",op);
+			gsub(/\)/,"",op);
 			gsub(/^[ \t]+/,"",op);
 			printf("OTP_FUSE_FIELD(%s, %s)\n", entry[pos], op);
 		}
@@ -39,7 +39,7 @@ NR == 1 {
 /^[ \t]*otp_fuse_field/ {
 	if (pos >= 0) {
 		op = $3;
-		gsub(")","",op);
+		gsub(/\)/,"",op);
 		gsub(/^[ \t]+/,"",op);
 		printf("OTP_FUSE_FIELD(%s, %s)\n", entry[pos], op);
 	} else {
@@ -54,7 +54,7 @@ NR == 1 {
 	op2 = $3;
 	gsub(/[ \t]*otp_fuse_generic\(/,"",op1);
 	gsub(/^[ \t]+/,"",op2);
-	gsub(")","",op2);
+	gsub(/\)/,"",op2);
 	printf("OTP_FUSE_DATA(%s, %s)\n", op1, op2);
 }
 

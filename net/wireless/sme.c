@@ -543,7 +543,12 @@ void cfg80211_connect_result(struct net_device *dev, const u8 *bssid,
 	struct cfg80211_event *ev;
 	unsigned long flags;
 
+	/* Just comment out WARN_ON to avoid annoying warn messages as it seems
+	 * harmless. The warning is not fixed until 3.11 upwards kernel.
+	 */
+#ifndef CONFIG_SIGMA_DTV
 	CFG80211_DEV_WARN_ON(wdev->sme_state != CFG80211_SME_CONNECTING);
+#endif
 
 	ev = kzalloc(sizeof(*ev) + req_ie_len + resp_ie_len, gfp);
 	if (!ev)
@@ -756,7 +761,12 @@ void cfg80211_disconnected(struct net_device *dev, u16 reason,
 	struct cfg80211_event *ev;
 	unsigned long flags;
 
+	/* Just comment out WARN_ON to avoid annoying warn messages as it seems
+	 * harmless. The warning is not fixed until 3.11 upwards kernel.
+	 */
+#ifndef CONFIG_SIGMA_DTV
 	CFG80211_DEV_WARN_ON(wdev->sme_state != CFG80211_SME_CONNECTED);
+#endif
 
 	ev = kzalloc(sizeof(*ev) + ie_len, gfp);
 	if (!ev)
