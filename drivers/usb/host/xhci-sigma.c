@@ -212,6 +212,10 @@ static int xhci_plat_probe(struct platform_device *pdev)
 		goto put_usb3_hcd;
 
 
+	/* Disable receiver detection in P3, Fix synopsys PHY bug */
+	MWriteRegWord((volatile void*)0x1520c2c0, 
+					(1<<28), 0x10000000);
+
 	/* Adjust USB3 RX FIFO threshold */
 	MWriteRegWord((volatile void*)0x1520c10c, 
 			((3<<24)|(2<<19)), 0x0ff80000);
