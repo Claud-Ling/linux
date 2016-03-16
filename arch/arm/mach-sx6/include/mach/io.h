@@ -62,3 +62,11 @@
 #define SIGMA_SDHCI_2_BASE             0xfb005c00
 #define SIGMA_SDHCI_2_LEN              0x100
 #endif
+
+#define SIGMA_MI2C0_BASE		0x1502c000      //I2C Master 1
+#define SIGMA_MI2C1_BASE		0x1502d000      //I2C Master 2
+#define SIGMA_MI2C2_BASE		0x1502e000      //I2C Master 3
+#define SIGMA_MI2C3_BASE		0x1502b000      //I2C Master 4
+
+#define SIGMA_MI2C_SIZE			0x100
+

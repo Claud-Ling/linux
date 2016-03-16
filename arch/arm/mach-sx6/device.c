@@ -16,6 +16,9 @@
 #include <asm/pmu.h>
 #include <asm/io.h>
 #include <asm/irq.h>
+#if defined(CONFIG_I2C_SIGMA_TRIX)
+#include <mach/mi2c.h>
+#endif
 
 #if defined(CONFIG_USB_ARCH_HAS_EHCI)
 /* EHCI (USB high speed host controller) */
@@ -91,6 +94,60 @@ static struct resource sigma_sdhci_2_resources[] = {
 };
 #endif
 
+#if defined(CONFIG_I2C_SIGMA_TRIX)
+static struct resource sigma_mi2c_0_resources[] = {
+        [0] = {
+                .start          = SIGMA_MI2C0_BASE,
+                .end            = SIGMA_MI2C0_BASE + SIGMA_MI2C_SIZE - 1,
+                .flags          = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start          = TRIHIDTV_MASTER_I2C_0_INTERRUPT,
+                .end            = TRIHIDTV_MASTER_I2C_0_INTERRUPT,
+                .flags          = IORESOURCE_IRQ,
+        },
+};
+
+static struct resource sigma_mi2c_1_resources[] = {
+        [0] = {
+                .start          = SIGMA_MI2C1_BASE,
+                .end            = SIGMA_MI2C1_BASE + SIGMA_MI2C_SIZE - 1,
+                .flags          = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start          = TRIHIDTV_MASTER_I2C_1_INTERRUPT,
+                .end            = TRIHIDTV_MASTER_I2C_1_INTERRUPT,
+                .flags          = IORESOURCE_IRQ,
+        },
+};
+
+static struct resource sigma_mi2c_2_resources[] = {
+        [0] = {
+                .start          = SIGMA_MI2C2_BASE,
+                .end            = SIGMA_MI2C2_BASE + SIGMA_MI2C_SIZE - 1,
+                .flags          = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start          = TRIHIDTV_MASTER_I2C_2_INTERRUPT,
+                .end            = TRIHIDTV_MASTER_I2C_2_INTERRUPT,
+                .flags          = IORESOURCE_IRQ,
+        },
+};
+
+static struct resource sigma_mi2c_3_resources[] = {
+        [0] = {
+                .start          = SIGMA_MI2C3_BASE,
+                .end            = SIGMA_MI2C3_BASE + SIGMA_MI2C_SIZE - 1,
+                .flags          = IORESOURCE_MEM,
+        },
+        [1] = {
+                .start          = TRIHIDTV_MASTER_I2C_3_INTERRUPT,
+                .end            = TRIHIDTV_MASTER_I2C_3_INTERRUPT,
+                .flags          = IORESOURCE_IRQ,
+        },
+};
+#endif
+
 static u64 ehci_dmamask = ~(u32)0;
 
 #if defined(CONFIG_USB_ARCH_HAS_XHCI)
@@ -156,6 +213,55 @@ static struct platform_device sigma_sdhci_2_device = {
 };
 #endif
 
+#if defined(CONFIG_I2C_SIGMA_TRIX)
+struct sigma_mi2c_platform_data mi2c_pdata = {
+		.clkbase = 200000000,		//200 MHz
+		.default_speed = 100000,	//100 kHz
+		.capacity = MI2C_CAP_BULK,
+		.fifo_size = 32,
+};
+
+static struct platform_device sigma_mi2c0_device = {
+       .name           = "trix-mi2c",
+       .id             = 0,
+       .dev = {
+		.platform_data = &mi2c_pdata,
+       },
+       .num_resources  = ARRAY_SIZE(sigma_mi2c_0_resources),
+       .resource       = sigma_mi2c_0_resources,
+};
+
+static struct platform_device sigma_mi2c1_device = {
+       .name           = "trix-mi2c",
+       .id             = 1,
+       .dev = {
+		.platform_data = &mi2c_pdata,
+       },
+       .num_resources  = ARRAY_SIZE(sigma_mi2c_1_resources),
+       .resource       = sigma_mi2c_1_resources,
+};
+
+static struct platform_device sigma_mi2c2_device = {
+       .name           = "trix-mi2c",
+       .id             = 2,
+       .dev = {
+		.platform_data = &mi2c_pdata,
+       },
+       .num_resources  = ARRAY_SIZE(sigma_mi2c_2_resources),
+       .resource       = sigma_mi2c_2_resources,
+};
+
+static struct platform_device sigma_mi2c3_device = {
+       .name           = "trix-mi2c",
+       .id             = 3,
+       .dev = {
+		.platform_data = &mi2c_pdata,
+       },
+       .num_resources  = ARRAY_SIZE(sigma_mi2c_3_resources),
+       .resource       = sigma_mi2c_3_resources,
+};
+#endif
+
 static struct resource sigma_pmu_resources[] = {
         {
                 .start          = TRIHIDTV_A9_CPU0_PMU_INTERRUPT,
@@ -208,6 +314,12 @@ static struct platform_device *sigma_platform_devices[] __initdata = {
 	&sigma_sdhci_1_device,
 #endif
 	&sigma_pmu_device,
+#if defined(CONFIG_I2C_SIGMA_TRIX)
+	&sigma_mi2c0_device,
+	&sigma_mi2c1_device,
+	&sigma_mi2c2_device,
+	&sigma_mi2c3_device,
+#endif
 };
 
 int __init sigma_platform_init(void)
