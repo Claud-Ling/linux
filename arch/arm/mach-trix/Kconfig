@@ -278,6 +278,14 @@ config TRIX_UTIL_REGTEST
 	help
 	  Enable regtest utility support, if unsure say N
 
+menu "release version"
+
+config SIGMA_RELEASE_VERSION
+	string "git commit version"
+	default "000000"
+
+endmenu
+
 endmenu
 
 endif

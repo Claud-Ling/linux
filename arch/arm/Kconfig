@@ -283,13 +283,6 @@ config PHYS_OFFSET
 	  Please provide the physical address corresponding to the
 	  location of main memory in your system.
 
-menu "release version"
-	depends on ARCH_SIGMA_TRIX
-config SIGMA_RELEASE_VERSION
-	string "git commit version"
-	default "000000"
-endmenu
-
 config GENERIC_BUG
 	def_bool y
 	depends on BUG
