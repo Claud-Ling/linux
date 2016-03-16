@@ -47,6 +47,17 @@ struct l2c_init_data {
 
 #define CACHE_LINE_SIZE		32
 
+#if defined(CONFIG_SIGMA_DTV) && defined(CONFIG_TRIX_SMC)
+/*
+ * ACTLR is RO in NS world as NSACR.NS_SMP = 0.
+ */
+extern void secure_set_actlr(uint32_t);
+# ifdef set_auxcr
+# undef set_auxcr
+# endif
+# define set_auxcr(v) secure_set_actlr(v)
+#endif
+
 static void __iomem *l2x0_base;
 static const struct l2c_init_data *l2x0_data;
 static DEFINE_RAW_SPINLOCK(l2x0_lock);

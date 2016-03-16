@@ -1,0 +1,26 @@
+###############################################################
+#                                                             #
+#       Sigma thermal sensor "/proc" interface note           #
+#                                                             #
+###############################################################
+
+1. How to view system temperature ?
+	$cat /proc/thermal/temperature
+	UMAC0 58.8
+	GFX 63.3
+	UMAC2 58.8
+	VEDR 63.3
+	VDETN 54.5
+	ARM 63.3
+	Average 58.8			
+
+2. Check sensor work status(enable/disable)
+	$cat /proc/thermal/status
+	enable				#this indicate sensor is active
+
+
+3. Change sensor work status
+	$echo disable > /proc/thermal/status	#Disable sensor
+
+	$echo enable > /proc/thermal/status	#Enable sensor
+

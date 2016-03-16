@@ -1,0 +1,36 @@
+#
+# Ethernet GMAC driver configuration
+#
+config MTD_NAND_TRIX 
+        bool "Sdesigns TRIX NAND Flash Controller driver" 
+        depends on MTD_NAND && SIGMA_DTV && !SIGMA_DTV_ROM_MMC
+        help 
+         Enables NAND Flash support for Sigma DTV serial.
+
+config MTD_NAND_DMA_TRIX
+        bool "DMA enable"
+        depends on MTD_NAND && MTD_NAND_TRIX
+	default n
+
+config MTD_DEBUG_TRIX
+        bool "Nand debugging"
+        depends on MTD_NAND && MTD_NAND_TRIX
+	default n
+        help
+          This is an option for use by developers; most people should
+          say N here.  This enables nand driver debugging.
+
+config MTD_PARTS_TRIX_LEGACY
+	bool "Legacy nand partition"
+	depends on MTD_NAND && MTD_NAND_TRIX
+	default n
+	help
+	  Legacy NAND partition method by giving "partdef[ partdef]" in cmdline, where partdef 
+	  shall be in format: MTD_NAME=name,start,length.
+	  For instance, giving "MTD_NAME=boot,0,6M MTD_NAME=kernel,6M,8M MTD_NAME=etc,eM,2M"
+	  to  creat three mtd partitions:
+	  00000000 - 00600000 : "boot"
+	  00600000 - 00e00000 : "kernel"
+	  00e00000 - 01000000 : "etc"
+
+	  If unsure say N here.

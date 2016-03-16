@@ -1,0 +1,13 @@
+config SECURITY_SIGMADESIGNS
+        bool "Sigma Designs DTV Secuirty Boot"
+        default n
+        depends on ARCH_SIGMA_TRIX
+        ---help---
+          Support Sigma Designs' Security component.
+
+config SIGMA_DTV_SECURITY
+        bool "Sigma DTV Enable Secure boot check"
+        depends on SECURITY_SIGMADESIGNS
+        help
+          When enable Secure check when kernel bootup it will check rootfs
+          and APP partition.

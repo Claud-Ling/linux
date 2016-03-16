@@ -1,0 +1,8 @@
+#
+## Sigma Designs security configuration
+##
+#
+#
+if SIGMA_DTV
+source "security/sigmadesigns/sigma_dtv/Kconfig"
+endif   #SIGMA_DTV

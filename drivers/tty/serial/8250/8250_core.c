@@ -99,6 +99,11 @@ static unsigned int skip_txen_test; /* force skip of txen test at init time */
 #define CONFIG_HUB6 1
 
 #include <asm/serial.h>
+
+#ifdef CONFIG_SIGMA_DTV
+#include <mach/serial.h>
+#endif
+
 /*
  * SERIAL_PORT_DFNS tells us about built-in ports that have no
  * standard enumeration mechanism.   Platforms that can find all
@@ -3949,6 +3954,9 @@ void serial8250_unregister_port(int line)
 }
 EXPORT_SYMBOL(serial8250_unregister_port);
 
+#if defined (CONFIG_PROC_FS) && defined (CONFIG_SIGMA_DTV)
+#include "console_mode.c"
+#endif
 static int __init serial8250_init(void)
 {
 	int ret;
@@ -3985,6 +3993,9 @@ static int __init serial8250_init(void)
 
 	serial8250_register_ports(&serial8250_reg, &serial8250_isa_devs->dev);
 
+#if defined (CONFIG_PROC_FS) && defined (CONFIG_SIGMA_DTV)
+	proc_console_init();
+#endif
 	ret = platform_driver_register(&serial8250_isa_driver);
 	if (ret == 0)
 		goto out;

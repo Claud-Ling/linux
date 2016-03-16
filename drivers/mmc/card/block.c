@@ -68,6 +68,10 @@ MODULE_ALIAS("mmc:block");
 #define PACKED_CMD_VER	0x01
 #define PACKED_CMD_WR	0x02
 
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+int mmc_update_ext_csd(struct mmc_card *card);
+#endif
+
 static DEFINE_MUTEX(block_mutex);
 
 /*
@@ -603,6 +607,20 @@ static int mmc_blk_ioctl_cmd(struct block_device *bdev,
 					"%s: Card Status=0x%08X, error %d\n",
 					__func__, status, err);
 	}
+
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+	if ((cmd.opcode == MMC_SWITCH) && ((cmd.arg >> 24) == 0x3)) {
+		/*
+		 * In case the IOCTL has modified the EXT_CSD,
+		 * update it, i.e. re-read the EXT_CSD.
+		 */
+		err = mmc_update_ext_csd(card);
+		if (err)
+			dev_err(mmc_dev(card->host),
+				"%s: EXT_CSD update failed, error %d\n",
+				__func__, err);
+	}
+#endif
 
 cmd_rel_host:
 	mmc_put_card(card);

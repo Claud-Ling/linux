@@ -2026,6 +2026,12 @@ int uart_suspend_port(struct uart_driver *drv, struct uart_port *uport)
 	mutex_lock(&port->mutex);
 
 	tty_dev = device_find_child(uport->dev, &match, serial_match_port);
+#if defined (CONFIG_PROC_FS) && defined (CONFIG_SIGMA_DTV)
+	if(tty_dev == NULL) {
+		mutex_unlock(&port->mutex);
+		return 0;
+	}
+#endif
 	if (device_may_wakeup(tty_dev)) {
 		if (!enable_irq_wake(uport->irq))
 			uport->irq_wake = 1;
@@ -2091,6 +2097,12 @@ int uart_resume_port(struct uart_driver *drv, struct uart_port *uport)
 	mutex_lock(&port->mutex);
 
 	tty_dev = device_find_child(uport->dev, &match, serial_match_port);
+#if defined (CONFIG_PROC_FS) && defined (CONFIG_SIGMA_DTV)
+	if(tty_dev == NULL) {
+		mutex_unlock(&port->mutex);
+		return 0;
+	}
+#endif
 	if (!uport->suspended && device_may_wakeup(tty_dev)) {
 		if (uport->irq_wake) {
 			disable_irq_wake(uport->irq);

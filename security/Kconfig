@@ -125,6 +125,7 @@ source security/apparmor/Kconfig
 source security/yama/Kconfig
 
 source security/integrity/Kconfig
+source security/sigmadesigns/Kconfig
 
 choice
 	prompt "Default security module"
