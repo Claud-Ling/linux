@@ -2579,35 +2579,6 @@ static irqreturn_t sdhci_irq(int irq, void *dev_id)
 		goto out;
 	}
 
-#if defined(CONFIG_SIGMA_DTV)
-	/*
-	 * Kernel assume R1B type command(i.e MMC_SWITCH) report
-	 * SDHCI_INT_RESPONSE first and then SDHCI_INT_DATA_END
-	 * But some card have invert sequence. (i.e Toshiba eMMC)
-	 * So, add a temporary patch resolve this issue.
-	 */
-	if (host->cmd != NULL &&
-		((host->cmd->flags & (MMC_RSP_SPI_R1B | MMC_RSP_R1B))
-				== (MMC_RSP_SPI_R1B | MMC_RSP_R1B))) {
-		while (!(intmask & SDHCI_INT_ERROR_MASK)) {
-
-			if (host->cmd->opcode != MMC_SWITCH)
-				break;
-
-			intmask = sdhci_readl(host, SDHCI_INT_STATUS);
-
-			if (!(intmask &
-			(SDHCI_INT_RESPONSE | SDHCI_INT_DATA_END)))
-				break;
-
-			if ((intmask & (SDHCI_INT_RESPONSE |
-				SDHCI_INT_DATA_END)) ==
-				(SDHCI_INT_RESPONSE|SDHCI_INT_DATA_END))
-				break;
-		}
-	}
-#endif
-
 	do {
 		/* Clear selected interrupts. */
 		mask = intmask & (SDHCI_INT_CMD_MASK | SDHCI_INT_DATA_MASK |

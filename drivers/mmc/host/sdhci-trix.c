@@ -42,6 +42,7 @@ void sx6_sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1600, 0x1fff);
 			break;
 		case MMC_TIMING_UHS_DDR50:	
+		case MMC_TIMING_MMC_DDR52:
 			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1300, 0x1fff);
 			break;
 		case MMC_TIMING_MMC_HS200:
@@ -264,6 +265,7 @@ static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 	/*FIXME*/
 	//host->quirks |= SDHCI_QUIRK_BROKEN_DMA;
 	host->quirks |= SDHCI_QUIRK_FORCE_DMA;/*add by jenny enable DMA*/
+	host->quirks2 |= SDHCI_QUIRK2_BROKEN_HS200;
 	if (pdev->id == 1) {
 	/* For SD card, currently, no regulator to adjust IO voltage */
 		host->quirks2 |= SDHCI_QUIRK2_NO_1_8_V; 
