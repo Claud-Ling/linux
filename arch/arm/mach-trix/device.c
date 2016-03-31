@@ -20,6 +20,11 @@
 #include <mach/mi2c.h>
 #endif
 
+#if defined(CONFIG_GMAC_ETH)
+#include <linux/phy.h>
+#include <mach/gmac.h>
+#endif
+
 #if defined(CONFIG_USB_EHCI_SIGMA_DTV)
 /* EHCI (USB high speed host controller) */
 static struct resource sigma_usb_ehci_resources[] = {
@@ -145,6 +150,28 @@ static struct resource sigma_mi2c_3_resources[] = {
                 .end            = TRIHIDTV_MASTER_I2C_3_INTERRUPT,
                 .flags          = IORESOURCE_IRQ,
         },
+};
+#endif
+
+#if defined(CONFIG_GMAC_ETH)
+static struct resource sigma_gmac_0_resources[] = {
+	[0] = {
+		.start	= SIGMA_GMAC0_BASE,
+		.end	= SIGMA_GMAC0_BASE + SIGMA_GMAC0_SIZE -1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= TRIHIDTV_ETHERNET_INTERRUPT,
+		.end	= TRIHIDTV_ETHERNET_INTERRUPT,
+		.flags	= IORESOURCE_IRQ,
+		.name	= "mac_irq",
+	},
+	[2] = {
+		.start	= TRIHIDTV_ETHERNET_PMT_INTERRUPT,
+		.end	= TRIHIDTV_ETHERNET_PMT_INTERRUPT,
+		.flags	= IORESOURCE_IRQ,
+		.name	= "wol_irq",
+	},
 };
 #endif
 
@@ -292,6 +319,27 @@ static struct resource sigma_pmu_resources[] = {
 #endif
 };
 
+#if defined(CONFIG_GMAC_ETH)
+
+static u64 gmac_dmamask = ~(u32)0;
+
+static struct plat_dwmacenet_data gmac_pdata = {
+	.interface	= PHY_INTERFACE_MODE_RMII,
+};
+
+static struct platform_device sigma_gmac_device = {
+       .name           = "trix-dwmac",
+       .id             = 0,
+       .dev = {
+		.platform_data		= &gmac_pdata,
+                .dma_mask		= &gmac_dmamask,
+                .coherent_dma_mask	= 0xffffffff,
+       },
+       .num_resources  = ARRAY_SIZE(sigma_gmac_0_resources),
+       .resource       = sigma_gmac_0_resources,
+};
+#endif
+
 static struct platform_device sigma_pmu_device = {
         .name                   = "arm-pmu",
         .id                     = -1,
@@ -319,6 +367,9 @@ static struct platform_device *sigma_platform_devices[] __initdata = {
 	&sigma_mi2c1_device,
 	&sigma_mi2c2_device,
 	&sigma_mi2c3_device,
+#endif
+#if defined(CONFIG_GMAC_ETH)
+	&sigma_gmac_device,
 #endif
 };
 

@@ -1,0 +1,15 @@
+
+#
+# Ethernet GMAC driver configuration
+#
+config GMAC_ETH
+	tristate "DTV SX series - designware gmac support"
+	depends on ETHERNET && NET_VENDOR_SIGMADESIGNS && SIGMA_DTV
+	default y
+	select CRC32
+	select MII
+	select PHYLIB
+	help
+	 This is the driver for the Ethernet IPs are built around a
+	 Synopsys IP Core.
+

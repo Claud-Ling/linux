@@ -74,4 +74,7 @@
 
 #define SIGMA_MI2C_SIZE			0x100
 
+#define SIGMA_GMAC0_BASE		0x15030000
+#define SIGMA_GMAC0_SIZE		0x2000
+
 #endif /*__ASM_ARCH_TRIX_MACH_IO_H__*/
