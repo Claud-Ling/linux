@@ -33,8 +33,10 @@ static void trix_l2x0_write_sec(unsigned long val, unsigned reg)
 	//case L310_ADDR_FILTER_START:
 	//case L310_ADDR_FILTER_END:
 	case L310_PREFETCH_CTRL:
-	//case L310_POWER_CTRL:
 		secure_l2x0_set_reg(l2cache_base, reg, val);
+		return;
+	case L310_POWER_CTRL:
+		pr_info_once("TRIX L2C310: ROM does not support power control setting\n");
 		return;
 	default:
 		WARN_ONCE(1, "%s: ignoring write to reg 0x%x\n", __func__, reg);

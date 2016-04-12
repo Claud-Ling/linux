@@ -42,6 +42,7 @@ struct l2c_init_data {
 	void (*fixup)(void __iomem *, u32, struct outer_cache_fns *);
 	void (*save)(void __iomem *);
 	void (*configure)(void __iomem *);
+	void (*unlock)(void __iomem *, unsigned);
 	struct outer_cache_fns outer_cache;
 };
 
@@ -147,7 +148,7 @@ static void l2c_enable(void __iomem *base, u32 aux, unsigned num_lock)
 	l2x0_saved_regs.aux_ctrl = aux;
 	l2c_configure(base);
 
-	l2c_unlock(base, num_lock);
+	l2x0_data->unlock(base, num_lock);
 
 	local_irq_save(flags);
 	__l2c_op_way(base + L2X0_INV_WAY);
@@ -263,6 +264,7 @@ static const struct l2c_init_data l2c210_data __initconst = {
 	.num_lock = 1,
 	.enable = l2c_enable,
 	.save = l2c_save,
+	.unlock = l2c_unlock,
 	.outer_cache = {
 		.inv_range = l2c210_inv_range,
 		.clean_range = l2c210_clean_range,
@@ -414,12 +416,19 @@ static void l2c220_enable(void __iomem *base, u32 aux, unsigned num_lock)
 	l2c_enable(base, aux, num_lock);
 }
 
+static void l2c220_unlock(void __iomem *base, unsigned num_lock)
+{
+	if (readl_relaxed(base + L2X0_AUX_CTRL) & L220_AUX_CTRL_NS_LOCKDOWN)
+		l2c_unlock(base, num_lock);
+}
+
 static const struct l2c_init_data l2c220_data = {
 	.type = "L2C-220",
 	.way_size_0 = SZ_8K,
 	.num_lock = 1,
 	.enable = l2c220_enable,
 	.save = l2c_save,
+	.unlock = l2c220_unlock,
 	.outer_cache = {
 		.inv_range = l2c220_inv_range,
 		.clean_range = l2c220_clean_range,
@@ -766,6 +775,12 @@ static void l2c310_resume(void)
 		set_auxcr(get_auxcr() | BIT(3) | BIT(2) | BIT(1));
 }
 
+static void l2c310_unlock(void __iomem *base, unsigned num_lock)
+{
+	if (readl_relaxed(base + L2X0_AUX_CTRL) & L310_AUX_CTRL_NS_LOCKDOWN)
+		l2c_unlock(base, num_lock);
+}
+
 static const struct l2c_init_data l2c310_init_fns __initconst = {
 	.type = "L2C-310",
 	.way_size_0 = SZ_8K,
@@ -774,6 +789,7 @@ static const struct l2c_init_data l2c310_init_fns __initconst = {
 	.fixup = l2c310_fixup,
 	.save = l2c310_save,
 	.configure = l2c310_configure,
+	.unlock = l2c310_unlock,
 	.outer_cache = {
 		.inv_range = l2c210_inv_range,
 		.clean_range = l2c210_clean_range,
@@ -1077,6 +1093,7 @@ static const struct l2c_init_data of_l2c210_data __initconst = {
 	.of_parse = l2x0_of_parse,
 	.enable = l2c_enable,
 	.save = l2c_save,
+	.unlock = l2c_unlock,
 	.outer_cache = {
 		.inv_range   = l2c210_inv_range,
 		.clean_range = l2c210_clean_range,
@@ -1095,6 +1112,7 @@ static const struct l2c_init_data of_l2c220_data __initconst = {
 	.of_parse = l2x0_of_parse,
 	.enable = l2c220_enable,
 	.save = l2c_save,
+	.unlock = l2c220_unlock,
 	.outer_cache = {
 		.inv_range   = l2c220_inv_range,
 		.clean_range = l2c220_clean_range,
@@ -1222,6 +1240,7 @@ static const struct l2c_init_data of_l2c310_data __initconst = {
 	.fixup = l2c310_fixup,
 	.save  = l2c310_save,
 	.configure = l2c310_configure,
+	.unlock = l2c310_unlock,
 	.outer_cache = {
 		.inv_range   = l2c210_inv_range,
 		.clean_range = l2c210_clean_range,
@@ -1251,6 +1270,7 @@ static const struct l2c_init_data of_l2c310_coherent_data __initconst = {
 	.fixup = l2c310_fixup,
 	.save  = l2c310_save,
 	.configure = l2c310_configure,
+	.unlock = l2c310_unlock,
 	.outer_cache = {
 		.inv_range   = l2c210_inv_range,
 		.clean_range = l2c210_clean_range,
@@ -1427,6 +1447,7 @@ static const struct l2c_init_data of_aurora_with_outer_data __initconst = {
 	.enable = l2c_enable,
 	.fixup = aurora_fixup,
 	.save  = aurora_save,
+	.unlock = l2c_unlock,
 	.outer_cache = {
 		.inv_range   = aurora_inv_range,
 		.clean_range = aurora_clean_range,
@@ -1446,6 +1467,7 @@ static const struct l2c_init_data of_aurora_no_outer_data __initconst = {
 	.enable = aurora_enable_no_outer,
 	.fixup = aurora_fixup,
 	.save  = aurora_save,
+	.unlock = l2c_unlock,
 	.outer_cache = {
 		.resume      = l2c_resume,
 	},
@@ -1596,6 +1618,7 @@ static const struct l2c_init_data of_bcm_l2x0_data __initconst = {
 	.enable = l2c310_enable,
 	.save  = l2c310_save,
 	.configure = l2c310_configure,
+	.unlock = l2c310_unlock,
 	.outer_cache = {
 		.inv_range   = bcm_inv_range,
 		.clean_range = bcm_clean_range,
@@ -1632,6 +1655,7 @@ static const struct l2c_init_data of_tauros3_data __initconst = {
 	.enable = l2c_enable,
 	.save  = tauros3_save,
 	.configure = tauros3_configure,
+	.unlock = l2c_unlock,
 	/* Tauros3 broadcasts L1 cache operations to L2 */
 	.outer_cache = {
 		.resume      = l2c_resume,

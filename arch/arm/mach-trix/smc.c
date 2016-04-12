@@ -25,7 +25,9 @@
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/platform_device.h>
+#ifdef CONFIG_TRIX_CACHE_L2X0
 #include <asm/hardware/cache-l2x0.h>
+#endif
 #include <mach/hardware.h>
 #include <asm/cacheflush.h>
 #include <asm/cp15.h>	/*set_auxcr*/
