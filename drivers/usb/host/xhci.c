@@ -3642,7 +3642,7 @@ void xhci_free_dev(struct usb_hcd *hcd, struct usb_device *udev)
 		return;
 	}
 
-#if defined(CONFIG_SIGMA_DTV) && defined(CONFIG_SIGMA_SOC_SX7)
+#if defined(CONFIG_SIGMA_DTV) && defined(CONFIG_SIGMA_SOC_SX7) && defined(CONFIG_SIGMA_SOC_SX8)
 	/*
 	 * @@@@patch start@@@@
 	 * double check virt dev to avoid dereference NULL pointer...

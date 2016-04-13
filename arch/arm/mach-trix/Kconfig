@@ -15,7 +15,7 @@ config SIGMA_SOC_SX6
 	select PM
 	select PM_RUNTIME
 	select VFP
-	select NEON 
+	select NEON
 	select CPU_V7
 	select ARM_GIC
 	select HAVE_SMP
@@ -34,7 +34,7 @@ config SIGMA_SOC_SX7
 	select PM
 	select PM_RUNTIME
 	select VFP
-	select NEON 
+	select NEON
 	select CPU_V7
 	select ARM_GIC
 	select HAVE_SMP
@@ -53,7 +53,7 @@ config SIGMA_SOC_UXLB
 	select PM
 	select PM_RUNTIME
 	select VFP
-	select NEON 
+	select NEON
 	select CPU_V7
 	select ARM_GIC
 	select ARCH_HAS_OPP
@@ -62,12 +62,33 @@ config SIGMA_SOC_UXLB
 	help
 	  HiDTV-PRO UXLB
 
+config SIGMA_SOC_SX8
+	bool "SX8"
+	select AEABI
+	select REGULATOR
+	select PM
+	select PM_RUNTIME
+	select VFP
+	select NEON
+	select CPU_V7
+	select ARM_GIC
+	select HAVE_SMP
+	select SMP
+	select ARCH_HAS_OPP
+	select PM_OPP if PM
+	select TRIX_OTP_SYS
+	select TRIX_HAS_NEW_NAND
+	help
+	  HiDTV-PRO SX8
+
+
 endchoice
 
 config TRIX_SOC_NAME
 	string
 	default "TRIX-SX6" if SIGMA_SOC_SX6
 	default "TRIX-SX7" if SIGMA_SOC_SX7
+	default "TRIX-SX8" if SIGMA_SOC_SX8
 	default "TRIX-UXLB" if SIGMA_SOC_UXLB
 	default "TRIX"
 	help
@@ -90,7 +111,7 @@ config TRIX_HAS_NEW_NAND
 
 choice
 	prompt "Select ROM device type"
-	depends on SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB
+	depends on SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB || SIGMA_SOC_SX8
 	default SIGMA_DTV_ROM_MMC
 	help
 	  ROM device selection. Keep no change if unsure.
@@ -148,7 +169,7 @@ config TRIX_L2X0_PERFORMANCE
 	  if unsure say N
 
 config ANDROID_PLATFORM
-	depends on SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB
+	depends on SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB || SIGMA_SOC_SX8
 	bool "Android Support"
 	default n
 	select SYNC
@@ -165,7 +186,7 @@ config ANDROID_PLATFORM
 	  Turn ON android support, if unsure say N
 
 config TRIX_SMC
-	depends on SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB
+	depends on SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB || SIGMA_SOC_SX8
 	bool "Enable secure monitor call operations"
 	default n
 	help
@@ -214,12 +235,12 @@ config TRIX_MIN_CPUFREQ
 config TRIX_NR_UMACS
 	int "Number of UMACs in use"
 	range 1 1 if SIGMA_SOC_UXLB
-	range 1 3 if SIGMA_SOC_SX7
+	range 1 3 if SIGMA_SOC_SX7 || SIGMA_SOC_SX8
 	range 1 2
 	depends on PM
 	default 1 if SIGMA_SOC_UXLB
 	default 2 if SIGMA_SOC_SX6
-	default 3 if SIGMA_SOC_SX7
+	default 3 if SIGMA_SOC_SX7 || SIGMA_SOC_SX8
 	default 1
 	help
 	  Specify the number of UMACs currently in use
@@ -246,23 +267,23 @@ endchoice
 
 config REG_BASE_UMAC0
 	hex "UMAC0 base"
-	depends on TRIX_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB)
-	default 0xf5021000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7
+	depends on TRIX_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB || SIGMA_SOC_SX8)
+	default 0xf5021000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_SX8
 	default 0xfb010000 if SIGMA_SOC_UXLB
 	help
 	  Base address for UMAC0
 
 config REG_BASE_UMAC1
 	hex "UMAC1 base"
-	depends on TRIX_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7)
-	default 0xf5023000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7
+	depends on TRIX_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_SX8)
+	default 0xf5023000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_SX8
 	help
 	  Base address for UMAC1
 
 config REG_BASE_UMAC2
 	hex "UMAC2 base"
-	depends on TRIX_UMAC_BASES_MANUAL && SIGMA_SOC_SX7
-	default 0xf503b000 if SIGMA_SOC_SX7
+	depends on TRIX_UMAC_BASES_MANUAL && (SIGMA_SOC_SX7 || SIGMA_SOC_SX8)
+	default 0xf503b000 if SIGMA_SOC_SX7 || SIGMA_SOC_SX8
 	help
 	  Base address for UMAC2
 

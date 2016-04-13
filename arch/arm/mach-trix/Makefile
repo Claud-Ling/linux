@@ -10,13 +10,14 @@ obj-y += memtest.o thermal.o sist-common.o ringo.o sist-soc.o sist-a9.o
 obj-$(CONFIG_SIGMA_SOC_SX6)		+= board-sx6.o
 obj-$(CONFIG_SIGMA_SOC_SX7)		+= board-sx7.o
 obj-$(CONFIG_SIGMA_SOC_UXLB)		+= board-uxl.o
+obj-$(CONFIG_SIGMA_SOC_SX8)		+= board-sx8.o
 
 # SMP support
 obj-$(CONFIG_SMP)			+= smp.o
 obj-$(CONFIG_SMP)			+= sigma-headsmp.o
 obj-$(CONFIG_HOTPLUG_CPU)		+= hotplug.o
 
-obj-$(CONFIG_TRIX_CACHE_L2X0)		+= cache-l2x0.o 
+obj-$(CONFIG_TRIX_CACHE_L2X0)		+= cache-l2x0.o
 obj-$(CONFIG_TRIX_SMC)			+= sigma-smc.o smc.o
 
 # Drivers

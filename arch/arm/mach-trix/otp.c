@@ -38,7 +38,7 @@ static void __iomem *otp_base = NULL;
 
 #ifdef CONFIG_SIGMA_SOC_SX6
 # define OTP_REG_BASE 	0xf5100000
-#elif defined(CONFIG_SIGMA_SOC_SX7)
+#elif defined(CONFIG_SIGMA_SOC_SX7) || defined(CONFIG_SIGMA_SOC_SX8)
 # define OTP_REG_BASE	0xf1040000
 #else
 # error"unknown chip set"

@@ -100,7 +100,7 @@ static const char *g_initiators[] =
 	"Standby MCU",		/* 8 */
 	"EJTAG MMIO",		/* 9 */
 	NULL,
-#elif defined(CONFIG_SIGMA_SOC_SX7)
+#elif defined(CONFIG_SIGMA_SOC_SX7) || defined(CONFIG_SIGMA_SOC_SX8)
 #define CFG_NUM_INITIATOR 10
 	"Coresight DAP",	/* 0 */
 	"A9 SECURE READ",	/* 1 */

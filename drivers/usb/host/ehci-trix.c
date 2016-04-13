@@ -23,11 +23,11 @@ static void trihidtv_start_ehc(struct platform_device *dev)
 		pr_debug("USB EHCI%d %s____%d\n", dev->id,__func__, __LINE__);
 
 #if defined(CONFIG_SIGMA_SOC_SX6) || defined (CONFIG_SIGMA_SOC_SX7)
-		
+
 		/* Set GPIO16 functionally as GPIO */
 		MWriteRegByte((void *)0xf500ee23, 0x00, 0x70);
 		MWriteRegHWord((void *)0xfb005540, 0x0001, 0x0003);
-	
+
 		/* Set GPIO16 output high */
 		MWriteRegHWord((void *)0xfb005542, 0x0001, 0x0001);
 
@@ -35,9 +35,11 @@ static void trihidtv_start_ehc(struct platform_device *dev)
 		/* Set GPIO7 output high */
 		MWriteRegHWord((void *)0x1b0055a0, 0x4000, 0x4000);
 		MWriteRegHWord((void *)0x1b0055a2, 0x0080, 0x0080);
-#endif	
-	
+#elif defined (CONFIG_SIGMA_SOC_SX8)
+		pr_warn("%s:TODOs: To add pinshare settings for SX8 USB0\n", __func__);
+#endif
 	}
+
 	if(dev->id == 1){
 		pr_debug("USB EHCI%d %s____%d\n", dev->id,__func__, __LINE__);
 #if defined(CONFIG_SIGMA_SOC_SX6) || defined (CONFIG_SIGMA_SOC_SX7)
@@ -45,7 +47,7 @@ static void trihidtv_start_ehc(struct platform_device *dev)
 		/* Set GPIO6 functionally as GPIO */
 		MWriteRegByte((void *)0xf500ee1e, 0x00, 0x70);
 		MWriteRegHWord((void *)0xfb005500, 0x0100, 0x0300);
-		
+
 		/* Set GPIO6 output high */
 		MWriteRegHWord((void *)0xfb005502, 0x0040, 0x0040);
 
@@ -55,7 +57,9 @@ static void trihidtv_start_ehc(struct platform_device *dev)
 		/* Set GPIO6 output high */
 		MWriteRegHWord((void *)0x1b0055a0, 0x1000, 0x1000);
 		MWriteRegHWord((void *)0x1b0055a2, 0x0040, 0x0040);
-#endif	
+#elif defined (CONFIG_SIGMA_SOC_SX8)
+		pr_warn("%s:TODOs: To add pinshare settings for SX8 USB1\n", __func__);
+#endif
 	}
 
 }

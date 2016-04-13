@@ -104,12 +104,14 @@ static int sigma_dwmac_init(struct platform_device *pdev, void *priv)
 
 #if defined(CONFIG_SIGMA_SOC_SX7)
 	WriteRegByte((volatile void *)0xf500ea2c, 0x7f); //GBE_TXEN
-	WriteRegByte((volatile void *)0xf500ea2d, 0x7f); //GBE_TXC 
+	WriteRegByte((volatile void *)0xf500ea2d, 0x7f); //GBE_TXC
 	WriteRegByte((volatile void *)0xf500ea2e, 0x7f); //GBE_TXD0
 	WriteRegByte((volatile void *)0xf500ea2f, 0x7f); //GBE_TXD1
 	WriteRegByte((volatile void *)0xf500ea30, 0x7f); //GBE_TXD2
 	WriteRegByte((volatile void *)0xf500ea31, 0x7f); //GBE_TXD3
 	WriteRegByte((volatile void *)0xf500ea38, 0x7f); //GBE_MDC
+#elif defined(CONFIG_SIGMA_SOC_SX8)
+	pr_warn("%s:TODOs: To add pinshare settings for SX8 GBE\n", __func__);
 #endif
 
 	/* enable interrupt logic to CPU */

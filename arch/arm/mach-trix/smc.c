@@ -94,7 +94,7 @@ struct secure_reg_access {
  */
 static struct secure_reg_access reg_access_tbl[] =
 {
-#if defined(CONFIG_SIGMA_SOC_SX6) || defined(CONFIG_SIGMA_SOC_SX7)
+#if defined(CONFIG_SIGMA_SOC_SX6) || defined(CONFIG_SIGMA_SOC_SX7) || defined(CONFIG_SIGMA_SOC_SX8)
 	{0xf5005000, 0xfffff000, OP_ACCESS_RD | OP_ACCESS_WR},	/* PMAN_SEC0 (4k) */
 	{0xf5008000, 0xfffff000, OP_ACCESS_RD | OP_ACCESS_WR},	/* PMAN_SEC1 (4k) */
 # ifndef CONFIG_SIGMA_SOC_SX6
@@ -108,7 +108,7 @@ static struct secure_reg_access reg_access_tbl[] =
 	{0xfa001000, 0xfffff000, OP_ACCESS_RD | OP_ACCESS_WR},	/* DISP_MMIO_Configure (4k) */
 # ifdef CONFIG_SIGMA_SOC_SX6
 	{0xf5100000, 0xfffe0000, OP_ACCESS_RD | OP_ACCESS_WR},	/* Turing (128k) */
-# elif defined(CONFIG_SIGMA_SOC_SX7)
+# elif defined(CONFIG_SIGMA_SOC_SX7) || defined(CONFIG_SIGMA_SOC_SX8)
 	{0xf1040000, 0xfffe0000, OP_ACCESS_RD | OP_ACCESS_WR},	/* Turing (128k) */
 # endif
 #endif

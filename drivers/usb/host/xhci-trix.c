@@ -72,17 +72,18 @@ static void xhci_trix_init_quirks(struct usb_hcd *hcd)
 
 	/* Set GPIO9 output mode */
 	MWriteRegHWord((volatile void*)0x1b005520, 0x4, 0xc);
-	
+
 	/* Set GPIO9 output val equ 1 */
 	MWriteRegHWord((volatile void*)0x1b005522, 0x2, 0x2);
 
 	/* Set GPIO8 act as USB3_OC */
 	MWriteRegByte((volatile void*)0x1500ee22, 0x2, 0x7);
-	
+
 	/* Set GPIO7 act as USB3_OC */
 	MWriteRegByte((volatile void*)0x1500ee21, 0x20, 0x70);
-
-#else 
+#elif defined(CONFIG_SIGMA_SOC_SX8)
+	pr_warn("%s:TODOs: To add XHCI pinshare setting for SX8\n", __func__);
+#else
 	#error "Unknow SOC type!!"
 #endif
 

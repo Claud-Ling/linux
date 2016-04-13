@@ -141,7 +141,13 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 		WriteRegByte((volatile void *)0x1b005795,0x77); //data2
 		WriteRegByte((volatile void *)0x1b005799,0x77); //data2
 		WriteRegByte((volatile void *)0x1b005796,0x77); //clock
-		
+#elif defined (CONFIG_SIGMA_SOC_SX8)
+		MWriteRegByte((void*)0x1500ee23, 0x22, 0x33);	//bit[6:4]wp, bit[2:0]cd
+		MWriteRegByte((void*)0x1500ee39, 0x10, 0x30);	//bit[6:4]data0
+		MWriteRegByte((void*)0x1500ee3a, 0x11, 0x33);	//bit[6:4]data2,bit[2:0]data1
+		MWriteRegByte((void*)0x1500ee3b, 0x01, 0x03);	//bit[2:0]data3
+		MWriteRegByte((void*)0x1500ee44, 0x20, 0x30);	//bit[6:4]clk
+		MWriteRegByte((void*)0x1500ee45, 0x02, 0x03);	//bit[2:0]cmd
 #else
 	#error "unknown SoC type!"
 #endif
@@ -218,6 +224,12 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 
 		MWriteRegHWord((void *)0x1b000026, 0x0000, 0x8000); //clear bit 15
 		MWriteRegHWord((void *)0x1b000026, 0x0020, 0x0020); //set bit 5, Enable SDIO2(CD, WP, CMD, CLK, D0, D1, D2, D3)
+#elif defined (CONFIG_SIGMA_SOC_SX8)
+		MWriteRegByte((void*)0x1500ee2e, 0x11, 0x33);	//bit[6:4]data1,bit[2:0]data0
+		MWriteRegByte((void*)0x1500ee2f, 0x11, 0x33);	//bit[6:4]data3,bit[2:0]data2
+		MWriteRegByte((void*)0x1500ee30, 0x11, 0x33);	//bit[6:4]data5,bit[2:0]data4
+		MWriteRegByte((void*)0x1500ee31, 0x11, 0x33);	//bit[6:4]data7,bit[2:0]data6
+		MWriteRegByte((void*)0x1500ee32, 0x11, 0x33);	//bit[6:4]cmd,bit[2:0]clk
 #else
 	#error "unknown SoC type!"
 #endif

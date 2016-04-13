@@ -59,6 +59,8 @@ struct pll_operations {
 # include "pll-sx7.c"
 #elif defined (CONFIG_SIGMA_SOC_UXLB)
 # include "pll-uxl.c"
+#elif defined (CONFIG_SIGMA_SOC_SX8)
+// TODOs...
 #else
 # error "unknown chip!!"
 #endif
