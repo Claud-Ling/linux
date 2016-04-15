@@ -24,6 +24,10 @@
 
 #include "dwmac.h"
 
+#ifdef CONFIG_MICREL_PHY
+#include <linux/micrel_phy.h>
+#endif
+
 #define GMAC_PHY_IF_CTRL		0x00001f00
 #define GMAC_PHY_IF_SEL_MASK		0x00000007
 #define GMAC_PHY_IF_SEL_RGMII		(1UL)
@@ -33,13 +37,56 @@
 #define GMAC_MON_CTRL_INT_MASK		(0x00000040)
 #define GMAC_MON_CTRL_INT_ENABLE	(0x40)
 
-#define IS_PHY_IF_MODE_RGMII(iface)     (iface == PHY_INTERFACE_MODE_RGMII)
+#define IS_RMII(iface)     (iface == PHY_INTERFACE_MODE_RMII)
+#define IS_RGMII(iface)     (iface == PHY_INTERFACE_MODE_RGMII)
 
 struct sigma_dwmac {
 	int interface;		/* phy interface */
 	u32 ctrl_reg;		/* GMAC glue-logic control register */
 	u32 speed;
+
+	struct device *device;
 };
+
+static unsigned char mac_addr[6] = {0};
+static int phy_mode = -1;
+
+#ifndef MODULE
+static int __init setup_mac_addr(char *str)
+{
+	unsigned int mac[6];
+	int i;
+
+	if (!str || !*str)
+		return -EINVAL;
+
+	sscanf (str, "%x:%x:%x:%x:%x:%x",
+		&mac[0], &mac[1], &mac[2],
+		&mac[3], &mac[4], &mac[5]);
+	for (i = 0; i < 6; i++) {
+		mac_addr[i] = mac[i];
+	}
+
+	return 0;
+}
+
+__setup("ethaddr=",setup_mac_addr);
+
+static int __init setup_phy_mode(char *str)
+{
+	if (!str || !*str)
+		return -EINVAL;
+	if (!strncmp(str, "rmii", 4)) {
+		phy_mode = PHY_INTERFACE_MODE_RMII;
+	}else if (!strncmp(str, "rgmii", 5)) {
+		phy_mode = PHY_INTERFACE_MODE_RGMII;
+	}
+
+	return 0;
+}
+
+__setup("phymode=",setup_phy_mode);
+#endif
 
 #ifdef CONFIG_OF
 static int sigma_dwmac_probe_config_dt(struct platform_device *pdev,
@@ -96,6 +143,43 @@ int sigma_dwmac_get_platform_resources(struct platform_device *pdev,
 	return IS_ERR_OR_NULL(dwmac_res->addr);
 }
 
+static void sigma_dwmac_fix_mac_speed(void *bsp_priv, unsigned int speed)
+{
+	struct sigma_dwmac *dwmac = (struct sigma_dwmac *)bsp_priv;
+	struct device *device = dwmac->device;
+	struct net_device *ndev = dev_get_drvdata(device);
+	struct dwmac_priv *priv = netdev_priv(ndev);
+	u32 phy_id = priv->phydev->phy_id;
+
+	/*
+ 	 * a way to decide which PHY interface we are using:
+ 	 * 1. identify PHY ID
+ 	 * 2. choice the PHY interface according to PHY ID
+ 	 */
+#ifdef CONFIG_MICREL_PHY
+	if ( (phy_id & MICREL_PHY_ID_MASK) == PHY_ID_KSZ9031) {
+		priv->phydev->interface	= PHY_INTERFACE_MODE_RGMII;
+		dwmac->interface	= PHY_INTERFACE_MODE_RGMII;
+		goto done;
+	}
+#endif
+	/* default: RMII mode */
+	dwmac->interface = priv->phydev->interface = PHY_INTERFACE_MODE_RMII;
+done:
+	if(IS_RGMII(priv->phydev->interface)) {
+		/* RGMII - 125Mhz clock */
+		MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_PHY_IF_CTRL),
+			      GMAC_PHY_IF_SEL_RGMII, GMAC_PHY_IF_SEL_MASK);
+	}
+	else {
+		/* RMII - 25Mhz clock */
+		MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_PHY_IF_CTRL),
+			      GMAC_PHY_IF_SEL_RMII, GMAC_PHY_IF_SEL_MASK);
+	}
+
+	return;
+}
+
 static int sigma_dwmac_init(struct platform_device *pdev, void *priv)
 {
 	struct sigma_dwmac *dwmac = (struct sigma_dwmac *)priv;
@@ -118,7 +202,7 @@ static int sigma_dwmac_init(struct platform_device *pdev, void *priv)
 	MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_MON_CTR_REG),
 		        GMAC_MON_CTRL_INT_ENABLE, GMAC_MON_CTRL_INT_MASK);
 
-	if(IS_PHY_IF_MODE_RGMII(iface)) {
+	if(IS_RGMII(iface)) {
 		/* RGMII - 125Mhz clock */
 		MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_PHY_IF_CTRL),
 			      GMAC_PHY_IF_SEL_RGMII, GMAC_PHY_IF_SEL_MASK);
@@ -149,9 +233,9 @@ static int sigma_dwmac_parse_data(struct sigma_dwmac *dwmac,
 
 	plat_dat = pdev->dev.platform_data;
 	dwmac->interface = plat_dat->interface;	/* RMII or RGMII */
+#endif
 
 	return 0;
-#endif
 }
 
 static int sigma_dwmac_probe(struct platform_device *pdev)
@@ -194,6 +278,8 @@ static int sigma_dwmac_probe(struct platform_device *pdev)
 	if (!dwmac)
 		 return -ENOMEM;
 
+	dwmac->device = &pdev->dev;
+
 	ret = sigma_dwmac_parse_data(dwmac, pdev);
 	if (ret) {
 		dev_err(&pdev->dev, "Unable to parse OF data\n");
@@ -203,11 +289,27 @@ static int sigma_dwmac_probe(struct platform_device *pdev)
 	plat_dat->mdio_bus_data = devm_kzalloc(&pdev->dev,
 					       sizeof(struct dwmac_mdio_bus_data),
 					       GFP_KERNEL);
+	/*
+ 	 * Override with kernel runtime parameters
+ 	 * - phy mode
+ 	 * - mac address
+ 	 */
+	if(IS_RMII(phy_mode) ||
+	   IS_RGMII(phy_mode) ) {
+		dwmac->interface = phy_mode;
+	}
+
+	if (is_valid_ether_addr(mac_addr)) {
+		dwmac_res.mac = mac_addr;
+	}
+
 	plat_dat->has_gmac	= true;
 	plat_dat->phy_addr	= -1;
 	plat_dat->bsp_priv	= dwmac;
+	plat_dat->interface	= dwmac->interface;
 	plat_dat->init		= sigma_dwmac_init;
 	plat_dat->exit		= sigma_dwmac_exit;
+	plat_dat->fix_mac_speed	= sigma_dwmac_fix_mac_speed;
 
 	ret = sigma_dwmac_init(pdev, plat_dat->bsp_priv);
 

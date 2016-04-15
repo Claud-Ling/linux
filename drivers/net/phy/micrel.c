@@ -460,6 +460,17 @@ static int ksz9031_config_init(struct phy_device *phydev)
 				MII_KSZ9031RN_TX_DATA_PAD_SKEW, 4,
 				tx_data_skews, 4);
 	}
+#ifdef CONFIG_SIGMA_SOC_SX7
+	else {
+		/*
+ 		 * NOTE:
+ 		 * Hard code here temporally, we may have better presentation anyway
+ 		 */
+		ksz9031_extended_write(phydev, OP_DATA, 2, MII_KSZ9031RN_CONTROL_PAD_SKEW, 0x0000);
+		ksz9031_extended_write(phydev, OP_DATA, 2, MII_KSZ9031RN_TX_DATA_PAD_SKEW, 0x3330);
+		ksz9031_extended_write(phydev, OP_DATA, 2, MII_KSZ9031RN_CLK_PAD_SKEW, 0x03ef);
+	}
+#endif
 	return 0;
 }
 
