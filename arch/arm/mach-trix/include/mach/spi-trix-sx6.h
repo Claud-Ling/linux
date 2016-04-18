@@ -58,8 +58,8 @@
 #define TRIHIDTV_HS_UART_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 27)
 #define TRIHIDTV_CA_INTERRUPT                         (TRIHIDTV_EIC_IRQ_BASE + 28)
 #define TRIHIDTV_ETHERNET_INTERRUPT                   (TRIHIDTV_EIC_IRQ_BASE + 29)
-#define TRIHIDTV_SDIO_1_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 30)
-#define TRIHIDTV_SDIO_0_INTERRUPT                     TRIHIDTV_SDIO_1_INTERRUPT
+#define TRIHIDTV_SDIO_0_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 30)
+#define TRIHIDTV_SDIO_1_INTERRUPT                     TRIHIDTV_SDIO_0_INTERRUPT
 
 #define TRIHIDTV_MDISP_RES_CH1                        (TRIHIDTV_EIC_IRQ_BASE + 31)
 #define TRIHIDTV_GPIO_INTERRUPT                       (TRIHIDTV_EIC_IRQ_BASE + 32)

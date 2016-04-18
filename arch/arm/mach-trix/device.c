@@ -77,8 +77,8 @@ static struct resource sigma_sdhci_1_resources[] = {
                 .flags          = IORESOURCE_MEM,
         },
         [1] = {
-                .start          = TRIHIDTV_SDIO_0_INTERRUPT,
-                .end            = TRIHIDTV_SDIO_0_INTERRUPT,
+                .start          = TRIHIDTV_SDIO_1_INTERRUPT,
+                .end            = TRIHIDTV_SDIO_1_INTERRUPT,
                 .flags          = IORESOURCE_IRQ,
         },
 };
@@ -92,8 +92,8 @@ static struct resource sigma_sdhci_2_resources[] = {
                 .flags          = IORESOURCE_MEM,
         },
         [1] = {
-                .start          = TRIHIDTV_SDIO_1_INTERRUPT,
-                .end            = TRIHIDTV_SDIO_1_INTERRUPT,
+                .start          = TRIHIDTV_SDIO_0_INTERRUPT,
+                .end            = TRIHIDTV_SDIO_0_INTERRUPT,
                 .flags          = IORESOURCE_IRQ,
         },
 };
