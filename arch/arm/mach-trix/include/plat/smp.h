@@ -44,10 +44,22 @@
  * Note:
  * entry address must be 16-byte aligned at least
  */
-#define SMP_BOOT_REG_ADDR	0xf502415c
-#define SMP_BOOT_ID_BITS	4
-#define SMP_BOOT_ID_MASK	((1 << SMP_BOOT_ID_BITS) - 1)
-#define SMP_BOOT_ADDR_MASK	(~SMP_BOOT_ID_MASK)
+#if defined(CONFIG_SIGMA_SOC_SX6) || defined(CONFIG_SIGMA_SOC_UXLB) || defined(CONFIG_SIGMA_SOC_SX7)
+#define AUX_BOOT_ADDR_REG	0xf502415c
+#else
+#define AUX_BOOT_ADDR_REG	0xfb00f07c	/*this belongs to sectimer target,
+						 *can be non-accessible in NS world
+						 */
+#endif
+#define AUX_BOOT_ID_REG		0xf502415c	/*use it as duplicated copy of aux_boot_addr<id>
+						 *field for non-secure world, as ns may need read
+						 *<id> field under circumstance where smc call is
+						 *not available. For instance after move core out
+						 *of coherency, i.e. hotplug.
+						 */
+#define AUX_BOOT_ID_BITS	4
+#define AUX_BOOT_ID_MASK	((1 << AUX_BOOT_ID_BITS) - 1)
+#define AUX_BOOT_ADDR_MASK	(~AUX_BOOT_ID_MASK)
 
 #ifndef __ASSEMBLY__
 

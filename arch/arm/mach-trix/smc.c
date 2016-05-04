@@ -32,6 +32,9 @@
 #include <asm/cacheflush.h>
 #include <asm/cp15.h>	/*set_auxcr*/
 
+#ifdef CONFIG_SMP
+#include <mach/smp.h>
+#endif
 #include "smc.h"
 
 #ifdef DEBUG
@@ -320,3 +323,64 @@ int secure_otp_get_fuse_array(const uint32_t offset, uint32_t *buf, uint32_t nby
 	}
 }
 
+#ifdef CONFIG_SMP
+int secure_set_aux_core_addr(const void* reg, const uint32_t pa)
+{
+	int ret = 0;
+	uint32_t ta = (pa & AUX_BOOT_ADDR_MASK);
+	if (!security_state && ((u32)reg != AUX_BOOT_ID_REG)) {
+		ret = (uint32_t)armor_call(set_aux_core_boot_addr, ta);
+		ret = armor2linuxret(ret);
+	} else {
+		BUG_ON(reg == NULL);
+		writel(ta, (void*)reg);	/*reset boot id as well*/
+	}
+
+	return ret;
+}
+
+int secure_boot_aux_core(const void* reg, const uint32_t cpu)
+{
+	int ret = 0;
+	if (!security_state && ((u32)reg != AUX_BOOT_ID_REG)) {
+		ret = (uint32_t)armor_call(set_aux_core_boot0, cpu);
+		ret = armor2linuxret(ret);
+	} else {
+		u32 tmp;
+		BUG_ON(reg == NULL);
+		tmp = readl(reg);
+		tmp &= ~AUX_BOOT_ID_MASK;
+		tmp |= (cpu & AUX_BOOT_ID_MASK);
+		writel(tmp, (void*)reg);
+	}
+
+	return ret;
+}
+
+int secure_get_aux_core_boot(const void* reg, uint32_t *pval)
+{
+	if (!security_state && ((u32)reg != AUX_BOOT_ID_REG)) {
+		union {
+			uint64_t data;
+			struct {
+				uint32_t val;	/* [31:0] */
+				uint32_t ret;	/* [63:32] */
+			};
+		} tmp;
+
+		tmp.data = armor_call(get_aux_core_boot);
+		if (tmp.ret == RM_OK) {
+			BUG_ON(pval == NULL);
+			*pval = tmp.val;
+			return 0;
+		} else {
+			return -EACCES;
+		}
+	} else {
+		BUG_ON(reg == NULL);
+		BUG_ON(pval == NULL);
+		*pval = readl((void*)reg);
+		return 0;
+	}
+}
+#endif

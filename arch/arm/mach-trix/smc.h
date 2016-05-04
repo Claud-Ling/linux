@@ -210,6 +210,9 @@ armor_smc_call2(uint64_t, read_reg, uint32_t, mode, uint32_t, addr)
 armor_smc_call4(uint32_t, write_reg, uint32_t, mode, uint32_t, addr, uint32_t, val, uint32_t, mask)
 armor_smc_call4(uint64_t, otp_access, uint32_t, opc, uint32_t, arg0, uint32_t, arg1, uint32_t, arg2)
 armor_smc_call1(uint32_t, scale_cpufreq, uint32_t, target)
+uint64_armor_smc_call0(get_aux_core_boot)
+armor_smc_call1(uint32_t, set_aux_core_boot0, uint32_t, arg)
+armor_smc_call1(uint32_t, set_aux_core_boot_addr, uint32_t, arg)
 
 #undef armor_smc_call0v
 #undef armor_smc_call0
@@ -231,6 +234,34 @@ int get_security_state(void);
 void secure_l2x0_set_reg(void* base, uint32_t ofs, uint32_t val);
 void secure_set_actlr(uint32_t val);
 void secure_scale_cpufreq(uint32_t target);
+
+/*
+ * @fn		int secure_set_aux_core_addr(const void* reg, const uint32_t pa);
+ * @brief	set boot addr for auxiliary cores, and reset id to zero as well.
+ * @param[in]	<reg>    - aux boot addr register
+ * @param[in]	<pa>     - physical entry address
+ * @return	return 0 on success. Otherwise error code
+ */
+int secure_set_aux_core_addr(const void* reg, const uint32_t pa);
+
+/*
+ * @fn		int secure_boot_aux_core(const void* reg, const uint32_t cpu);
+ * @brief	set boot id for the intended auxiliary core
+ * @param[in]	<reg>    - aux boot addr register
+ * @param[in]	<cpu>    - cpu id
+ * @return	return 0 on success. Otherwise error code
+ */
+int secure_boot_aux_core(const void* reg, const uint32_t cpu);
+
+/*
+ * @fn		int secure_get_aux_core_boot(const void* reg, uint32_t* pval);
+ * @brief	query for the content of aux_core_boot register
+ * @param[in]	<reg>    - aux boot addr register
+ * @param[in]	<pval>   - pointer of buffer to load register content
+
+ * @return	return 0 on success with value filled in buffer pointed by <pval>. Otherwise error code
+ */
+int secure_get_aux_core_boot(const void* reg, uint32_t* pval);
 
 #endif /*__ASSEMBLY__*/
 

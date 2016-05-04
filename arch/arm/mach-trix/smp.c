@@ -15,6 +15,7 @@
  *
  *  Author: Tony He, 2014.
  */
+#define pr_fmt(fmt) "smp: " fmt
 
 #include <linux/init.h>
 #include <linux/device.h>
@@ -34,6 +35,22 @@
 
 #include <mach/smp.h>
 #include "common.h"
+
+/*
+ * set up id in aux_boot_addr, as well as aux_boot_id
+ */
+#define SECURE_BOOT_AUX_CORE(reg, id) do{			\
+	secure_boot_aux_core((reg), (id));			\
+	if ((u32)(reg) != AUX_BOOT_ID_REG) {			\
+		uint32_t _tmp = 0;				\
+		if (!secure_get_aux_core_boot((reg), &_tmp)) {	\
+			writel_relaxed(_tmp & AUX_BOOT_ID_MASK,	\
+					(void*)AUX_BOOT_ID_REG);\
+		} else {					\
+			pr_err("get aux id fail, %d\n", (id));	\
+		}						\
+	}							\
+} while(0)
 
 /* SCU base address */
 static void __iomem *scu_base = SIGMA_IO_ADDRESS(SIGMA_TRIX_SCU_BASE);
@@ -69,7 +86,7 @@ static void __cpuinit trix_secondary_init(unsigned int cpu)
 	* let the primary processor know we're out of the
 	* pen, then head off into the C entry point
 	*/
-	MWriteRegWord((void *)SMP_BOOT_REG_ADDR, 0, SMP_BOOT_ID_MASK);	/*reset id from boot reg*/
+	MWriteRegWord((void *)AUX_BOOT_ID_REG, 0, AUX_BOOT_ID_MASK);	/*reset boot id*/
 	write_pen_release(-1);
 
 	/*
@@ -83,57 +100,56 @@ static void __cpuinit trix_secondary_init(unsigned int cpu)
 
 static int __cpuinit trix_boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
-    unsigned long timeout;
-    TRI_DBG("[%d] %s\n",__LINE__,__func__);
+	unsigned long timeout;
+	TRI_DBG("[%d] %s\n",__LINE__,__func__);
 
-    /*
-     * Set synchronisation state between this boot processor
-     * and the secondary one
-     */
-    raw_spin_lock(&boot_lock);
+	/*
+	* Set synchronisation state between this boot processor
+	* and the secondary one
+	*/
+	raw_spin_lock(&boot_lock);
 
-    /*
-     * The secondary processor is waiting to be released from
-     * the holding pen - release it, then wait for it to flag
-     * that it has been released by resetting pen_release.
-     *
-     * Note that "pen_release" is the hardware CPU ID, whereas
-     * "cpu" is Linux's internal ID.
-     */
-    write_pen_release(cpu);
+	/*
+	* The secondary processor is waiting to be released from
+	* the holding pen - release it, then wait for it to flag
+	* that it has been released by resetting pen_release.
+	*
+	* Note that "pen_release" is the hardware CPU ID, whereas
+	* "cpu" is Linux's internal ID.
+	*/
+	write_pen_release(cpu);
 
-    /*
-     * In case secondary processor is waiting to be release from
-     * the holding pen in boot reg - release it.
-     *
-     * Note that: this is required when take cores back from non-OFF
-     * suspend mode.
-     */
-    MWriteRegWord((void *)SMP_BOOT_REG_ADDR, cpu, SMP_BOOT_ID_MASK);
+	/*
+	* In case secondary processor is waiting to be release from
+	* the holding pen in boot reg - release it.
+	*
+	* Note that: this is required when take cores back from non-OFF
+	* suspend mode.
+	*/
+	SECURE_BOOT_AUX_CORE((void*)AUX_BOOT_ADDR_REG, cpu);
 
+	/*
+	* Send the secondary CPU a soft interrupt, thereby causing
+	* the boot monitor to read the system wide flags register,
+	* and branch to the address found there.
+	*/
+	arch_send_wakeup_ipi_mask(cpumask_of(cpu));
 
-    /*
-     * Send the secondary CPU a soft interrupt, thereby causing
-     * the boot monitor to read the system wide flags register,
-     * and branch to the address found there.
-     */
-    arch_send_wakeup_ipi_mask(cpumask_of(cpu));
+	timeout = jiffies + (1 * HZ);
+	while (time_before(jiffies, timeout))
+	{
+		if (pen_release == -1)
+			break;
+		udelay(10);
+	}
 
-    timeout = jiffies + (1 * HZ);
-    while (time_before(jiffies, timeout))
-    {
-        if (pen_release == -1)
-            break;
-        udelay(10);
-    }
+	/*
+	* now the secondary core is starting up let it run its
+	* calibrations, then wait for it to finish
+	*/
+	raw_spin_unlock(&boot_lock);
 
-    /*
-     * now the secondary core is starting up let it run its
-     * calibrations, then wait for it to finish
-     */
-    raw_spin_unlock(&boot_lock);
-
-    return pen_release != -1 ? -ENOSYS : 0;
+	return pen_release != -1 ? -ENOSYS : 0;
 }
 
 //extern void early_printk(const char *fmt, ...);
@@ -176,7 +192,8 @@ static void wakeup_secondary(void *entry)
 	* on secondary core once out of WFE
 	* A barrier is added to ensure that write buffer is drained
 	*/
-	WriteRegWord((void *)SMP_BOOT_REG_ADDR, virt_to_phys(entry));
+	WARN_ON((virt_to_phys(entry) & (~AUX_BOOT_ADDR_MASK)) != 0 );
+	secure_set_aux_core_addr((void*)AUX_BOOT_ADDR_REG, virt_to_phys(entry));
 
 	smp_wmb();
 

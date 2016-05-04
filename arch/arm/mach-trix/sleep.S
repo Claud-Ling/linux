@@ -150,7 +150,7 @@ Do_idle:
 	 * Note that we only have a small stack on SRAM for do_idle,
 	 * so should only do as little thing as possible in there
 	 */
-	ldr	r6, BSYM(boot_reg_addr)
+	ldr	r6, BSYM(aux_boot_id)
 	ldr	r6, [r6]		@ fake load just to fill TLB if possible
 
 	b	call_with_stack
@@ -220,8 +220,13 @@ ENTRY(trix_do_idle)
 	dsb
 	dmb
 
+	/*
+	 * CPU can specualatively prefetch the instructions so add NOPs
+	 * after WFI. Sixteen NOPs as per Cortex-A9 pipeline.
+	 */
 1:	wfi			@ wait for interrupt
 
+	nop
 	nop
 	nop
 	nop
@@ -246,7 +251,7 @@ ENTRY(trix_do_idle)
 	 * For secondary cores: check if we are
 	 * released from the holding pen.
 	 */
-	ldr	r1, BSYM(boot_reg_addr)
+	ldr	r1, BSYM(aux_boot_id)
 	ldr	r1, [r1]
 	and	r1, r1, #0xf
 	cmp	r0, r1
@@ -255,8 +260,13 @@ ENTRY(trix_do_idle)
 2:	mov	pc, lr		@ return from non-OFF mode
 ENDPROC(trix_do_idle)
 
-boot_reg_addr:
-	.word	SMP_BOOT_REG_ADDR
+/*
+ * just deference to the duplicated aux boot id register,
+ * as the cpu is now out of coherency and thus can't
+ * access to aux_boot_addr secure register via smc call.
+ */
+aux_boot_id:
+	.word	AUX_BOOT_ID_REG
 
 #include "s2ramctrl.S"
 ENTRY(trix_do_wfi_sz)
