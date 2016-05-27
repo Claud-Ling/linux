@@ -34,35 +34,45 @@
 #include "s2ramctrl.h"
 #include "common.h"
 
-/* Macro to map iram*/
-#define SX6_IRAM_REMAP()	do{					\
-	sx6_iram_base = __arm_ioremap_exec(IRAM_BASE,IRAM_SIZE,1);	\
+/*n must be power of 2*/
+#ifndef ROUND_UP
+# define ROUND_UP(x,n) (((x)+(n)-1u) & ~((n)-1u))
+#endif
+
+/* Macro to map iram.
+ * Has to be uncached. Otherwise resume has trouble once
+ * relocating size goes to above 0x400 !?
+ */
+#define TRIX_IRAM_REMAP()	do{					\
+	trix_iram_vbase = __arm_ioremap_exec(IRAM_BASE,IRAM_SIZE,0);	\
 }while(0)
+
 /* Macro to push a function to the internal SRAM, using the fncpy API */
-#define SX6_IRAM_PUSH(funcp, size) ({                                   \
-	typeof(&(funcp)) _res = NULL;                                   \
-	if (sx6_iram_base) {                                            \
-		if ((size) > IRAM_TEXT_SIZE)				\
-			pr_err("SRAM push failed! Ask %x\n", size);	\
+#define TRIX_IRAM_PUSH(funcp, sz, ofs) ({				\
+	typeof(&(funcp)) _res = NULL;					\
+	int _pos = ROUND_UP(((int)trix_iram_vbase+(ofs)), FNCPY_ALIGN);	\
+	if (trix_iram_vbase) {						\
+		if (((sz)+_pos-(int)trix_iram_vbase) > IRAM_TEXT_SIZE)	\
+			pr_err("SRAM push failed! Ask %x@%x\n",sz,ofs);	\
 		else							\
-			_res = fncpy((void*)sx6_iram_base, &(funcp), size);\
+			_res = fncpy((void*)_pos, &(funcp), (sz));	\
 	}								\
-        _res;                                                           \
+        _res;								\
 })
 
 /* Macro to get sp base in iram*/
-#define SX6_IRAM_SP()	({             \
-	void* _ret = (sx6_iram_base) ? \
-	(sx6_iram_base + IRAM_SIZE - 4)\
-	: NULL;                        \
-	_ret;                          \
+#define TRIX_IRAM_SP()	({			\
+	void* _ret = (trix_iram_vbase) ?	\
+	(trix_iram_vbase + IRAM_SIZE - 4)	\
+	: NULL;					\
+	_ret;					\
 })
 
 void (*sx6_do_wfi_sram)(void);
 void *sx6_sp_base_sram = NULL;
 
 static suspend_state_t target_state = PM_SUSPEND_ON;
-static void __iomem * sx6_iram_base = NULL;
+static void __iomem * trix_iram_vbase = NULL;
 static struct s2ram_resume_frame sx6_resume_frame =
 {
 	{0x0badc0de,}
@@ -111,8 +121,8 @@ static void set_sx6_wakeup_addr(unsigned int phys_addr)
 static void sx6_sram_restore_context(void)
 {
 	set_sx6_wakeup_addr(virt_to_phys(sx6_cpu_resume));
-	sx6_do_wfi_sram = SX6_IRAM_PUSH(sx6_do_wfi,sx6_do_wfi_sz);
-	sx6_sp_base_sram = SX6_IRAM_SP();
+	sx6_do_wfi_sram = TRIX_IRAM_PUSH(sx6_do_wfi,sx6_do_wfi_sz,0);
+	sx6_sp_base_sram = TRIX_IRAM_SP();
 }
 
 static int sx6_pm_valid(suspend_state_t state)
@@ -237,7 +247,7 @@ static int __init sx6_pm_init(void)
 
 	pr_info("%s: Power Management\n", trix_board_name());
 
-	SX6_IRAM_REMAP();
+	TRIX_IRAM_REMAP();
 	sx6_sram_restore_context();
 	suspend_set_ops(&sx6_pm_ops);
 

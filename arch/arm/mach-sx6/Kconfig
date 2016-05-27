@@ -209,6 +209,14 @@ config SIGMA_MIN_CPUFREQ
 	  Specify the minimum cpu frequency that is allowed to scale to.
 	  if unsure just give 500000
 
+config SIGMA_DCSN
+	bool "DCSN Support"
+	default n
+	help
+	  Enable DCSN driver support, if unsure say N
+
+menu "UMAC options"
+
 config SIGMA_NR_UMACS
 	int "Number of UMACs in use"
 	range 1 1 if SIGMA_SOC_UXLB
@@ -242,33 +250,73 @@ config SIGMA_UMAC_BASES_MANUAL
 
 endchoice
 
+choice
+	prompt "UMAC data width options"
+	depends on PM && SIGMA_NR_UMACS != 0
+	default SIGMA_UMAC_WIDTH_AUTO
+	help
+	  UMAC base address options.
+	  if unsure just select 'auto'
+
+config SIGMA_UMAC_WIDTH_AUTO
+	bool "auto"
+	help
+	  Auto select data width for each umacs
+
+config SIGMA_UMAC_WIDTH_MANUAL
+	bool "manual"
+	help
+	  Manually configure data width for each umacs
+
+endchoice
+
 config REG_BASE_UMAC0
 	hex "UMAC0 base"
-	depends on SIGMA_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7 || SIGMA_SOC_UXLB)
-	default 0xf5021000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7
+	depends on SIGMA_UMAC_BASES_MANUAL
 	default 0xfb010000 if SIGMA_SOC_UXLB
+	default 0xf5021000
 	help
 	  Base address for UMAC0
 
 config REG_BASE_UMAC1
 	hex "UMAC1 base"
-	depends on SIGMA_UMAC_BASES_MANUAL && (SIGMA_SOC_SX6 || SIGMA_SOC_SX7)
-	default 0xf5023000 if SIGMA_SOC_SX6 || SIGMA_SOC_SX7
+	depends on SIGMA_UMAC_BASES_MANUAL && (SIGMA_NR_UMACS = 2 || SIGMA_NR_UMACS = 3)
+	default 0xf5023000
 	help
 	  Base address for UMAC1
 
 config REG_BASE_UMAC2
 	hex "UMAC2 base"
-	depends on SIGMA_UMAC_BASES_MANUAL && SIGMA_SOC_SX7
-	default 0xf503b000 if SIGMA_SOC_SX7
+	depends on SIGMA_UMAC_BASES_MANUAL && (SIGMA_NR_UMACS = 3)
+	default 0xf503b000
 	help
 	  Base address for UMAC2
 
-config SIGMA_DCSN
-	bool "DCSN Support"
-	default n
+config UMAC0_WIDTH
+	int "UMAC0 data width"
+	depends on SIGMA_UMAC_WIDTH_MANUAL
+	range 8 32
+	default 32
 	help
-	  Enable DCSN driver support, if unsure say N
+	  UMAC0 data width, number of bits
+
+config UMAC1_WIDTH
+	int "UMAC1 data width"
+	depends on SIGMA_UMAC_WIDTH_MANUAL && (SIGMA_NR_UMACS = 2 || SIGMA_NR_UMACS = 3)
+	range 8 32
+	default 16 if SIGMA_SOC_SX6
+	default 32
+	help
+	  UMAC1 data width, number of bits
+
+config UMAC2_WIDTH
+	int "UMAC2 data width"
+	depends on SIGMA_UMAC_WIDTH_MANUAL && (SIGMA_NR_UMACS = 3)
+	range 8 32
+	default 16
+	help
+	  UMAC2 data width, number of bits
+endmenu #menu "UMAC options"
 
 endmenu
 

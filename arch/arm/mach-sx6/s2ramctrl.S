@@ -12,32 +12,37 @@
  *  Suspend to RAM low level control interfaces for DTV Soc (SX6/SX7)
  *  It supports up to 3 umacs at most by now
  *
- *  Usages:
- *  1. the host has to define CONFIG_SIGMA_NR_UMACS
- *  2. the host could override UMAC reg base by define CONFIG_REG_BASE_UMACx
  */
 
 #if defined(__PREBOOT__)
 # include <config.h>
 # include <assembler.h>
+# include <generated/asm-offsets.h>
+# include <umac.h>
 # define __CONFIG_SRAM_RESUME__
 # define trace_str	bl	serial_puts
 # define trace_int	bl	put32
 # define trace_ch	bl	serial_putc
 #elif defined(__UBOOT__)
 # include <config.h>
+# include "asm-offsets.h"
+# include <asm/arch/umac.h>
 # define __CONFIG_SRAM_SUSPEND__
 # define trace_str
 # define trace_int
 # define trace_ch
-#elif defined(__KERNEL__)
+#elif defined(__LINUX__)
 # include <linux/linkage.h>
 # include <asm/assembler.h>
+# include "asm-offsets.h"
+# include "umac.h"
 # define __CONFIG_SRAM_SUSPEND__
 # define trace_str
 # define trace_int
 # define trace_ch
 #endif
+
+#include "umac_dev.inc"
 
 #ifndef CONFIG_SIGMA_NR_UMACS
 	#error "CONFIG_SIGMA_NR_UMACS is NOT set"
@@ -100,62 +105,11 @@
 #define TIMER0_OFS_TRVRN	0x04
 #define TIMER0_OFS_TCRN		0x08
 
-/*
- * umacs register base
- */
-.macro umac_regbase_stub id, dft
- .if \id < CONFIG_SIGMA_NR_UMACS
-  .ifndef CONFIG_REG_BASE_UMAC\id
-	.equ	CONFIG_REG_BASE_UMAC\id, \dft
-	.print "  set CONFIG_REG_BASE_UMAC\id to \dft"
-  .endif
- .endif
-.endm
-
-umac_regbase_stub 0, 0xf5021000
-umac_regbase_stub 1, 0xf5023000
-umac_regbase_stub 2, 0xf503b000
-
-/*
- * PCTL registers
- */
-#define PCTL_OFS_SCTL		0x004
-#define PCTL_OFS_STAT		0x008
-#define PCTL_OFS_TREFI		0x0D0
-#define PCTL_OFS_PHYPVTUPDI	0x318
-#define PCTL_OFS_PVTUPDI	0x328
-
-/*
- * PCTL CMD/STATE
- */
-#define PCTL_CMD_INIT	0x0
-#define PCTL_CMD_CFG	0x1
-#define PCTL_CMD_GO	0x2
-#define PCTL_CMD_SLEEP	0x3
-#define PCTL_CMD_WAKEUP	0x4
-
-#define PCTL_STAT_INIT		0x0
-#define PCTL_STAT_CONFIG	0x1
-#define PCTL_STAT_CONFIG_REQ	0x2
-#define PCTL_STAT_ACCESS	0x3
-#define PCTL_STAT_ACCESS_REQ	0x4
-#define PCTL_STAT_LOWPOWER	0x5
-#define PCTL_STAT_LOWPOWER_ENTRY_REQ	0x6
-#define PCTL_STAT_LOWPOWER_EXIT_REQ	0x7
-
-/*
- * DDR training registers
- */
-#define PUB_TR_ADDR0_OFS	0x494
-#define PUB_TR_ADDR1_OFS	0x498
-#define PUB_TR_ADDR2_OFS	0x49C
-#define PUB_TR_ADDR3_OFS	0x4A0
-
 #define MCU_TIMEOUT_US	2000000	/*2s*/
 
 .macro umac_lowpower_mode id, flag
 	.if \id < CONFIG_SIGMA_NR_UMACS
-	ldr	r0, pctl_reg_base_umac\id
+	mov	r0, #\id
 	mov	r1, #\flag
 	bl	__sdram_enter_lowpower
 	.endif
@@ -163,16 +117,32 @@ umac_regbase_stub 2, 0xf503b000
 
 .macro umac_access_mode id, flag
 	.if \id < CONFIG_SIGMA_NR_UMACS
-	ldr	r0, pctl_reg_base_umac\id
+	mov	r0, #\id
 	mov	r1, #\flag
 	bl	__sdram_leave_lowpower
 	.endif
 .endm
 
-.macro umac_preload_reg id, rd, ofs=PCTL_OFS_STAT
+.macro umac_preload_reg id, rd, rt, ofs=PCTL_OFS_STAT
 	.if \id < CONFIG_SIGMA_NR_UMACS
-	ldr	\rd, pctl_reg_base_umac\id
+	mov	r0, #\id
+	bl	umac_is_activated
+	cmp	r0, #0
+	beq	1f
+
+	mov	r0, #\id
+	adr	\rt, trix_udev_tbl
+	umac_get_dev	\rd, \rt, r0
+	umac_dev_phy	\rd, \rd
 	ldr	\rd, [\rd, #\ofs]
+1:
+	.endif
+.endm
+
+.macro umac_set_trb id
+	.if \id < CONFIG_SIGMA_NR_UMACS
+	mov	r0, #\id
+	bl	__sdram_set_tr_area
 	.endif
 .endm
 
@@ -183,6 +153,12 @@ pctl_reg_base_umac\id:
 	.endif
 .endm
 
+.macro umac_trb_item id, ofs=0
+	.if \id < CONFIG_SIGMA_NR_UMACS
+trb_ofs_umac\id:
+	.long	\ofs
+	.endif
+.endm
 
 /*
  *void __send_mcu_cmd(unsigned char cmd, void* data, int len);
@@ -324,13 +300,36 @@ ENTRY(__get_mcu_cmd)
 ENDPROC(__get_mcu_cmd)
 
 /*
+ *int umac_is_activated(int uid);
+ * inputs: uid  - umac id (0,1,..)
+ * return: 1 on YES, otherwise 0.
+ */
+ENTRY(umac_is_activated)
+	cmp	r0, #CONFIG_SIGMA_NR_UMACS
+	movcs	r0, #0
+	bcs	2f
+	adr	r2, trix_udev_tbl
+	umac_get_dev	r1, r2, r0
+	umac_dev_quirks	r2, r1
+	tst	r2, #UMAC_QUIRK_BROKEN_MAC
+	bne	1f
+	umac_dev_mac	r2, r1
+	ldr	r0, [r2, #MCTL_OFS_IF_ENABLE]
+	adds	r0, r0, #0
+1:
+	movne	r0, #1
+2:
+	bx	lr
+ENDPROC(umac_is_activated)
+
+/*
  *int __pctl_set_mode(unsigned base, unsigned cmd, unsigned stat);
  * inputs: 
  * 	base - controller base addr
  *	cmd  - cmd code
  *	stat - state code
  * return: 0 on success, otherwise non-zero
-  */
+ */
 ENTRY(__pctl_set_mode)
 	stmfd   sp!, {r3, lr}
 	str	r1, [r0, #PCTL_OFS_SCTL]
@@ -343,17 +342,27 @@ ENTRY(__pctl_set_mode)
 ENDPROC(__pctl_set_mode)
 
 /*
- *int __sdram_enter_lowpower(unsigned base, bool recovery);
+ *int __sdram_enter_lowpower(int uid, bool recovery);
  * put one sdram (controller) in lowpower mode
- * inputs: base  - sdram controller base addr
+ * inputs: uid  - umac id (0,1...)
  *         recovery - flag, 0 or 1
  * return: 0 on success, otherwise non-zero
  */
 ENTRY(__sdram_enter_lowpower)
 	stmfd   sp!, {r4, r5, lr}
 	mov	r4, r0
-	movs	r5, r1
+	mov	r5, r1
+	bl	umac_is_activated
+	cmp	r0, #0
+	moveq	r0, #1			@inactivated?
+	beq	2f
+
+	adr	r2, trix_udev_tbl
+	umac_get_dev	r3, r2, r4
+	umac_dev_phy	r4, r3
+	cmp	r5, #0
 	beq	1f
+	mov	r0, r4
 	mov	r1, #PCTL_CMD_CFG
 	mov	r2, #PCTL_STAT_CONFIG
 	bl	__pctl_set_mode
@@ -361,36 +370,47 @@ ENTRY(__sdram_enter_lowpower)
 	mov	r1, #PCTL_CMD_GO
 	mov	r2, #PCTL_STAT_ACCESS
 	bl	__pctl_set_mode
-	mov	r0, r4
 1:
+	mov	r0, r4
 	mov	r1, #PCTL_CMD_SLEEP
 	mov	r2, #PCTL_STAT_LOWPOWER
 	bl	__pctl_set_mode
 
+	mov	r0, #0
 	cmp	r5, #0
 	bne	2f
 	mov	r1, #0x0
 	str	r1, [r4, #PCTL_OFS_TREFI]
 	str	r1, [r4, #PCTL_OFS_PHYPVTUPDI]
 	str	r1, [r4, #PCTL_OFS_PVTUPDI]
-2:
 	mov	r0, #0
+2:
 	ldmfd   sp!, {r4, r5, pc}
 ENDPROC(__sdram_enter_lowpower)
 
 /*
- *int __sdram_leave_lowpower(unsigned base, int recovery);
+ *int __sdram_leave_lowpower(int uid, int recovery);
  * make one sdram (controller) leave lowpower mode (to access mode)
- * inputs: base  - sdram controller base addr
+ * inputs: uid  - umac id (0,1...)
  *         recovery - flag, 0 or 1
  * return: 0 on success, otherwise non-zero
  */
 ENTRY(__sdram_leave_lowpower)
 	stmfd   sp!, {r4, r5, lr}
-	mov	r4, #0x27
-	str	r4, [r0, #PCTL_OFS_TREFI]
 	mov	r4, r0
 	mov	r5, r1
+	bl	umac_is_activated
+	cmp	r0, #0
+	moveq	r0, #1			@inactivated?
+	beq	1f
+
+	adr	r2, trix_udev_tbl
+	umac_get_dev	r3, r2, r4
+	umac_dev_phy	r4, r3
+
+	mov	r2, #0x27
+	str	r2, [r4, #PCTL_OFS_TREFI]
+	mov	r0, r4
 	mov	r1, #PCTL_CMD_WAKEUP
 	mov	r2, #PCTL_STAT_ACCESS
 	bl	__pctl_set_mode
@@ -403,8 +423,6 @@ ENTRY(__sdram_leave_lowpower)
 1:
 	ldmfd   sp!, {r4, r5, pc}
 ENDPROC(__sdram_leave_lowpower)
-
-
 
 #ifdef __CONFIG_SRAM_RESUME__
 
@@ -498,8 +516,14 @@ ENDPROC(s2ramctl_sdram_in_access)
 	adr	r0, resume_stage
 	trace_str
 	ldr	r0, resume_entry_ptr
-	ldr	r0, [r0]
+	ldr	r0, [r0]		@resume entry
 	trace_int
+	mov	r0, #'('
+	trace_ch
+	ldr	r0, resume_entry_ptr	@frame pointer
+	trace_int
+	mov	r0, #')'
+	trace_ch
 	adr	r0, cr_stage
 	trace_str
 	ldmfd   sp!, {r0}
@@ -536,7 +560,7 @@ ENDPROC(s2ramctl_cpu_do_resume)
 .endm
 
 /*
- *void __sdram_set_one_area(unsigned addr, unsigned id);
+ *int __sdram_set_tr_area(int id);
  * set training memory (size=8k) for one umac
  * criteria on mem area: 32k aligned, and <2G
  * [31..30] Reserved
@@ -547,64 +571,62 @@ ENDPROC(s2ramctl_cpu_do_resume)
  *  Register_bit[15:13] = start_address[26:24];
  * [12..10] Bank Address, 3'b000
  * [9..0] Colomn Address, start from 0 and increase at a step of 0x8
- * inputs: addr  - area start addr
- *         id    - umac index (0, 1...)
- * return: none
+ * inputs: id    - umac id (0, 1...)
+ * return: 0 on success. Otherwise none-zero
  */
-ENTRY(__sdram_set_one_area)
+ENTRY(__sdram_set_tr_area)
 	stmfd   sp!, {r4 - r6, lr}
-	trace_tr_addr
-	mov	r4, r0, lsr #27
-	and	r4, #0xf
-	mov	r5, r4, lsl #25		@[28..25]
-	mov	r4, r0, lsl #8
-	mov	r4, r4, lsr #23
-	orr	r5, r4, lsl #16		@[24..16]
-	mov	r4, r0, lsr #24
-	and	r4, #0x7
-	orr	r5, r4, lsl #13		@[15..13]
+	mov	r4, r0
+	bl	umac_is_activated
+	cmp	r0, #0
+	moveq	r0, #1			@inactivated?
+	beq	2f
 
-	adr	r4, umacs_base_tbl
-	ldr	r4, [r4, r1, lsl #2]
-	add	r4, #(PUB_TR_ADDR0_OFS & (~0xf))
-	add	r4, #(PUB_TR_ADDR0_OFS & 0xf)
-	add	r6, r4, #16
+	adr	r2, trix_udev_tbl
+	umac_get_dev	r3, r2, r4
+	umac_dev_phy	r5, r3		@phy base
+
+	adr	r2, trb_tbl
+	ldr	r0, [r2, r4, lsl #2]	@tr buff
+	trace_tr_addr
+
+	mov	r2, r0, lsr #27
+	and	r2, #0xf
+	mov	r3, r2, lsl #25		@[28..25]
+	mov	r2, r0, lsl #8
+	mov	r2, r2, lsr #23
+	orr	r3, r2, lsl #16		@[24..16]
+	mov	r2, r0, lsr #24
+	and	r2, #0x7
+	orr	r3, r2, lsl #13		@[15..13]
+
+	add	r2, r5, #(PUB_OFS_TR_ADDR0 & (~0xf))
+	add	r2, r2, #(PUB_OFS_TR_ADDR0 & 0xf)
+	mov	r6, #4
 1:
-	str	r5, [r4], #4
-	add	r5, #0x8
-	cmp	r4, r6
-	blo	1b
+	str	r3, [r2], #4
+	add	r3, #8
+	subs	r6, r6, #1
+	bne	1b
+	mov	r0, #0
+2:
 	ldmfd   sp!, {r4 - r6, pc}
-ENDPROC(__sdram_set_one_area)
+ENDPROC(__sdram_set_tr_area)
 
 /*
- *int s2ramctl_set_area(unsigned array, unsigned size);
+ *int s2ramctl_set_tr_area(void);
  * set training buffer for umacs
- * inputs: array - training buffer starting addr array sorted in ascending of umac ids
- *         size  - sizeof(array)
+ * inputs: void
  * return: 0 on success, otherwise non-zero
  */
-ENTRY(s2ramctl_set_area)
-	stmfd   sp!, {r4 - r7, lr}
-	mov	r4, r0
-	mov	r5, r1
-	mov	r6, #0
-1:
-	cmp	r6, #CONFIG_SIGMA_NR_UMACS
-	movlo	r7, r6, lsl #2
-	cmplo	r7, r5
-	bge	2f
-	ldr	r0, [r4, r7]
-	mov	r1, r6
-	bl	__sdram_set_one_area
-	add	r6, #1
-	b	1b
-2:
-	cmp	r6, #0
-	moveq	r0, #1
-	movne	r0, #0
-	ldmfd   sp!, {r4 - r7, pc}
-ENDPROC(s2ramctl_set_area)
+ENTRY(s2ramctl_set_tr_area)
+	stmfd   sp!, {lr}
+	umac_set_trb 0
+	umac_set_trb 1
+	umac_set_trb 2
+	mov	r0, #0
+	ldmfd   sp!, {pc}
+ENDPROC(s2ramctl_set_tr_area)
 
 resume_stage: .ascii "\r\nResume @\0"
 .align 2
@@ -623,6 +645,19 @@ tr_addr_stage: .ascii "\r\numacx training buffer:\0"
 boot_mode:
 	.long	0xffffffff
 
+/*
+ * Training buffer table (offsets)
+ */
+trb_tbl:
+	umac_trb_item 0, CONFIG_TR_OFS_UMAC0
+	umac_trb_item 1, CONFIG_TR_OFS_UMAC1
+	umac_trb_item 2, CONFIG_TR_OFS_UMAC2
+	.equ trb_tbl_sz, (. - trb_tbl)
+
+.ifne trb_tbl_sz - (CONFIG_SIGMA_NR_UMACS << 2)
+.error "CONFIG_SIGMA_NR_UMACS is not equal to the size of the trb table"
+.endif
+
 #elif defined(__CONFIG_SRAM_SUSPEND__) /*__CONFIG_SRAM_RESUME__*/
 
 /*
@@ -632,10 +667,10 @@ boot_mode:
  * return: none
  */
 ENTRY(__prepare_sram_selfrefresh)
-	stmfd   sp!, {r4, lr}
-	umac_preload_reg 0, r4
-	umac_preload_reg 1, r4
-	umac_preload_reg 2, r4
+	stmfd   sp!, {r4 - r5, lr}
+	umac_preload_reg 0, r4, r5
+	umac_preload_reg 1, r4, r5
+	umac_preload_reg 2, r4, r5
 
 #ifdef MCUCOMM_SUPPORT_TIMEOUT
 	ldr	r4, timer0_reg_base
@@ -643,7 +678,7 @@ ENTRY(__prepare_sram_selfrefresh)
 #endif
 	ldr	r4, mcu_reg_base
 	ldrb	r4, [r4, #SHREG_M0_OFS]
-	ldmfd   sp!, {r4, pc}
+	ldmfd   sp!, {r4 - r5, pc}
 ENDPROC(__prepare_sram_selfrefresh)
 
 /*
@@ -716,22 +751,11 @@ ENDPROC(s2ramctl_set_resume_entry)
 
 #endif /*__CONFIG_SRAM_SUSPEND__*/
 
-
 /*
  * resume entry point (physical addr)
  */
 resume_entry_ptr:
 	.long	0x0badc0de
-umacs_base_tbl:
-	umac_reg_base 0, CONFIG_REG_BASE_UMAC0
-	umac_reg_base 1, CONFIG_REG_BASE_UMAC1
-	umac_reg_base 2, CONFIG_REG_BASE_UMAC2
-	.equ umacs_base_tbl_sz, (. - umacs_base_tbl)
-
-.ifne umacs_base_tbl_sz - (CONFIG_SIGMA_NR_UMACS << 2)
-.error "CONFIG_SIGMA_NR_UMACS is not equal to the size of the reg base table"
-.endif
-
 mcu_reg_base:
 	.long	MCU_REG_BASE
 timer0_reg_base:
@@ -739,3 +763,9 @@ timer0_reg_base:
 mcu_timeout_us:
 	.long	MCU_TIMEOUT_US
 
+/*
+ * umac device table
+ */
+.global trix_udev_tbl
+trix_udev_tbl:
+	UMAC_DEV_INITIALIZER
