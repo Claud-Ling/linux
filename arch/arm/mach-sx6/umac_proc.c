@@ -26,24 +26,68 @@
 #include "umac.h"
 
 #ifdef CONFIG_PROC_FS
+static char* msize_str = "none";
+static u32 msize_info = 0;
+static int __init umac_msize_setup(char *str)
+{
+	msize_str = str;
+	msize_info = simple_strtoul(str, NULL, 16);
+	return 1;
+}
+/*
+ * msize=str, where str uses one hexidecimal digit to describe
+ * memory size for each umac in 128MB granule, with umac0 at
+ * offset 0, umac1 at offset 4, .etc.
+ * i.e. msize=488 in case umac0 1GB, umac1 1GB, umac2 512MB
+ * i.e. msize=88 in case umac0 1GB, umac1 1GB
+ */
+__setup("msize=", umac_msize_setup);
+
+static int umac_get_size_mb(u32 uid)
+{
+	int sz = 0;
+	if (uid < CONFIG_SIGMA_NR_UMACS) {
+		sz = ((msize_info >> (uid * 4)) & 0xF) << 7;	/*in MB*/
+	}
+	return sz;
+}
+
 static int umac_states_open(struct inode *node, struct file *filp)
 {
 	return 0;
 }
 
+#define MAX_STATE_STR_LEN 64
+#define umac_format_state_on(s,n,i) 			\
+	snprintf((s),(n),"umac%d: on,%dm@0x%08x\n",	\
+	(i),umac_get_size_mb(i),(u32)umac_get_addr(i))
+#define umac_format_state_off(s,n,i) 			\
+	snprintf((s),(n),"umac%d: off\n",(i))
+#define umac_total_size ({			\
+	int _i = 0, _szm = 0;			\
+	for(_i=0;_i<CONFIG_SIGMA_NR_UMACS;_i++){\
+		_szm += umac_get_size_mb(_i);	\
+	}					\
+	_szm;					\
+})
+
 static ssize_t umac_states_read(struct file *filp, 
 			char __user *buffer, size_t count, loff_t *offp)
 {
-#define MAX_STATE_STR_LEN 32
+	#define MSIZE_STR_LEN 64
 	int id, len;
 	unsigned long cp_sz;
-	char states_str[MAX_STATE_STR_LEN * CONFIG_SIGMA_NR_UMACS];
+	char states_str[MSIZE_STR_LEN+MAX_STATE_STR_LEN*CONFIG_SIGMA_NR_UMACS];
 	char work_str[MAX_STATE_STR_LEN];
 
 	states_str[0] = '\0';
+	snprintf(states_str, MSIZE_STR_LEN, "total: %dm,msize=%s\n",
+				umac_total_size, msize_str);
 	for (id = 0; id < CONFIG_SIGMA_NR_UMACS; id++) {
-		snprintf(work_str, MAX_STATE_STR_LEN, "umac%d: %s\n",
-			id, umac_is_activated(id) ? "on" : "off");
+		if (umac_is_activated(id))
+			umac_format_state_on(work_str, sizeof(work_str), id);
+		else
+			umac_format_state_off(work_str, sizeof(work_str), id);
 		strcat(states_str, work_str);
 	}
 
@@ -67,18 +111,24 @@ static ssize_t umac_states_read(struct file *filp,
 static ssize_t umac_states_write(struct file *filp, 
 			const char __user *buffer, size_t count, loff_t *offp)
 {
-	unsigned long id, cp_sz = 0;
-	char umac_str[32];
+	int id;
+	unsigned long cp_sz = 0;
+	char umac_str[MAX_STATE_STR_LEN];
 
 	if (count > sizeof(umac_str) - 1)
 		return -EINVAL;
 
 	cp_sz = copy_from_user(umac_str, buffer, count);
 	id = simple_strtoul(umac_str, NULL, 0);
-	if (id < CONFIG_SIGMA_NR_UMACS)
-		pr_info("umac%ld: %s\n", id, umac_is_activated(id)?"on":"off");
-	else
-		pr_err("invalid umac id %ld\n", id);
+	if (id < CONFIG_SIGMA_NR_UMACS) {
+		if (umac_is_activated(id))
+			umac_format_state_on(umac_str, sizeof(umac_str), id);
+		else
+			umac_format_state_off(umac_str, sizeof(umac_str), id);
+		pr_info("%s", umac_str);
+	} else {
+		pr_err("invalid umac id %d\n", id);
+	}
 
 	return count;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright  2016           
+ * Copyright  2016
  * Sigma Designs, Inc. All Rights Reserved
  * Proprietary and Confidential
  *
@@ -174,6 +174,45 @@ typedef union _tagPHY_PIRReg {
 	U32 val;
 } PHY_PIRReg;
 
+/*PHY_ACIOCR Register*/
+typedef union _tagPHY_ACIOCRReg {
+	struct { __extension__ U32 /*lsbs...*/
+		aciom:   1  /*Address/Command I/O Mode*/,
+		acoe:    1  /*Address/Command Output Enable*/,
+		acodt:   1  /*Address/Command On-Die Termination*/,
+		acpdd:   1  /*AC Power Down Driver*/,
+		acpdr:   1  /*AC Power Down Receiver*/,
+		ckodt:   3  /*CK On-Die Termination*/,
+		ckpdd:   3  /*CK Power Down Driver*/,
+		ckpdr:   3  /*CK Power Down Receiver*/,
+		rankodt: 4  /*Rank On-Die Termination*/,
+		rankpdd: 4  /*Rank Power Down Driver*/,
+		rankpdr: 4  /*Rank Power Down Receiver*/,
+		rstodt:  1  /*SDRAM Reset On-Die Termination*/,
+		rstpdd:  1  /*SDRAM Reset Power Down Driver*/,
+		rstpdr:  1  /*SDRAM Reset Power Down Receiver*/,
+		acsr:    2  /*Address/Command Slew Rate (IO Type D3F_IO only)*/,
+		hole0:   1; /*... to msbs*/
+	}bits;
+	U32 val;
+} PHY_ACIOCRReg;
+
+/*DATX8 Common Configuration Register*/
+typedef union _tagPHY_DXCCRReg {
+	struct { __extension__ U32 /*lsbs...*/
+		dxodt:   1  /*Data On-Die Termination*/,
+		dxiom:   1  /*Data IDDQ Test Mode*/,
+		mdlen:   1  /*Master Delay Line Enable*/,
+		dxpdd:   1  /*Data Power Down Driver*/,
+		dxpdr:   1  /*Data Power Down Receiver*/,
+		dqsres:  4  /*DQS Resistor*/,
+		dqsnres: 4  /*DQS# Resistor*/,
+		dxsr:    2  /*Data Slew Rate (IO Type D3F_IO only)*/,
+		hole0:   17;/*... to msbs*/
+	}bits;
+	U32 val;
+} PHY_DXCCRReg;
+
 /*DRLCFG Register*/
 typedef union _tagPUB_DRLCFGReg {
 	struct { __extension__ U32 /*lsbs...*/
@@ -201,7 +240,10 @@ typedef union _tagPHY_DXnLCDLR1Reg {
 struct umac_pub{
 	volatile U32 phy_ridr;			/* +0x400 */
 	volatile PHY_PIRReg phy_pir;		/* +0x404 */
-	volatile U32 pad0[NW(0x408,0x494)];	/* +0x408 */
+	volatile U32 pad00[NW(0x408,0x430)];	/* +0x408 */
+	volatile PHY_ACIOCRReg phy_aciocr;	/* +0x430 */
+	volatile PHY_DXCCRReg phy_dxccr;	/* +0x434 */
+	volatile U32 pad01[NW(0x438,0x494)];	/* +0x438 */
 	volatile U32 pub_tr_addr0;		/* +0x494 */
 	volatile U32 pub_tr_addr1;		/* +0x498 */
 	volatile U32 pub_tr_addr2;		/* +0x49c */
@@ -347,7 +389,7 @@ static inline const U32 umac_get_addr(int uid)
 	if (dev != NULL) {
 		if (dev->quirks & UMAC_QUIRK_VARIABLE_ADDR) {
 			const volatile PMAN_CON_HUB_ADDRReg *hub_start;
-			const struct pman_con *con = 
+			const struct pman_con *con =
 				(struct pman_con*)CONFIG_REG_BASE_PMAN_CON;
 			hub_start = &con->hub0_start_addr + uid * 2;
 			return (hub_start->bits.rank << 28);

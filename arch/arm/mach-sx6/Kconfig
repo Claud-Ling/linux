@@ -182,7 +182,7 @@ config SIGMA_DBG
 	default y
 
 config SIGMA_PM_CRC
-        bool "PM Memory CRC checksum"
+	bool "PM Memory CRC checksum"
 	default n
 	depends on PM && CRC32
 	help
@@ -316,6 +316,19 @@ config UMAC2_WIDTH
 	default 16
 	help
 	  UMAC2 data width, number of bits
+
+config SIGMA_PM_UMAC_PHY
+	bool "UMAC PHY power management option"
+	default n
+	depends on PM
+	help
+	  Enable power management option on umac PHYs. This option would
+	  reduce umac power consumption in suspend mode. However it does hold
+	  additional requirement over schematic design on umac parts.
+	  Moreover, enabling this option would break suspend/resume procedure
+	  if the schematic design didn't meet the requirement.
+	  If unsure say N
+
 endmenu #menu "UMAC options"
 
 endmenu

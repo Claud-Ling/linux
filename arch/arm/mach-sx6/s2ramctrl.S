@@ -322,6 +322,65 @@ ENTRY(umac_is_activated)
 	bx	lr
 ENDPROC(umac_is_activated)
 
+#ifdef CONFIG_SIGMA_PM_UMAC_PHY
+
+/*PHY_ACIOCR bits assignments*/
+#define ACIOCR_BIT_ACOE		1
+/*PHY_DXCCR bits assignments*/
+#define DXCCR_BIT_DXPDD		3
+#define DXCCR_BIT_DXPDR		4
+#define DXCCR_DQSRES_SHIFT	5
+#define DXCCR_DQSRES_MASK	(0xf << DXCCR_DQSRES_SHIFT) /*bit[8:5]*/
+
+ACIOCR_POWER_DOWN_MSK:
+	.long 0x13fc3f1a
+ACIOCR_POWER_DOWN_VAL:
+	.long 0x13fc3f18
+
+/*
+ * void __umac_phy_aco_control(int base, int state);
+ * disable (enable) PHY address/command output by control ACIOCR.ACOE
+ * and power down (on) DQ input buffer
+ * inputs:
+ *    base  - umac register base address
+ *    state - 0 disable, 1 enable
+ * return: 0 on success, otherwise non-zero
+ */
+ENTRY(__umac_phy_aco_control)
+	/*
+	 * ACIOCR
+	 * bit[1] - ACOE
+	 * on disable: set ACIOCR to VAL with mask MSK
+	 * on enable:  set ACOE to 1'b1
+	 */
+	cmp	r1, #0
+	movne	r2, #(1 << ACIOCR_BIT_ACOE)	@ on enable
+	ldreq	r2, [r0, #PUB_OFS_PHY_ACIOCR]
+	ldreq	r3, ACIOCR_POWER_DOWN_MSK
+	biceq	r2, r3
+	ldreq	r3, ACIOCR_POWER_DOWN_VAL
+	orreq	r2, r3				@ on disable
+	str	r2, [r0, #PUB_OFS_PHY_ACIOCR]
+
+	/*
+	 * DXCCR
+	 * bit[3]    - DXPDD
+	 * bit[4]    - DXPDR
+	 * bit[8:5]  - DQSRES
+	 * on disable: set DXPDD to 1'b1 set DXPDR to 1'b1, set DQSRES to 4'b0000
+	 * on enable:  set DXPDD to 1'b0 set DXPDR to 1'b0, set DQSRES to 4'b0100
+	 */
+	ldr	r2, [r0, #PUB_OFS_PHY_DXCCR]
+	bic	r2, #(1 << DXCCR_BIT_DXPDD | 1 << DXCCR_BIT_DXPDR | DXCCR_DQSRES_MASK)
+	cmp	r1, #0
+	orreq	r2, #(1 << DXCCR_BIT_DXPDD | 1 << DXCCR_BIT_DXPDR) @ on disable
+	orrne	r2, #(0x4 << DXCCR_DQSRES_SHIFT) @ on enable
+	str	r2, [r0, #PUB_OFS_PHY_DXCCR]
+	mov	r0, #0
+	mov	pc, lr
+ENDPROC(__umac_phy_aco_control)
+#endif	/* CONFIG_SIGMA_PM_UMAC_PHY */
+
 /*
  *int __pctl_set_mode(unsigned base, unsigned cmd, unsigned stat);
  * inputs: 
@@ -362,6 +421,7 @@ ENTRY(__sdram_enter_lowpower)
 	umac_dev_phy	r4, r3
 	cmp	r5, #0
 	beq	1f
+	/*on resume*/
 	mov	r0, r4
 	mov	r1, #PCTL_CMD_CFG
 	mov	r2, #PCTL_STAT_CONFIG
@@ -370,20 +430,27 @@ ENTRY(__sdram_enter_lowpower)
 	mov	r1, #PCTL_CMD_GO
 	mov	r2, #PCTL_STAT_ACCESS
 	bl	__pctl_set_mode
+	mov	r0, r4
+	mov	r1, #PCTL_CMD_SLEEP
+	mov	r2, #PCTL_STAT_LOWPOWER
+	bl	__pctl_set_mode
+	b	2f
 1:
+	/*on suspend*/
 	mov	r0, r4
 	mov	r1, #PCTL_CMD_SLEEP
 	mov	r2, #PCTL_STAT_LOWPOWER
 	bl	__pctl_set_mode
 
-	mov	r0, #0
-	cmp	r5, #0
-	bne	2f
 	mov	r1, #0x0
 	str	r1, [r4, #PCTL_OFS_TREFI]
 	str	r1, [r4, #PCTL_OFS_PHYPVTUPDI]
 	str	r1, [r4, #PCTL_OFS_PVTUPDI]
-	mov	r0, #0
+#ifdef CONFIG_SIGMA_PM_UMAC_PHY
+	mov	r0, r4
+	mov	r1, #0			@disable
+	bl	__umac_phy_aco_control
+#endif
 2:
 	ldmfd   sp!, {r4, r5, pc}
 ENDPROC(__sdram_enter_lowpower)
@@ -402,7 +469,7 @@ ENTRY(__sdram_leave_lowpower)
 	bl	umac_is_activated
 	cmp	r0, #0
 	moveq	r0, #1			@inactivated?
-	beq	1f
+	beq	2f
 
 	adr	r2, trix_udev_tbl
 	umac_get_dev	r3, r2, r4
@@ -416,11 +483,20 @@ ENTRY(__sdram_leave_lowpower)
 	bl	__pctl_set_mode
 	cmp	r5, #0
 	beq	1f
+	/*on resume*/
 	mov	r0, r4
 	mov	r1, #PCTL_CMD_CFG
 	mov	r2, #PCTL_STAT_CONFIG
 	bl	__pctl_set_mode
+	b	2f
 1:
+	/*on suspend*/
+#ifdef CONFIG_SIGMA_PM_UMAC_PHY
+	mov	r0, r4
+	mov	r1, #1			@enable
+	bl	__umac_phy_aco_control
+#endif
+2:
 	ldmfd   sp!, {r4, r5, pc}
 ENDPROC(__sdram_leave_lowpower)
 
@@ -627,6 +703,66 @@ ENTRY(s2ramctl_set_tr_area)
 	mov	r0, #0
 	ldmfd   sp!, {pc}
 ENDPROC(s2ramctl_set_tr_area)
+
+/*
+ * Notes:
+ * The default register values on coming out of reset already meet the
+ * requirement as's stated in 'Self Refresh Note_v1.0'
+ *   PHY_ACIOCR = 0x00000002
+ *   PHY_DXCCR  = 0x00001884
+ * So just comment out the code below since it's not necessary any more
+ */
+#if 0
+//#ifdef CONFIG_SIGMA_PM_UMAC_PHY
+.macro umac_aco_enable id, state
+	.if \id < CONFIG_SIGMA_NR_UMACS
+	ldr	r0, #\id
+	mov	r1, \state
+	bl	__umac_phy_output_enable
+	.endif
+.endm
+
+/*
+ *int __umac_phy_output_enable(int uid, int state);
+ * enable/disable addr/cmd output from umac phy
+ * inputs:
+ *    uid   - umac id (0,1...)
+ *    state - 0 disable, 1 enable
+ * return:  0 on success, otherwise non-zero
+ */
+ENTRY(__umac_phy_output_enable)
+	stmfd   sp!, {r4 - r5, lr}
+	mov	r4, r0
+	mov	r5, r1
+	bl	umac_is_activated
+	cmp	r0, #0
+	moveq	r0, #1			@inactivated?
+	beq	1f
+
+	adr	r2, trix_udev_tbl
+	umac_get_dev	r3, r2, r4
+	umac_dev_phy	r0, r3
+	mov	r1, r5
+	bl	__umac_phy_aco_control
+1:
+	ldmfd   sp!, {r4 - r5, pc}
+ENDPROC(__umac_phy_output_enable)
+
+/*
+ *int s2ramctl_phy_enable(void);
+ * enable phy for umacs
+ * inputs: void
+ * return: 0 on success, otherwise non-zero
+ */
+ENTRY(s2ramctl_phy_enable)
+	stmfd   sp!, {lr}
+	umac_aco_enable 0, 1
+	umac_aco_enable 1, 1
+	umac_aco_enable 2, 1
+	mov	r0, #0
+	ldmfd   sp!, {pc}
+ENDPROC(s2ramctl_phy_enable)
+#endif /*CONFIG_SIGMA_PM_UMAC_PHY*/
 
 resume_stage: .ascii "\r\nResume @\0"
 .align 2
