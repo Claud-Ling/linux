@@ -26,6 +26,22 @@ static struct sdhci_ops sdhci_platform_ops = {
 	.set_clock = sx6_sdhci_set_clock,
 };
 
+#define TAP_REG		(0x400)
+
+/* Output delay EN*/
+#define OP_DLY_EN	(1<<12)
+
+/* Input delay EN */
+#define IP_DLY_EN	(1<<5)
+
+#define MK_TAP_DELAY(indelay, outdelay)	 ({			\
+	uint16_t val = 0x0;					\
+	val = ((((outdelay) & 0xf) << 8) | 			\
+		((indelay) & 0x1f) | OP_DLY_EN |		\
+		IP_DLY_EN);					\
+	val;							\
+})
+
 void sx6_sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 {
 	int div = 0; /* Initialized for compiler warning */
@@ -40,17 +56,21 @@ void sx6_sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 
 	switch(timing) {
 		case MMC_TIMING_SD_HS:
-			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1d00, 0x1fff);
+			/* Set value 0x1d20 */
+			MWriteRegWord((void*)(host->ioaddr+TAP_REG), MK_TAP_DELAY(0x0, 0xd), 0x1fff);
 			break;
 		case MMC_TIMING_MMC_HS:
 		case MMC_TIMING_UHS_SDR50:
-			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1600, 0x1fff);
+			/* Set value 0x1c20*/
+			MWriteRegWord((void*)(host->ioaddr+TAP_REG), MK_TAP_DELAY(0x0, 0xc), 0x1fff);
 			break;
-		case MMC_TIMING_UHS_DDR50:	
-			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1300, 0x1fff);
+		case MMC_TIMING_UHS_DDR50:
+			/* Set value 0x1620*/
+			MWriteRegWord((void*)(host->ioaddr+TAP_REG), MK_TAP_DELAY(0x0, 0x6), 0x1fff);
 			break;
 		case MMC_TIMING_MMC_HS200:
-			MWriteRegWord((void*)(host->ioaddr+0x400), 0x1424, 0x1fff);
+			/* Set value 0x1424 */
+			MWriteRegWord((void*)(host->ioaddr+TAP_REG), MK_TAP_DELAY(0x4, 0x4), 0x1fff);
 			break;
 		default:
 			pr_debug("Sdhci clock=%d, no tap delay\n", clock);
