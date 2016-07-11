@@ -50,6 +50,8 @@ int main(void)
 	DEFINE(PCTL_OFS_PVTUPDI, offsetof(struct umac_phy, pctl.pvtupdi));
 	BLANK();
 	DEFINE(PUB_OFS_PHY_PIR, offsetof(struct umac_phy, pub.phy_pir));
+	DEFINE(PUB_OFS_PHY_ACIOCR, offsetof(struct umac_phy, pub.phy_aciocr));
+	DEFINE(PUB_OFS_PHY_DXCCR, offsetof(struct umac_phy, pub.phy_dxccr));
 	DEFINE(PUB_OFS_TR_ADDR0, offsetof(struct umac_phy, pub.pub_tr_addr0));
 	DEFINE(PUB_OFS_TR_ADDR1, offsetof(struct umac_phy, pub.pub_tr_addr1));
 	DEFINE(PUB_OFS_TR_ADDR2, offsetof(struct umac_phy, pub.pub_tr_addr2));
