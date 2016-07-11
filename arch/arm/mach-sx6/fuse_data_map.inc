@@ -61,7 +61,7 @@ otp_fuse_entry(FC_1,     0x008, otp_fuse_field(0, 1, HEVC_DEC_DIS),
 
 otp_fuse_entry(FC_2,     0x00C, otp_fuse_field(0, 1, BOOT_FROM_ROM),
 				otp_fuse_field(1, 1, SEC_BOOT_EN),
-				otp_fuse_field(2, 6, BOOT_VAL_USER_ID),
+				otp_fuse_field(2, 5, BOOT_VAL_USER_ID),
 				otp_fuse_field(7, 1, RSA_KEY_FLSH_VAL),
 				otp_fuse_field(8, 1, FLASH_RES_RSA_KEY_GEN_CHECK),
 				otp_fuse_field(9, 1, RSA_COMP),
