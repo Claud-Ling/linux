@@ -34,35 +34,45 @@
 #include "s2ramctrl.h"
 #include "common.h"
 
-/* Macro to map iram*/
+/*n must be power of 2*/
+#ifndef ROUND_UP
+# define ROUND_UP(x,n) (((x)+(n)-1u) & ~((n)-1u))
+#endif
+
+/* Macro to map iram.
+ * Has to be uncached. Otherwise resume has trouble once
+ * relocating size goes to above 0x400 !?
+ */
 #define TRIX_IRAM_REMAP()	do{					\
-	trix_iram_base = __arm_ioremap_exec(IRAM_BASE,IRAM_SIZE,1);	\
+	trix_iram_vbase = __arm_ioremap_exec(IRAM_BASE,IRAM_SIZE,0);	\
 }while(0)
+
 /* Macro to push a function to the internal SRAM, using the fncpy API */
-#define TRIX_IRAM_PUSH(funcp, size) ({                                   \
-	typeof(&(funcp)) _res = NULL;                                   \
-	if (trix_iram_base) {                                            \
-		if ((size) > IRAM_TEXT_SIZE)				\
-			pr_err("SRAM push failed! Ask %x\n", size);	\
+#define TRIX_IRAM_PUSH(funcp, sz, ofs) ({				\
+	typeof(&(funcp)) _res = NULL;					\
+	int _pos = ROUND_UP(((int)trix_iram_vbase+(ofs)), FNCPY_ALIGN);	\
+	if (trix_iram_vbase) {						\
+		if (((sz)+_pos-(int)trix_iram_vbase) > IRAM_TEXT_SIZE)	\
+			pr_err("SRAM push failed! Ask %x@%x\n",sz,ofs);	\
 		else							\
-			_res = fncpy((void*)trix_iram_base, &(funcp), size);\
+			_res = fncpy((void*)_pos, &(funcp), (sz));	\
 	}								\
-        _res;                                                           \
+        _res;								\
 })
 
 /* Macro to get sp base in iram*/
-#define TRIX_IRAM_SP()	({             \
-	void* _ret = (trix_iram_base) ? \
-	(trix_iram_base + IRAM_SIZE - 4)\
-	: NULL;                        \
-	_ret;                          \
+#define TRIX_IRAM_SP()	({			\
+	void* _ret = (trix_iram_vbase) ?	\
+	(trix_iram_vbase + IRAM_SIZE - 4)	\
+	: NULL;					\
+	_ret;					\
 })
 
 void (*trix_do_wfi_sram)(void);
 void *trix_sp_base_sram = NULL;
 
 static suspend_state_t target_state = PM_SUSPEND_ON;
-static void __iomem * trix_iram_base = NULL;
+static void __iomem * trix_iram_vbase = NULL;
 static struct s2ram_resume_frame trix_resume_frame =
 {
 	{0x0badc0de,}
@@ -111,7 +121,7 @@ static void set_trix_wakeup_addr(unsigned int phys_addr)
 static void trix_sram_restore_context(void)
 {
 	set_trix_wakeup_addr(virt_to_phys(trix_cpu_resume));
-	trix_do_wfi_sram = TRIX_IRAM_PUSH(trix_do_wfi,trix_do_wfi_sz);
+	trix_do_wfi_sram = TRIX_IRAM_PUSH(trix_do_wfi,trix_do_wfi_sz,0);
 	trix_sp_base_sram = TRIX_IRAM_SP();
 }
 

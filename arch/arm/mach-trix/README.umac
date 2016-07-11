@@ -1,0 +1,22 @@
+###############################################################
+#                                                             #
+#       Sigma DTV UMAC "/proc" interface notes                #
+#                                                             #
+###############################################################
+
+
+1. /proc/umac/states
+/proc/umac_states is used to list umac states for userland.
+'on' means umac is activated, 'off' inactivated.
+
+	*How to check all umac states?
+	/ # cat /proc/umac/states 
+	umac0: on
+	umac1: on
+	umac2: off
+
+	*How to check state for one specific umac?
+	i.e. check umac0 state:
+	/ # echo 0 > /proc/umac/states 
+	[   18.949731] umac0: on
+

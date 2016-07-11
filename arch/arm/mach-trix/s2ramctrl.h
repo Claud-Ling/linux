@@ -8,8 +8,6 @@
 
 #define S2RAM_FRAME_SIZE 	32	/* sizeof struct s2ram_resume_frame */
 
-#define S2RAM_ENTRY_OFS		0	/* resume entry, keep at the first!! */
-
 #ifndef __ASSEMBLY__
 
 /*
@@ -21,7 +19,7 @@ struct s2ram_resume_frame{
 	long data[(S2RAM_FRAME_SIZE) >> 2];
 };
 
-#define S2RAM_ENTRY	data[S2RAM_ENTRY_OFS >> 2]
+#define S2RAM_ENTRY	data[0]		/* resume entry, keep at the first!! */
 
 #endif //__ASSEMBLY__
 
