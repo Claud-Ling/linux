@@ -1419,7 +1419,7 @@ static __s32 up_trident_gmacEth( struct net_device *dev )
     /* Initialize timer to check the link status */
     priv->phy_timer->expires = jiffies + TIMEOUT_VALUE ;
 
-    add_timer( priv->phy_timer) ;
+    mod_timer( priv->phy_timer, priv->phy_timer->expires);
 
     return(0);
 
