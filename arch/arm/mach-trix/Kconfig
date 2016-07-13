@@ -43,6 +43,7 @@ config SIGMA_SOC_SX7
 	select PM_OPP if PM
 	select TRIX_OTP_SYS
 	select TRIX_HAS_NEW_NAND
+	select TRIX_CPUFREQ_FORWARD if CPU_FREQ && TRIX_SMC
 	help
 	  HiDTV-PRO SX7
 
@@ -191,6 +192,13 @@ config TRIX_SMC
 	default n
 	help
 	  Enable secure monitor call support, if unsure say N
+
+config TRIX_CPUFREQ_FORWARD
+	bool "Forward cpufreq transition event"
+	depends on TRIX_SMC && CPU_FREQ
+	default n
+	help
+	  Forward cpufreq transition notifiers to secure world
 
 config TRIX_SERIAL_IO_MAP
 	bool "Map serial io when turn on mmu"

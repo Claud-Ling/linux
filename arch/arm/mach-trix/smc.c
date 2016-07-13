@@ -180,11 +180,13 @@ void secure_set_actlr(uint32_t val)
 	}
 }
 
+#ifdef CONFIG_TRIX_CPUFREQ_FORWARD
 void secure_scale_cpufreq(uint32_t target)
 {
 	if ( !security_state )
 		armor_call(scale_cpufreq, target);
 }
+#endif
 
 #define is_secure_accessible(a, t) ({					\
 	int _ret = false;						\

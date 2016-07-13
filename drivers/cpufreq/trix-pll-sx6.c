@@ -1,5 +1,5 @@
 /*
- *  linux/arch/arm/mach-trix/pll_sx6.c
+ *  drivers/cpufreq/trix-pll-sx6.c
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -120,7 +120,7 @@
 
 #define PLL1_FB_DIVSEL_REG		0x1500ef0e//INHOUSE_PLL feeback div
 
-#define PLL1_REQ_CTRL_REG		0x1500ef0f//INHOUSE_PLL 
+#define PLL1_REQ_CTRL_REG		0x1500ef0f//INHOUSE_PLL
 						  //[7] pll1_req, A9_INHOUSE_PLL feedback div request control
 						  //[6..2] others, N/A
 						  //[1] pll lock status, A9 PLL lock status
@@ -333,7 +333,7 @@ static int inhouse_pll_get(const unsigned int target, struct inhouse_pll *pll)
 			pll->postdivsel = 1;
 			pll->seldiv = target / 4000; //feedback_div = Fout * pre_div * post_div / (2 * Fin)
 			pll->fout = 2 * 24000 * pll->seldiv / ((pll->predivsel + 2) * (1 << (pll->postdivsel + 1)));
-			pr_debug("new inhouse pll setting %d-%d: %d %d %d\n", target, pll->fout, 
+			pr_debug("new inhouse pll setting %d-%d: %d %d %d\n", target, pll->fout,
 				pll->predivsel, pll->seldiv, pll->postdivsel);
 			memcpy(&pll1_tbl[0], pll, sizeof(pll1_tbl[0]));	//overwrite generated settings
 			ret = 0;
@@ -403,7 +403,7 @@ static int inhouse_pll_setclock(unsigned int target)
 		if (CHIP_SX6_REVA == dtv_get_chip_id())
 		{
 			//[per tony.wei]
-			//in case SX6_REVA it's risky to change feedback divider 
+			//in case SX6_REVA it's risky to change feedback divider
 			//at one time, for instead to change it bit by bit
 			int i, j;
 			unsigned char val, delta, tmp;
@@ -425,7 +425,7 @@ static int inhouse_pll_setclock(unsigned int target)
 		}
 		Freq_WriteRegByteMask(PLL1_REQ_CTRL_REG, (1 << PLL1_REQ_SHIFT), PLL1_REQ_MASK);
 		udelay(10);
-		Freq_WriteRegByte(PLL1_CTRL_REG, (1 << PLL1_ENFCLKOUT_SHIFT) | 
+		Freq_WriteRegByte(PLL1_CTRL_REG, (1 << PLL1_ENFCLKOUT_SHIFT) |
 				(1 << PLL1_SRESET_SHIFT) | (1 << PLL1_OUTSEL_SHIFT));
 		udelay(40);
 		Freq_WriteRegByteMask(PLL1_REQ_CTRL_REG, 0, PLL1_REQ_MASK);
@@ -605,13 +605,13 @@ static int licensed_pll_setclock(unsigned int target)
 	{
 		CLK_SCALING_PREV();
 		pr_debug("setclock (a9) range:%d, divr:%d, divq:%d, divf:%d\n",
-			PLL_GET_SUB(pll.part0, RANGE), PLL_GET_SUB(pll.part0, DIVR), 
+			PLL_GET_SUB(pll.part0, RANGE), PLL_GET_SUB(pll.part0, DIVR),
 			PLL_GET_SUB(pll.part0, DIVQ), PLL_GET_SUB(pll.part1, DIVF));
-		Freq_WriteRegByteMask(PLL_CTRL_REG, (1 << PLL_FSE_SHIFT), 
+		Freq_WriteRegByteMask(PLL_CTRL_REG, (1 << PLL_FSE_SHIFT),
 					PLL_BYPASS_MASK | PLL_FSE_MASK | PLL_SRESET_MASK);
 		Freq_WriteRegByte(PLL_CFG_P0_REG, pll.part0);
 		Freq_WriteRegByteMask(PLL_CFG_P1_REG, pll.part1, PLL_DIVF_MASK);
-		Freq_WriteRegByteMask(PLL_CTRL_REG, (1 << PLL_FSE_SHIFT) | (1 << PLL_SRESET_SHIFT), 
+		Freq_WriteRegByteMask(PLL_CTRL_REG, (1 << PLL_FSE_SHIFT) | (1 << PLL_SRESET_SHIFT),
 					PLL_BYPASS_MASK | PLL_FSE_MASK | PLL_SRESET_MASK);
 		udelay(50);
 		CLK_SCALING_POST();

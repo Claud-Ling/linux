@@ -1,14 +1,14 @@
 /*
- *  linux/arch/arm/mach-trix/pll_uxl.c
+ *  drivers/cpufreq/trix-pll-sx7.c
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  *
- * SigmaDesigns UXLB SoC PLL control
+ * SigmaDesigns SX7 SoC PLL control
  * support inhouse PLL
  *
- * Author: Tony He, Mar 2015.
+ * Author: Tony He, Oct 2014.
  */
 
 #define PLL_CFG0_REG			0x1500ef00//A9_PLL
@@ -67,7 +67,7 @@
 
 #define PLL_CFG3_REG			0x1502ef03//A9_PLL
 						  //[7] pll_lock_status
-						  //[6] pll_ackn 
+						  //[6] pll_ackn
 						  //[5..3] reserved
 						  //[2..0] pll_sel_obs_clk, observe clock select
 #define PLL_OCS_MASK			0x7
@@ -151,6 +151,10 @@ static struct inhouse_pll{
 	// clock source: in-house PLL, 75M ~ 1.2G
 	// Fvco must be bigger than 1200M and post divider is mostly 16.
 	// So the lowest in-house pll output frequency is 75Mhz
+	{100000,  100000,  1, 100, 3},
+	{200000,  200000,  1, 100, 2},
+	{300000,  300000,  1, 75,  1},
+	{400000,  400000,  1, 100, 1},
 	{500000,  496000,  1, 124, 1},
 	{600000,  600000,  1, 75,  0},
 	{700000,  696000,  1, 87,  0},
@@ -266,7 +270,7 @@ static int inhouse_pll_get(const unsigned int target, struct inhouse_pll *pll)
 			pll->postdivsel = 0;
 			pll->seldiv = target / 8000; //feedback_div = Fout * pre_div * post_div / (2 * Fin)
 			pll->fout = 2 * 24000 * pll->seldiv / ((pll->predivsel + 2) * (1 << (pll->postdivsel + 1)));
-			pr_debug("new inhouse pll setting %d-%d: %d %d %d\n", target, pll->fout, 
+			pr_debug("new inhouse pll setting %d-%d: %d %d %d\n", target, pll->fout,
 				pll->predivsel, pll->seldiv, pll->postdivsel);
 			memcpy(&pll_tbl[0], pll, sizeof(pll_tbl[0]));	//overwrite generated settings
 			ret = 0;
@@ -337,7 +341,7 @@ static int inhouse_pll_setclock(unsigned int target)
 		postdivsel = PLL_GET_SUB(regval, POSTDIVSEL);
 
 #ifdef	FREQ_ON_THE_FLY_EN
-		if ((SRC_A9_PLL == GET_CLK_SRC()) && 
+		if ((SRC_A9_PLL == GET_CLK_SRC()) &&
 			(predivsel == pll.predivsel) && (postdivsel == pll.postdivsel)) {
 			/*
 			 * on-the-fly (faster)
@@ -371,7 +375,7 @@ static int inhouse_pll_setclock(unsigned int target)
 			Freq_WriteRegByteMask(PLL_CFG0_REG, 0, PLL_SRESET_MASK);
 			Freq_WriteRegByte(PLL_CFG1_REG, PLL_MK_DIVSEL(pll.predivsel, pll.postdivsel));
 			Freq_WriteRegByte(PLL_CFG2_REG, PLL_MK_SELDIV(pll.seldiv));
-			Freq_WriteRegByteMask(PLL_CFG0_REG, (1 << PLL_REQ_SHIFT) | (1 << PLL_SRESET_SHIFT), 
+			Freq_WriteRegByteMask(PLL_CFG0_REG, (1 << PLL_REQ_SHIFT) | (1 << PLL_SRESET_SHIFT),
 						PLL_REQ_MASK | PLL_SRESET_MASK);
 			udelay(50);
 			Freq_WriteRegByteMask(PLL_CFG0_REG, 0, PLL_REQ_MASK);
@@ -440,10 +444,6 @@ static const char* pll_getname(void)
  */
 static struct pll_operations* trix_get_pll_ops(void)
 {
-#if 1
-	pr_warn("not support yet!\n");
-	return  NULL;
-#else
 	int clk_src=GET_CLK_SRC();
 	if(SRC_XTAL_CLK == clk_src) {
 		pll_inuse = &xtal_pll;
@@ -455,5 +455,4 @@ static struct pll_operations* trix_get_pll_ops(void)
 	}
 
 	return &pll_inuse->ops;
-#endif
 }
