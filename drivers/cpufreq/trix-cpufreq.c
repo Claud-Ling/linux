@@ -28,6 +28,8 @@
 #include <asm/io.h>
 #include <asm/delay.h>
 
+#define MIN_CPUFREQ_KHZ		CONFIG_TRIX_MIN_CPUFREQ	/*khz*/
+
 #define Freq_ReadRegByte(addr) ReadRegByte((void*)addr)
 #define Freq_WriteRegByte(addr, val) WriteRegByte((void*)addr, val)
 #define Freq_WriteRegByteMask(addr, val, mask) do{		\

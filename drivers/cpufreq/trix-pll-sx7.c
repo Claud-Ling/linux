@@ -117,7 +117,6 @@
 				}while(0)
 
 #define XTAL_CLK_KHZ			24000
-#define MIN_CPUFREQ_KHZ			CONFIG_TRIX_MIN_CPUFREQ	/*khz*/
 
 #define GENERIC_GET_SUB(domain, val, nm) (((val) & domain##_##nm##_MASK) >> domain##_##nm##_SHIFT)
 #define GENERIC_SET_SUB(domain, val, nm, sub) (((val) & ~(domain##_##nm##_MASK)) | \
