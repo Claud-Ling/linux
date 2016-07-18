@@ -14,9 +14,9 @@
 
 #include <asm/smp_scu.h>
 #include <asm/cacheflush.h>
-#include <asm/cp15.h>
 
 #include "common.h"
+#include "cp15.h"
 
 #define SCU_BASE platform_get_scu_base()
 
@@ -61,27 +61,20 @@ void cpu_enter_lowpower(void)
 
 	/*
 	 * Take core out of coherency
-	 */
-	asm volatile(
-	/*
 	 * Disable ACTLR.SMP bit
+	 * ACTLR is:
+	 *  R/W in secure world
+	 *  RO in NS if NSACR.NS_SMP=0 or R/W in NS if NSACR.NS_SMP=1
 	 */
-	"	mrc	p15, 0, r0, c1, c0, 1\n"
-	"	bic	r0, r0, #(1 << 6)		@ Disable SMP bit\n"
-
+#ifdef CONFIG_SIGMA_SMC
 	/*
 	 * Update ACTLR
 	 * It's RO in Non-secure state if NSACR.NS_SMP=0, RW if NSACR.NS_SMP=1
 	 */
-#ifdef CONFIG_SIGMA_SMC
-	"	bl	secure_set_actlr\n"
+	secure_set_actlr(get_auxcr() & ~AUXCR_SMP);
 #else
-	"	mcr	p15, 0, r0, c1, c0, 1\n"
+	set_auxcr(get_auxcr() & ~AUXCR_SMP);
 #endif
-	"	isb\n"
-	:
-	:
-	: "cc");
 
 	/*
 	 * This CPU is about to enter power-off mode
@@ -119,22 +112,20 @@ void cpu_leave_lowpower(void)
 	"	orreq	%0, %0, %1\n"
 	"	mcreq	p15, 0, %0, c1, c0, 0\n"
 	"	isb\n"
-	/*
-	 * Check if need to enable SMP bit
-	 */
-	"	mrc	p15, 0, %0, c1, c0, 1\n"
-	"	tst	%0, #(1 << 6)\n"
-	"	orreq	r0, %0, #(1 << 6)\n"
-#ifdef CONFIG_SIGMA_SMC
-	"	bleq	secure_set_actlr\n"
-
-#else
-	"	mcreq	p15, 0, r0, c1, c0, 1\n"
-#endif
-	"	isb\n"
 	:
 	: "r" (0), "Ir" (CR_C)
 	: "cc");
+
+	/*
+	 * Check if need to enable SMP bit
+	 */
+	if (!(get_auxcr() & AUXCR_SMP)) {
+#ifdef CONFIG_SIGMA_SMC
+		secure_set_actlr(get_auxcr() | AUXCR_SMP);
+#else
+		set_auxcr(get_auxcr() | AUXCR_SMP);
+#endif
+	}
 
 	/*
 	 * This CPU is about to enter normal mode

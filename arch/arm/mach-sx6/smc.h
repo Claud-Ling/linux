@@ -11,6 +11,8 @@
 #ifndef __DTV_SMC_H__
 #define __DTV_SMC_H__
 
+#include <mach/security.h>
+
 /*
  * NOTE: these have been copied from
  * repo/hwdep_xos/xos/xboot4/armor/include/armor_smc_call.h
@@ -220,12 +222,6 @@ armor_smc_call1(uint32_t, scale_cpufreq, uint32_t, target)
 #undef armor_smc_call2
 #undef armor_smc_call3
 #undef armor_smc_call4
-
-/*
- * Return current security state
- * 0 - Non-secure, 1 - secure
- */
-int get_security_state(void);
 
 /* smc wrapper api */
 void secure_l2x0_enable(void);

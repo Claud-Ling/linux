@@ -30,6 +30,7 @@
 #include <asm/cacheflush.h>
 
 #include "smc.h"
+#include "cp15.h"
 
 #ifdef DEBUG
 static const char* reg_access_mode(int mode)
@@ -130,11 +131,11 @@ early_param("with_armor", do_with_secure_monitor);
  * Return current security state
  * 0 - Non-secure, 1 - secure
  */
-int get_security_state(void)
+int secure_get_security_state(void)
 {
 	return security_state;
 }
-EXPORT_SYMBOL(get_security_state);
+EXPORT_SYMBOL(secure_get_security_state);
 
 /**************************************************************************/
 /* sx6 l2x0 control wrapper						  */
@@ -205,6 +206,14 @@ void secure_set_actlr(uint32_t val)
 	if ( security_state ) {
 		__asm__ __volatile__("mcr	p15, 0, %0, c1, c0, 1": : "r" (val):);
 	} else {
+		if (get_nsacr() & NSACR_NS_SMP) {
+			unsigned int tmp = get_auxcr();
+			/*check if only change to SMP bit*/
+			if ((tmp & ~AUXCR_SMP) == (val & ~AUXCR_SMP)) {
+				set_auxcr(val);
+				return;
+			}
+		}
 		;	/*armor N/A yet*/
 	}
 }
