@@ -30,12 +30,12 @@
 #endif
 #include <mach/hardware.h>
 #include <asm/cacheflush.h>
-#include <asm/cp15.h>	/*set_auxcr*/
 
 #ifdef CONFIG_SMP
 #include <mach/smp.h>
 #endif
 #include "smc.h"
+#include "cp15.h"	/*set_auxcr,get_nsacr*/
 
 #ifdef DEBUG
 static const char* reg_access_mode(int mode)
@@ -136,11 +136,11 @@ early_param("with_armor", do_with_secure_monitor);
  * Return current security state
  * 0 - Non-secure, 1 - secure
  */
-int get_security_state(void)
+int secure_get_security_state(void)
 {
 	return security_state;
 }
-EXPORT_SYMBOL(get_security_state);
+EXPORT_SYMBOL(secure_get_security_state);
 
 /**************************************************************************/
 /* l2x0 control wrapper						  */
@@ -176,6 +176,14 @@ void secure_set_actlr(uint32_t val)
 	if ( security_state ) {
 		set_auxcr(val);
 	} else {
+		if (get_nsacr() & NSACR_NS_SMP) {
+			unsigned int tmp = get_auxcr();
+			/*check if only change to SMP bit*/
+			if ((tmp & ~AUXCR_SMP) == (val & ~AUXCR_SMP)) {
+				set_auxcr(val);
+				return;
+			}
+		}
 		;	/*armor N/A yet*/
 	}
 }

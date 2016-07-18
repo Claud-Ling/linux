@@ -11,6 +11,8 @@
 #ifndef __ASM_ARCH_TRIX_SMC_H__
 #define __ASM_ARCH_TRIX_SMC_H__
 
+#include <mach/security.h>
+
 /*
  * NOTE: these have been copied from
  * repo/hwdep_xos/xos/xboot4/armor/include/armor_smc_call.h
@@ -223,12 +225,6 @@ armor_smc_call1(uint32_t, set_aux_core_boot_addr, uint32_t, arg)
 #undef armor_smc_call2
 #undef armor_smc_call3
 #undef armor_smc_call4
-
-/*
- * Return current security state
- * 0 - Non-secure, 1 - secure
- */
-int get_security_state(void);
 
 /* smc wrapper api */
 void secure_l2x0_set_reg(void* base, uint32_t ofs, uint32_t val);

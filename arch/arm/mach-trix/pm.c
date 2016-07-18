@@ -39,12 +39,9 @@
 # define ROUND_UP(x,n) (((x)+(n)-1u) & ~((n)-1u))
 #endif
 
-/* Macro to map iram.
- * Has to be uncached. Otherwise resume has trouble once
- * relocating size goes to above 0x400 !?
- */
+/* Macro to map iram */
 #define TRIX_IRAM_REMAP()	do{					\
-	trix_iram_vbase = __arm_ioremap_exec(IRAM_BASE,IRAM_SIZE,0);	\
+	trix_iram_vbase = __arm_ioremap_exec(IRAM_BASE,IRAM_SIZE,1);	\
 }while(0)
 
 /* Macro to push a function to the internal SRAM, using the fncpy API */
@@ -71,6 +68,7 @@
 void (*trix_do_wfi_sram)(void);
 void *trix_sp_base_sram = NULL;
 
+static volatile int sram_loaded = false;
 static suspend_state_t target_state = PM_SUSPEND_ON;
 static void __iomem * trix_iram_vbase = NULL;
 static struct s2ram_resume_frame trix_resume_frame =
@@ -118,11 +116,14 @@ static void set_trix_wakeup_addr(unsigned int phys_addr)
  * push do_wfi to SRAM
  * Note that SRAM content shall be kept during power on time
  */
-static void trix_sram_restore_context(void)
+static void trix_sram_load_context(void)
 {
-	set_trix_wakeup_addr(virt_to_phys(trix_cpu_resume));
-	trix_do_wfi_sram = TRIX_IRAM_PUSH(trix_do_wfi,trix_do_wfi_sz,0);
-	trix_sp_base_sram = TRIX_IRAM_SP();
+	if (!sram_loaded) {
+		trix_do_wfi_sram = TRIX_IRAM_PUSH(trix_do_wfi,trix_do_wfi_sz,0);
+		trix_sp_base_sram = TRIX_IRAM_SP();
+		sram_loaded = true;
+		smp_wmb();
+	}
 }
 
 static int trix_pm_valid(suspend_state_t state)
@@ -152,6 +153,7 @@ static void trix_do_suspend(void)
 	pr_info("[%d]%s relocate size=%x\n",__LINE__,__func__,trix_do_wfi_sz);
 
 	trix_pm_check_store();
+	trix_sram_load_context();
 
 	/*flush L1 L2 cache back to RAM*/
 	flush_cache_all();
@@ -169,10 +171,10 @@ static void trix_do_suspend(void)
  	 */
 	if (0 == ret)
 	{
-		trix_sram_restore_context();
 #ifdef CONFIG_SMP
 		platform_smp_resume_cpus();
 #endif
+		sram_loaded = false;	/*need reload sram (not now)*/
 	}
 
 	return;
@@ -248,7 +250,7 @@ static int __init trix_pm_init(void)
 	pr_info("%s: Power Management\n", trix_board_name());
 
 	TRIX_IRAM_REMAP();
-	trix_sram_restore_context();
+	set_trix_wakeup_addr(virt_to_phys(trix_cpu_resume));
 	suspend_set_ops(&trix_pm_ops);
 
 	return 0;
@@ -260,3 +262,13 @@ suspend_state_t trix_get_suspend_state(void)
 	return target_state;
 }
 EXPORT_SYMBOL(trix_get_suspend_state);
+
+/*
+ * suspend non-boot core
+ * might be reentrant due to spurious wakeup events.
+ */
+int trix_pm_suspend_core(unsigned int cpu)
+{
+	trix_sram_load_context();
+	return cpu_suspend(CPU_PWSTS_OFF, trix_finish_suspend);
+}

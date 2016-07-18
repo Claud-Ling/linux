@@ -60,5 +60,12 @@ extern int trix_make_l2x_auxctrl(u32* val, u32* mask);
 extern void cpu_enter_lowpower(void);
 extern void cpu_leave_lowpower(void);
 
+#ifdef CONFIG_PM
+/*
+ * pm specific implementation for cpu hotplug
+ */
+extern int trix_pm_suspend_core(unsigned int cpu);
+#endif
+
 #endif /*__ASSEMBLY__*/
 #endif

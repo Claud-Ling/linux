@@ -83,7 +83,7 @@ static int read_fuse(const uint32_t offset, uint32_t *pval)
 {
 	BUG_ON(pval == NULL);
 #ifdef CONFIG_TRIX_SMC
-	if (!get_security_state())
+	if (!secure_get_security_state())
 		return secure_otp_get_fuse_mirror(offset, pval);
 #endif
 	*pval = OTP_READL(OTP_FUSE_BASE + offset);
@@ -150,7 +150,7 @@ static uint32_t get_fuse_array(uint32_t ofs, uint32_t *buf, uint32_t nbytes)
 	int i, j;
 
 #ifdef CONFIG_TRIX_SMC
-	if (!get_security_state())
+	if (!secure_get_security_state())
 		return secure_otp_get_fuse_array(ofs, buf, nbytes);
 #endif
 
@@ -257,7 +257,7 @@ static int read_fuse(const uint32_t offset, uint32_t *pval)
 {
 	BUG_ON(pval == NULL);
 #ifdef CONFIG_TRIX_SMC
-	if (!get_security_state())
+	if (!secure_get_security_state())
 		return secure_otp_get_fuse_mirror(offset, pval);
 #endif
 	*pval = OTP_READL(OTP_FUSE_BASE + offset);
@@ -315,7 +315,7 @@ static uint32_t get_fuse_array(uint32_t ofs, uint32_t *buf, uint32_t nbytes)
 	int i, j;
 
 #ifdef CONFIG_TRIX_SMC
-	if (!get_security_state())
+	if (!secure_get_security_state())
 		return secure_otp_get_fuse_array(ofs, buf, nbytes);
 #endif
 

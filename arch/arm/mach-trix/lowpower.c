@@ -18,13 +18,11 @@
 
 #include <asm/smp_scu.h>
 #include <asm/cacheflush.h>
-#include <asm/cp15.h>
 
 #include "common.h"
+#include "cp15.h"
 
 #define SCU_BASE platform_get_scu_base()
-
-#define ACTLR_SMP BIT(6)
 
 /*
  * make call-in cpu enter lowpower mode so as to prepare for upcoming suspend (i.e. do_wfi)
@@ -77,9 +75,9 @@ void cpu_enter_lowpower(void)
 	 * Update ACTLR
 	 * It's RO in Non-secure state if NSACR.NS_SMP=0, RW if NSACR.NS_SMP=1
 	 */
-	secure_set_actlr(get_auxcr() & ~ACTLR_SMP);
+	secure_set_actlr(get_auxcr() & ~AUXCR_SMP);
 #else
-	set_auxcr(get_auxcr() & ~ACTLR_SMP)
+	set_auxcr(get_auxcr() & ~AUXCR_SMP);
 #endif
 
 	/*
@@ -125,11 +123,11 @@ void cpu_leave_lowpower(void)
 	/*
 	 * Check if need to enable SMP bit
 	 */
-	if (!(get_auxcr() & ACTLR_SMP)) {
+	if (!(get_auxcr() & AUXCR_SMP)) {
 #ifdef CONFIG_TRIX_SMC
-		secure_set_actlr(get_auxcr() | ACTLR_SMP);
+		secure_set_actlr(get_auxcr() | AUXCR_SMP);
 #else
-		set_auxcr(get_auxcr() | ACTLR_SMP);
+		set_auxcr(get_auxcr() | AUXCR_SMP);
 #endif
 	}
 

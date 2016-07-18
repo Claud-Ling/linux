@@ -31,8 +31,8 @@ static inline void platform_do_lowpower(unsigned int cpu, int *spurious)
 {
 	for (;;) {
 		/*Zzzzzz*/
-		cpu_suspend(CPU_PWSTS_OFF, trix_finish_suspend);
-
+		trix_pm_suspend_core(cpu);
+		/*Oooooo*/
 		if (pen_release == cpu_logical_map(cpu)) {
 		/*OK, we're done*/
 			break;
@@ -53,6 +53,7 @@ static inline void platform_do_lowpower(unsigned int cpu, int *spurious)
 
 #else
 static inline void platform_do_lowpower(unsigned int cpu, int *spurious)
+{
 	/*
 	 * we're ready for shutdown now, so do it
 	 */
