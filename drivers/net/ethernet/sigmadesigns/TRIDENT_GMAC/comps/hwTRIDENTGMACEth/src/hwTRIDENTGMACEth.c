@@ -1198,7 +1198,10 @@ hwTRIDENTGMACEth_FilterSetConfig(
     }
 
     regVal |= (UInt32)(pFilterConfig->pauseSetting << TMVH_TRIDENTGMACETH_FMFLTR_PCF_POS);
+#ifdef FRAME_FILTER_DEBUG
+	/* Enable Receive all mode (to debug filtering fail errors) */
 	regVal |= TMVH_TRIDENTGMACETH_FMFLTR_RX_ALL_VAL; 
+#endif
     TMVH_GEN_WRITE(pEthRegs+TMVH_TRIDENTGMACETH_FMFLTR_REG_OFFSET,regVal);
     TMVH_GEN_READ(pEthRegs+TMVH_TRIDENTGMACETH_FMFLTR_REG_OFFSET,regVal);
 
