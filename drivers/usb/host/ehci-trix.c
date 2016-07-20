@@ -36,7 +36,12 @@ static void trihidtv_start_ehc(struct platform_device *dev)
 		MWriteRegHWord((void *)0x1b0055a0, 0x4000, 0x4000);
 		MWriteRegHWord((void *)0x1b0055a2, 0x0080, 0x0080);
 #elif defined (CONFIG_SIGMA_SOC_SX8)
-		pr_warn("%s:TODOs: To add pinshare settings for SX8 USB0\n", __func__);
+		/*Set GPIO4 functionally as GPIO*/
+		MWriteRegByte((void *)0xf500ee20, 0x00, 0x07);
+		MWriteRegHWord((void *)0xfb005500, 0x0100, 0x0300);
+		
+		/* Set GPIO4 output high */
+		MWriteRegHWord((void *)0xfb005502, 0x0010, 0x0010);
 #endif
 	}
 
@@ -58,7 +63,12 @@ static void trihidtv_start_ehc(struct platform_device *dev)
 		MWriteRegHWord((void *)0x1b0055a0, 0x1000, 0x1000);
 		MWriteRegHWord((void *)0x1b0055a2, 0x0040, 0x0040);
 #elif defined (CONFIG_SIGMA_SOC_SX8)
-		pr_warn("%s:TODOs: To add pinshare settings for SX8 USB1\n", __func__);
+		/*Set GPIO6 functionally as GPIO*/
+		MWriteRegByte((void *)0xf500ee21, 0x00, 0x07);
+		MWriteRegHWord((void *)0xfb005500, 0x1000, 0x3000);
+		
+		/* Set GPIO6 output high */
+		MWriteRegHWord((void *)0xfb005502, 0x0040, 0x0040);
 #endif
 	}
 

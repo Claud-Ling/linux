@@ -344,11 +344,11 @@ static int mi2c_calculate_wait_time(struct i2c_adapter *adap, struct i2c_msg *ms
 		transfer_bits = (msg->len << 3);
 	}
 
-	/* Bonus for START STOP ACK bit & with some redundance, totally 30% */
-	transfer_bits += ((transfer_bits * 3) / 10);
+	/* Bonus for START STOP ACK bit & with some redundance, totally 300% */
+	transfer_bits += ((transfer_bits * 30) / 10);
 
-	/* Convert to million seconds and with add-on 10ms for result < 1ms case */
-	wait_millsec = ((transfer_bits * bit_per_microsec) / 1000) + 10;
+	/* Convert to million seconds and with add-on 200ms for interrupt delay in system busy case */
+	wait_millsec = ((transfer_bits * bit_per_microsec) / 1000) + 200;
 
 	MI2C_DBG(mdev->dev, "Calculate msg transfer wait time\n");
 	MI2C_DBG(mdev->dev, "bit_per_microsec = %u\n", bit_per_microsec);
