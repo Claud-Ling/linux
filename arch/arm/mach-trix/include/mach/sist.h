@@ -33,26 +33,22 @@
 #define T_MIN_IDX	(0)
 #define T_MAX_IDX	(41)
 
-
 enum {	
 	SIST_ID_UMAC0 = 0,
 	SIST_ID_GFX,
 	SIST_ID_UMAC2,
+#if defined(CONFIG_SIGMA_SOC_SX8)
+	SIST_ID_UMAC1,
+	SIST_ID_PMAN,
+	SIST_ID_FRCB_B,
+	SIST_ID_FRCB_A,
+#else
 	SIST_ID_VEDR,
 	SIST_ID_VDETN,
+#endif
 	SIST_ID_ARM,
 	SIST_ID_MAX
 };
-
-#define ID_TO_SIST_SHIFT(id) ({		\
-	int _shift_ = 0;		\
-	if (id <= 4) {			\
-		_shift_ = ((id)*4);	\
-	} else {			\
-		_shift_ = (((id)-5)*4);	\
-	}				\
-	_shift_;			\
-})
 
 #define IS_VALID_SIST_ID(id) ({		\
 	(((id) >= SIST_ID_UMAC0) &&	\
@@ -104,6 +100,9 @@ struct sist_sensor {
 	struct list_head list;
 	int id;
 	char *name;
+	void *ctl_reg;
+	int ctl_shift;
+	void *temp_reg;
 	struct sensor_ops *ops;
 	struct sist_bus *sist;
 };
@@ -111,9 +110,15 @@ struct sist_sensor {
 	(struct sist_bus *)((s)->sist);	\
 })
 
+#define SIST_NODE(name, ctl, shift, temp)		\
+	{SIST_ID_##name, #name, (void *)ctl, shift, (void *)temp}
+
 struct sist_node {
 	int id;
 	char *name;
+	void *ctl_reg;
+	int ctl_shift;
+	void *temp_reg;
 };
 
 

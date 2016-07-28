@@ -81,7 +81,7 @@ EXPORT_SYMBOL(send_sist_request);
 
 int sist_get_sensor_count(void)
 {
-	return SIST_ID_MAX;
+	return sist->max_sensors;
 }
 EXPORT_SYMBOL(sist_get_sensor_count);
 
@@ -167,7 +167,7 @@ static int sist_init(void)
 		ret = -ENOMEM;
 		goto out;
 	}
-
+	memset(psist, 0, sizeof(struct sist_bus));
 	INIT_LIST_HEAD(&psist->sensors);
 	spin_lock_init(&psist->lock);
 	psist->proc_sist_entry = proc_mkdir("SIST", NULL);

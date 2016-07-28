@@ -14,12 +14,11 @@
 
 static int sist_a9_set_mode(struct sist_sensor *sensor, int mode)
 {
-	int id = sensor->id;
-	int shift = ID_TO_SIST_SHIFT(id);
+	int shift = sensor->ctl_shift;
+	void *ctl_reg = sensor->ctl_reg;
 
 	/* Switch to request mode */
-	MWriteRegByte((void *)A9_SIST_CTL_REG, 
-			(mode<<shift), (SIST_MODE_MASK<<shift));
+	MWriteRegByte(ctl_reg, (mode<<shift), (SIST_MODE_MASK<<shift));
 
 	return 0;
 
@@ -30,8 +29,9 @@ static int sist_a9_get_value(struct sist_sensor *sensor, int request)
 	int val = 0, valid = 0;
 	void *count_reg = NULL;
 	int mode = REQ_TO_SIST_MODE(request);
-	int id = sensor->id;
-	int shift = ID_TO_SIST_SHIFT(id);
+	void *ctl_reg = sensor->ctl_reg;
+	void *temp_reg = sensor->temp_reg;
+	int shift = sensor->ctl_shift;
 
 	/* Disable ringo counters */
 	MWriteRegWord((void *)PROC_MON_SEL_REG, 
@@ -39,8 +39,7 @@ static int sist_a9_get_value(struct sist_sensor *sensor, int request)
 
 
 	/* Switch A9 node to request mode */
-	MWriteRegByte((void *)A9_SIST_CTL_REG, 
-		(mode<<shift), (SIST_MODE_MASK<<shift));
+	MWriteRegByte(ctl_reg, (mode<<shift), (SIST_MODE_MASK<<shift));
 
 	/* load previous temperature index */
 	if (request == SIST_RQ_TOUT) {
@@ -48,7 +47,7 @@ static int sist_a9_get_value(struct sist_sensor *sensor, int request)
 		/* Start try from middle of temp index*/
 		val = 25;
 		/* load previous A9 temperature index */
-		MWriteRegByte((void *)A9_TEMP_CTL_REG, 
+		MWriteRegByte(temp_reg, 
 				(val<<A9_TEMP_CTL_SHIFT), 
 						A9_TEMP_CTL_MASK);
 
@@ -74,7 +73,7 @@ static int sist_a9_get_value(struct sist_sensor *sensor, int request)
 	}
 
 	cur_tout = (ReadRegWord((void *)PROC_MON_TOUT_REG) & 
-					PROC_MON_TOUT_MASK);
+						PROC_MON_TOUT_MASK);
 	pre_tout = cur_tout;
 
 try_loop:
@@ -91,12 +90,12 @@ try_loop:
 		goto exit;
 	}
 	/* load previous A9 temperature index */
-	MWriteRegByte((void *)A9_TEMP_CTL_REG, 
+	MWriteRegByte(temp_reg, 
 			(val<<A9_TEMP_CTL_SHIFT), 
 					A9_TEMP_CTL_MASK);
 
 	cur_tout = (ReadRegWord((void *)PROC_MON_TOUT_REG) & 
-					PROC_MON_TOUT_MASK);
+						PROC_MON_TOUT_MASK);
 
 	if (cur_tout == pre_tout) {
 	/* Try again*/
@@ -119,9 +118,21 @@ static struct sensor_ops sist_a9_ops = {
 	.set_mode = sist_a9_set_mode,
 };
 
+#if defined(CONFIG_SIGMA_SOC_SX7)
+/*
+ * SX7 have dedicate sensor interface for ARM, so this driver for cover SX7 case.
+ */
 static struct sist_node a9_sist_node_list[] = {
-	{ SIST_ID_ARM, "ARM" }
+	SIST_NODE(ARM, A9_SIST_CTL_REG, 0, A9_TEMP_CTL_REG),
 };
+#else
+/*
+ * Place an empty list here for no SX7 case
+ * SX8 move ARM sensor to SOC part, please refer to 'sist-soc.c'
+ */
+static struct sist_node a9_sist_node_list[] = {
+};
+#endif
 
 static int sist_a9_sensor_init(void)
 {
@@ -138,6 +149,9 @@ static int sist_a9_sensor_init(void)
 		
 		psensor->id = a9_sist_node_list[i].id;
 		psensor->name = a9_sist_node_list[i].name;
+		psensor->ctl_reg = a9_sist_node_list[i].ctl_reg;
+		psensor->ctl_shift = a9_sist_node_list[i].ctl_shift;
+		psensor->temp_reg = a9_sist_node_list[i].temp_reg;
 		psensor->ops = &sist_a9_ops;
 
 		ret = sist_register_sensor(psensor);

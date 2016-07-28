@@ -14,12 +14,11 @@
 
 static int sist_soc_set_mode(struct sist_sensor *sensor, int mode)
 {
-	int id = sensor->id;
-	int shift = ID_TO_SIST_SHIFT(id);
+	int shift = sensor->ctl_shift;
+	void *ctl_reg = sensor->ctl_reg;
 
 	/* Switch to request mode */
-	MWriteRegWord((void *)GLB_SIST_CTL_REG, 
-				(mode<<shift), (SIST_MODE_MASK<<shift));
+	MWriteRegWord(ctl_reg, (mode<<shift), (SIST_MODE_MASK<<shift));
 
 	return 0;
 
@@ -31,8 +30,9 @@ static int sist_soc_get_value(struct sist_sensor *sensor, int request)
 	int val = 0, valid = 0;
 	void *count_reg = NULL;
 	int mode = REQ_TO_SIST_MODE(request);
-	int id = sensor->id;
-	int shift = ID_TO_SIST_SHIFT(id);
+	void *ctl_reg = sensor->ctl_reg;
+	void *temp_reg = sensor->temp_reg;
+	int shift = sensor->ctl_shift;
 
 	/* Disable ringo counters */
 	MWriteRegWord((void *)PROC_MON_SEL_REG, 
@@ -40,15 +40,14 @@ static int sist_soc_get_value(struct sist_sensor *sensor, int request)
 
 
 	/* Switch sensor to request mode */
-	MWriteRegWord((void *)GLB_SIST_CTL_REG, 
-		(mode<<shift), (SIST_MODE_MASK<<shift));
+	MWriteRegWord(ctl_reg, (mode<<shift), (SIST_MODE_MASK<<shift));
 
 	/* load previous temperature index */
 	if (request == SIST_RQ_TOUT) {
 		udelay(100);	
 		/* Start try from middle of temp index*/
 		val = 25;
-		MWriteRegWord((void *)GLB_TEMP_CTR_REG, 
+		MWriteRegWord(temp_reg, 
 				((val)<<GLB_TEMP_CTR_SHIFT),
 						GLB_TEMP_CTR_MASK);
 
@@ -90,7 +89,7 @@ try_loop:
 		goto exit;
 	}
 	/* load new temp index*/	
-	MWriteRegWord((void *)GLB_TEMP_CTR_REG, 
+	MWriteRegWord(temp_reg, 
 		((val)<<GLB_TEMP_CTR_SHIFT), GLB_TEMP_CTR_MASK);
 
 	cur_tout = (ReadRegWord((void *)PROC_MON_TOUT_REG) & 
@@ -116,13 +115,31 @@ static struct sensor_ops sist_soc_ops = {
 	.set_mode = sist_soc_set_mode,
 };
 
+#if defined(CONFIG_SIGMA_SOC_SX8)
 static struct sist_node soc_sist_node_list[] = {
-	{ SIST_ID_UMAC0, "UMAC0" },
-	{ SIST_ID_GFX, "GFX" },
-	{ SIST_ID_UMAC2, "UMAC2" },
-	{ SIST_ID_VEDR, "VEDR" },
-	{ SIST_ID_VDETN, "VDETN" }
+	SIST_NODE(UMAC0, GLB_SIST_CTL_REG, 0, GLB_TEMP_CTR_REG),
+	SIST_NODE(UMAC1, GLB_SIST_CTL_REG, 3, GLB_TEMP_CTR_REG),
+	SIST_NODE(UMAC2, GLB_SIST_CTL_REG, 6, GLB_TEMP_CTR_REG),
+	SIST_NODE(PMAN, GLB_SIST_CTL_REG, 9, GLB_TEMP_CTR_REG),
+	SIST_NODE(GFX, GLB_SIST_CTL_REG, 12, GLB_TEMP_CTR_REG),
+	SIST_NODE(FRCB_A, GLB_SIST_CTL_REG, 15, GLB_TEMP_CTR_REG),
+	SIST_NODE(FRCB_B, GLB_SIST_CTL_REG, 18, GLB_TEMP_CTR_REG),
+	SIST_NODE(ARM, GLB_SIST_CTL_REG, 21, GLB_TEMP_CTR_REG),
 };
+
+#elif defined(CONFIG_SIGMA_SOC_SX7)
+static struct sist_node soc_sist_node_list[] = {
+	SIST_NODE(UMAC0, GLB_SIST_CTL_REG, 0, GLB_TEMP_CTR_REG),
+	SIST_NODE(GFX, GLB_SIST_CTL_REG, 4, GLB_TEMP_CTR_REG),
+	SIST_NODE(UMAC2, GLB_SIST_CTL_REG, 8, GLB_TEMP_CTR_REG),
+	SIST_NODE(VEDR, GLB_SIST_CTL_REG, 12, GLB_SIST_CTL_REG),
+	SIST_NODE(VDETN, GLB_SIST_CTL_REG, 16, GLB_SIST_CTL_REG),
+};
+#else
+static struct sist_node soc_sist_node_list[] = {
+
+};
+#endif
 
 static int sist_soc_sensor_init(void)
 {
@@ -139,6 +156,9 @@ static int sist_soc_sensor_init(void)
 		
 		psensor->id = soc_sist_node_list[i].id;
 		psensor->name = soc_sist_node_list[i].name;
+		psensor->ctl_reg = soc_sist_node_list[i].ctl_reg;
+		psensor->ctl_shift = soc_sist_node_list[i].ctl_shift;
+		psensor->temp_reg = soc_sist_node_list[i].temp_reg;
 		psensor->ops = &sist_soc_ops;
 
 		ret = sist_register_sensor(psensor);
