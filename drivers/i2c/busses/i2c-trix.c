@@ -29,37 +29,74 @@ void sigma_mi2c_pinshare_init(struct sigma_mi2c_dev *dev)
 
 	switch(adap->nr) {
 		case 0:
+		#if defined(CONFIG_SIGMA_SOC_SX7)
 			/* MI2C 0 */
 			/* Set bit[6:4] 3b'000; bit[2:0] 3b'000 */
 			MWriteRegByte((volatile void *)0x1500ee1b, 0x0, 0x77);
 			/* Set open-drain mode */
 			MWriteRegByte((volatile void *)0x1500ea48, 0x80, 0x80);
 			MWriteRegByte((volatile void *)0x1500ea49, 0x80, 0x80);
+		#elif defined(CONFIG_SIGMA_SOC_SX8)
+			/* MI2C 0 */
+			/* Set bit[6:4] 3b'000; bit[2:0] 3b'000 */
+			MWriteRegByte((volatile void *)0x1500ee1b, 0x0, 0x77);
+			/* Set open-drain mode */
+			MWriteRegByte((volatile void *)0x1500ea4c, 0x80, 0x80);
+			MWriteRegByte((volatile void *)0x1500ea4d, 0x80, 0x80);
+
+		#endif
 			break;
 
 		case 1:
+		#if defined(CONFIG_SIGMA_SOC_SX7)
 			/* MI2C 1 */
 			/* Set bit[6:4] 3b'000; bit[2:0] 3b'000 */
 			MWriteRegByte((volatile void *)0x1500ee1c, 0x0, 0x77);
 			/* Set open-drain mode */
 			MWriteRegByte((volatile void *)0x1500ea4a, 0x80, 0x80);
 			MWriteRegByte((volatile void *)0x1500ea4b, 0x80, 0x80);
+		#elif defined(CONFIG_SIGMA_SOC_SX8)
+			/* MI2C 1 */
+			/* Set bit[6:4] 3b'000; bit[2:0] 3b'000 */
+			MWriteRegByte((volatile void *)0x1500ee1c, 0x0, 0x77);
+			/* Set open-drain mode */
+			MWriteRegByte((volatile void *)0x1500ea4e, 0x80, 0x80);
+			MWriteRegByte((volatile void *)0x1500ea4f, 0x80, 0x80);
+		#endif
 			break;
 		case 2:
+		#if defined(CONFIG_SIGMA_SOC_SX7)
 			/* MI2C 2 */
 			/* Set bit[6:4] 3b'000; bit[2:0] 3b'000 */
 			MWriteRegByte((volatile void *)0x1500ee1a, 0x0, 0x77);
 			/* Set open-drain mode */
 			MWriteRegByte((volatile void *)0x1500ea46, 0x80, 0x80);
 			MWriteRegByte((volatile void *)0x1500ea47, 0x80, 0x80);
+		#elif defined(CONFIG_SIGMA_SOC_SX8)
+			/* MI2C 2 */
+			/* Set bit[6:4] 3b'000; bit[2:0] 3b'000 */
+			MWriteRegByte((volatile void *)0x1500ee1a, 0x0, 0x77);
+			/* Set open-drain mode */
+			MWriteRegByte((volatile void *)0x1500ea4a, 0x80, 0x80);
+			MWriteRegByte((volatile void *)0x1500ea4b, 0x80, 0x80);
+		#endif
 			break;
 		case 3:
+		#if defined(CONFIG_SIGMA_SOC_SX7)
 			/* MI2C 2 */
 			/* Set bit[6:4] 3b'000; bit[2:0] 3b'000 */
 			MWriteRegByte((volatile void *)0x1500ee19, 0x11, 0x77);
 			/* Set open-drain mode */
 			MWriteRegByte((volatile void *)0x1500ea44, 0x80, 0x80);
 			MWriteRegByte((volatile void *)0x1500ea44, 0x80, 0x80);
+		#elif defined(CONFIG_SIGMA_SOC_SX8)
+			/* MI2C 2 */
+			/* Set bit[6:4] 3b'000; bit[2:0] 3b'000 */
+			MWriteRegByte((volatile void *)0x1500ee19, 0x11, 0x77);
+			/* Set open-drain mode */
+			MWriteRegByte((volatile void *)0x1500ea48, 0x80, 0x80);
+			MWriteRegByte((volatile void *)0x1500ea49, 0x80, 0x80);
+		#endif
 			break;
 		default:
 			dev_err(dev->dev, "Unknow adapter nr = %d\n", adap->nr);

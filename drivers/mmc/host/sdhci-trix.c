@@ -310,6 +310,9 @@ static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 			/* Enable cache control */
 		//	host->mmc->caps2 |= MMC_CAP2_CACHE_CTRL;
 
+			/* HS200 mode, not support yet on SX8, need Hardware rework?  */
+			//host->mmc->caps2 |= MMC_CAP2_HS200_1_8V_SDR;
+
 			/* Enable 1.8V DDR mode*/
 			host->mmc->caps |= MMC_CAP_1_8V_DDR;
 		}
