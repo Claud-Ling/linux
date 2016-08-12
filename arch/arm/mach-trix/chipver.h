@@ -16,6 +16,7 @@
 enum chip_version{
 	DEFINE_CHIP_VERSIONS(SX6)
 	DEFINE_CHIP_VERSIONS(SX7)
+	DEFINE_CHIP_VERSIONS(SX8)
 
 	CHIP_UNKNOWN  = 0xffffffff,
 };
@@ -30,6 +31,7 @@ extern const char* dtv_chip_name(int chip_id);
 
 #define dtv_chip_is_sx6(id) dtv_chip_is_stub(id, SX6)
 #define dtv_chip_is_sx7(id) dtv_chip_is_stub(id, SX7)
+#define dtv_chip_is_sx8(id) dtv_chip_is_stub(id, SX8)
  
 #endif /*__ASSEMBLY__*/
 

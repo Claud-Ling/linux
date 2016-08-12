@@ -22,6 +22,7 @@
 
 #define SX6_CHIP_ID 0x96
 #define SX7_CHIP_ID 0x97
+#define SX8_CHIP_ID 0x98
 
 static int chip_id = CHIP_UNKNOWN;
 
@@ -46,6 +47,7 @@ int dtv_get_chip_id(void)
 
 			CID_CASE(SX6);
 			CID_CASE(SX7);
+			CID_CASE(SX8);
 
 			default: chip_id = CHIP_UNKNOWN; break;
 			#undef CID_CASE
@@ -69,6 +71,7 @@ const char* dtv_chip_name(int chip_id)
 
 		CNM_CASE(SX6);
 		CNM_CASE(SX7);
+		CNM_CASE(SX8);
 
 		default: nm = ID2NAME(CHIP_UNKNOWN);break;
 		#undef ID2NAME
