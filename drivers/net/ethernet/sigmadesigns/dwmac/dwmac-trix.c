@@ -149,6 +149,7 @@ static void sigma_dwmac_fix_mac_speed(void *bsp_priv, unsigned int speed)
 	struct device *device = dwmac->device;
 	struct net_device *ndev = dev_get_drvdata(device);
 	struct dwmac_priv *priv = netdev_priv(ndev);
+#ifdef CONFIG_MICREL_PHY
 	u32 phy_id = priv->phydev->phy_id;
 
 	/*
@@ -156,16 +157,18 @@ static void sigma_dwmac_fix_mac_speed(void *bsp_priv, unsigned int speed)
  	 * 1. identify PHY ID
  	 * 2. choice the PHY interface according to PHY ID
  	 */
-#ifdef CONFIG_MICREL_PHY
 	if ( (phy_id & MICREL_PHY_ID_MASK) == PHY_ID_KSZ9031) {
 		priv->phydev->interface	= PHY_INTERFACE_MODE_RGMII;
 		dwmac->interface	= PHY_INTERFACE_MODE_RGMII;
-		goto done;
+	} else {
+		/* default: RMII mode */
+		dwmac->interface = priv->phydev->interface = PHY_INTERFACE_MODE_RMII;
 	}
-#endif
+#else
 	/* default: RMII mode */
 	dwmac->interface = priv->phydev->interface = PHY_INTERFACE_MODE_RMII;
-done:
+
+#endif
 	if(IS_RGMII(priv->phydev->interface)) {
 		/* RGMII - 125Mhz clock */
 		MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_PHY_IF_CTRL),
@@ -185,7 +188,6 @@ static int sigma_dwmac_init(struct platform_device *pdev, void *priv)
 	struct sigma_dwmac *dwmac = (struct sigma_dwmac *)priv;
 	int iface = dwmac->interface;
 
-
 #if defined(CONFIG_SIGMA_SOC_SX7)
 	WriteRegByte((volatile void *)0xf500ea2c, 0x7f); //GBE_TXEN
 	WriteRegByte((volatile void *)0xf500ea2d, 0x7f); //GBE_TXC
@@ -195,7 +197,13 @@ static int sigma_dwmac_init(struct platform_device *pdev, void *priv)
 	WriteRegByte((volatile void *)0xf500ea31, 0x7f); //GBE_TXD3
 	WriteRegByte((volatile void *)0xf500ea38, 0x7f); //GBE_MDC
 #elif defined(CONFIG_SIGMA_SOC_SX8)
-	pr_warn("%s:TODOs: To add pinshare settings for SX8 GBE\n", __func__);
+	WriteRegHWord((volatile void*)0xf500e030, 0x103f);	//[0]GBE_TXEN_OE
+						//[1]GBE_TXC_OE
+						//[2]GBE_TXD0_OE
+						//[3]GBE_TXD1_OE
+						//[4]GBE_TXD2_OE
+						//[5]GBE_TXD3_OE
+						//[12]GBE_MDC_OE
 #endif
 
 	/* enable interrupt logic to CPU */
