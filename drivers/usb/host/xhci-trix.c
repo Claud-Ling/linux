@@ -30,6 +30,7 @@
 #define TRIX_USB3_GUSB2PHYCFG	0xc200	/*GUSB2PHYCFG*/
 #define TRIX_USB3_GUSB3PIPECTL	0xc2c0	/*GUSB3PIPECTL*/
 #define TRIX_USB3_TEST_DBG_REG	0xcd04	/*TEST_DBG_REG*/
+#define TRIX_USB3_PHY_DBG_REG	0xcd08	/*PHY_DBG_REG*/
 #define TRIX_USB3_PHY_TUNE_REG2	0xcd0c	/*PHY_TUNE_REG2*/
 #define TRIX_USB3_CFG_REG2	0xcd14	/*CFG_REG2*/
 
@@ -87,6 +88,7 @@ static void xhci_trix_init_quirks(struct usb_hcd *hcd)
 
 	BUG_ON(hcd == NULL);
 	BUG_ON(hcd->regs == NULL);
+#if defined(CONFIG_SIGMA_SOC_SX7) || defined(CONFIG_SIGMA_SOC_SX6)
 	/* Reset USB Host */
 	//MWriteRegWord((volatile void*)0x15200020, 0x2,0x2);
 	MWriteRegWord((volatile void*)hcd->regs + TRIX_USB3_USBCMD, TRIX_USB3_USBCMD_HCRST, TRIX_USB3_USBCMD_HCRST_MASK);
@@ -123,6 +125,13 @@ static void xhci_trix_init_quirks(struct usb_hcd *hcd)
 	/* Disable receiver detection in P3, Fix synopsys PHY bug */
 	//MWriteRegWord((volatile void*)0x1520c2c0, 
 	//				(1<<28), 0x10000000);
+#elif defined(CONFIG_SIGMA_SOC_SX8)
+	/* Disable USB3 PHY Scramble */
+	MWriteRegWord((volatile void*)hcd->regs + TRIX_USB3_TEST_DBG_REG, 0x00202087, 0x00ffffff);
+	MWriteRegWord((volatile void*)hcd->regs + TRIX_USB3_TEST_DBG_REG, 0x00302087, 0x00ffffff);
+	MWriteRegWord((volatile void*)hcd->regs + TRIX_USB3_TEST_DBG_REG, 0x00202087, 0x00ffffff);
+#endif
+
 }
 
 /* called after usb_add_hcd*/
@@ -130,6 +139,7 @@ static void xhci_trix_start(struct usb_hcd *hcd)
 {
 	BUG_ON(hcd == NULL);
 	BUG_ON(hcd->regs == NULL);
+#if defined(CONFIG_SIGMA_SOC_SX7) || defined(CONFIG_SIGMA_SOC_SX6)
 	/* Adjust USB3 RX FIFO threshold */
 	//MWriteRegWord((volatile void*)0x1520c10c, 
 	//		((3<<24)|(2<<19)), 0x0ff80000);
@@ -144,6 +154,7 @@ static void xhci_trix_start(struct usb_hcd *hcd)
 			TRIX_USB3_GRXTHRCFG_USBMaxRxBurstSize_MASK | 
 			TRIX_USB3_GRXTHRCFG_USBRxPktCnt_MASK | 
 			TRIX_USB3_GRXTHRCFG_USBRxPktCntSel_MASK);
+#endif
 }
 
 static struct hc_driver __read_mostly xhci_plat_hc_driver;
