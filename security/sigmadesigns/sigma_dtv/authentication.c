@@ -132,7 +132,7 @@ static unsigned long strtohex(char* str)
 #define PUBLIC_KEY_APP_OFS    0x300 
 static int get_pubkey(unsigned char *key,unsigned int off)
 {
-#if defined(CONFIG_SIGMA_DTV_ROM_MMC)
+#if defined(CONFIG_SIGMA_DTV_ROM_MMC) || defined(CONFIG_SIGMA_DTV_ROM_SPI_MMC)
 	char *dev_name = "/dev/mmcblk0";
 	char *boot_dev = "/dev/mmcblk0bootX";
 #elif defined(CONFIG_SIGMA_DTV_ROM_NAND)
