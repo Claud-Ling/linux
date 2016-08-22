@@ -151,6 +151,22 @@ config SIGMA_DTV_ROM_MMC
 	help
 	  eMMC
 
+config SIGMA_DTV_ROM_SPI_MMC
+	bool "spi + eMMC"
+	select MMC
+	select MMC_SDHCI
+	select MMC_SDHCI2_TRIX
+	select MTD
+	select MTD_PARTITIONS
+	select MTD_CMDLINE_PARTS
+	select MTD_CHAR
+	select MTD_BLOCK
+	select MTD_BLOCK_ROBBS
+	select MTD_OOPS
+	select MTD_TRIX_SPI_NOR
+	help
+	  SX8 RevA chip requires MCU boot first than A9 to work around PLL unstable issues.
+	  As a result, MCU must boot from SPI flash
 endchoice
 
 config TRIX_CACHE_L2X0

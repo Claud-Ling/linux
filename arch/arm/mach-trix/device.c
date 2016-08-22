@@ -340,6 +340,28 @@ static struct platform_device sigma_gmac_device = {
 };
 #endif
 
+#if defined(CONFIG_MTD_TRIX_SPI_NOR)
+static struct resource sigma_spi_nor_resource[] = {
+	[0] = {
+		.start		= SIGMA_SPI_NOR_BASE,
+		.end		= SIGMA_SPI_NOR_BASE + SIGMA_SPI_NOR_SIZE -1,
+		.flags		= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start		= SIGMA_SPI_NOR_IO,
+		.end		= SIGMA_SPI_NOR_IO + SIGMA_SPI_IO_SIZE -1,
+		.flags		= IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device sigma_spi_nor_device = {
+       .name           = "spi-nor",
+       .id             = 0,
+       .num_resources  = ARRAY_SIZE(sigma_spi_nor_resource),
+       .resource       = sigma_spi_nor_resource,
+};
+#endif
+
 static struct platform_device sigma_pmu_device = {
         .name                   = "arm-pmu",
         .id                     = -1,
@@ -370,6 +392,9 @@ static struct platform_device *sigma_platform_devices[] __initdata = {
 #endif
 #if defined(CONFIG_GMAC_ETH)
 	&sigma_gmac_device,
+#endif
+#if defined(CONFIG_MTD_TRIX_SPI_NOR)
+	&sigma_spi_nor_device,
 #endif
 };
 
