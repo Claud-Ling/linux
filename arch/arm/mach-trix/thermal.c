@@ -25,7 +25,19 @@ struct sigma_thermal_device {
 	struct proc_dir_entry *status_entry;
 };
 
-
+#if defined(CONFIG_SIGMA_SOC_SX8)
+static char * temperature_array[] = {
+	"19",	"22",	"25",	"28",	"31",
+	"34",	"37",	"40",	"43",	"46",
+	"49",	"52",	"55",	"58",	"61",
+	"64",	"67",	"70",	"73",	"76",
+	"79",	"82",	"85",	"88",	"91",
+	"94",	"97",	"100",	"103",	"106",
+	"109",	"112",	"115",	"118",	"121",
+	"124",	"127",	"130",	"133",	"136",
+	"139",
+};
+#else
 static char * temperature_array[] = {
   "-45.7",  "-45.7",  "-41.7",  "-37.5",   "-33",
   "-28.4",  "-23.5",  "-18.3",  "-11.4",  "-6.1",
@@ -37,6 +49,7 @@ static char * temperature_array[] = {
   "116.0",  "120.7",  "125.5",  "130.5", "135.5",
   "135.5",
 };
+#endif
 
 
 
@@ -60,14 +73,14 @@ static int sigma_thermal_get_temp(void)
 			continue;
 		}
 
-		sprintf(tmp, "%s %s\n", sist_get_sensor_name(i), temperature_array[value]);
+		sprintf(tmp, "%s %s\n", sist_get_sensor_name(i), temperature_array[min(value, ARRAY_SIZE(temperature_array))]);
 		strcat(buff, tmp);
 		memset(tmp, 0, 64);
 		idx_sum += value;
 	}
 
 	avg_temp = idx_sum / i;
-	sprintf(tmp, "%s %s\n", "Average", temperature_array[avg_temp]);
+	sprintf(tmp, "%s %s\n", "Average", temperature_array[min(avg_temp, ARRAY_SIZE(temperature_array))]);
 	strcat(buff, tmp);
 
 	return 0;
