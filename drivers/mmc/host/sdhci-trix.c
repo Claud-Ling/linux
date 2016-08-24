@@ -148,6 +148,9 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 		MWriteRegByte((void*)0x1500ee3b, 0x01, 0x03);	//bit[2:0]data3
 		MWriteRegByte((void*)0x1500ee44, 0x20, 0x30);	//bit[6:4]clk
 		MWriteRegByte((void*)0x1500ee45, 0x02, 0x03);	//bit[2:0]cmd
+
+		/* Select 200M clock source */
+		MWriteRegByte((void*)0x1500e928, 0x40, 0xc0);	//bit[7:6] = 01
 #else
 	#error "unknown SoC type!"
 #endif
@@ -230,6 +233,9 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 		MWriteRegByte((void*)0x1500ee30, 0x11, 0x33);	//bit[6:4]data5,bit[2:0]data4
 		MWriteRegByte((void*)0x1500ee31, 0x11, 0x33);	//bit[6:4]data7,bit[2:0]data6
 		MWriteRegByte((void*)0x1500ee32, 0x11, 0x33);	//bit[6:4]cmd,bit[2:0]clk
+
+		/* Select 200M clock source */
+		MWriteRegByte((void*)0x1500e928, 0x10, 0x30);	//bit[5:4] = 01
 #else
 	#error "unknown SoC type!"
 #endif
