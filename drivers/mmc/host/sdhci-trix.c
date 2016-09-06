@@ -142,6 +142,18 @@ static void sdhci_sx6_pinshare_init(int dev_id)
 		WriteRegByte((volatile void *)0x1b005799,0x77); //data2
 		WriteRegByte((volatile void *)0x1b005796,0x77); //clock
 #elif defined (CONFIG_SIGMA_SOC_SX8)
+		/* REG_MIO setting, disable default pull-down */
+		MWriteRegByte((void *)0x1500ea76, 0x7b, 0x7f);	//FAD0 [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 
+		MWriteRegByte((void *)0x1500ea77, 0x7b, 0x7f);	//FAD1 [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 
+		MWriteRegByte((void *)0x1500ea78, 0x7b, 0x7f);	//FAD2 [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 
+		MWriteRegByte((void *)0x1500ea79, 0x7b, 0x7f);	//FAD3 [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 
+		MWriteRegByte((void *)0x1500ea7a, 0x7b, 0x7f);	//FAD4 [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 
+		MWriteRegByte((void *)0x1500ea7b, 0x7b, 0x7f);	//FAD5 [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 
+		MWriteRegByte((void *)0x1500ea7c, 0x7b, 0x7f);	//FAD6 [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 
+		MWriteRegByte((void *)0x1500ea7d, 0x7b, 0x7f);	//FAD7 [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 
+		MWriteRegByte((void *)0x1500ea7e, 0x7b, 0x7f);	//CLE [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 
+		MWriteRegByte((void *)0x1500ea7f, 0x7b, 0x7f);	//ALE [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2
+
 		MWriteRegByte((void*)0x1500ee23, 0x22, 0x33);	//bit[6:4]wp, bit[2:0]cd
 		MWriteRegByte((void*)0x1500ee39, 0x10, 0x30);	//bit[6:4]data0
 		MWriteRegByte((void*)0x1500ee3a, 0x11, 0x33);	//bit[6:4]data2,bit[2:0]data1
