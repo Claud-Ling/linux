@@ -23,6 +23,7 @@
  *
  *
  * History:
+ *	10/20/2015	TonyHe	- Initial version
  *	07/11/2016	TonyHe	- Add SX8 support
  *
  */
@@ -31,7 +32,11 @@ otp_fuse_entry(FC_0,     0x004, otp_fuse_field(0, 6, DECODER_FORMAT_DIS),
 				otp_fuse_field(7, 1, USB_SS_DIS),
 				otp_fuse_field(8, 4, MELO_D_DIS),
 				otp_fuse_field(12,1, GFX_3D_DIS),
+#ifdef CONFIG_SIGMA_SOC_SX7
 				otp_fuse_field(13,1, EDR_EN),
+#else
+				otp_fuse_field(13,1, EDR_DIS),
+#endif
 				otp_fuse_field(14,1, UHD_DIS),
 				otp_fuse_field(19,1, DEMOD_DVBT_DIS),
 				otp_fuse_field(20,1, DEMOD_ANALOG_DIS),
