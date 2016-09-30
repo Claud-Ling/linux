@@ -210,12 +210,15 @@ static int do_change_workdir(void)
 		return -1;
 	}
  	//s = mmcblk0.APP_A or mmcblk0.APP_B
- 	strcpy(new_opt, s);
+ 	strncpy(new_opt, s, (sizeof(new_opt)-1));
 	s = strstr(s, "APP_");
-	p = strstr(new_opt, "APP_");
- 	(s[4]=='A')?(p[4]='B'):(p[4]='A');
-	PERROR("new_opt: %s\n",new_opt);
-	fw_env_write("opt_partition",new_opt);
+	/* APP have backup case, if no, we can do nothing here*/
+	if (s) {
+		p = strstr(new_opt, "APP_");
+ 		(s[4]=='A')?(p[4]='B'):(p[4]='A');
+		PERROR("new_opt: %s\n",new_opt);
+		fw_env_write("opt_partition",new_opt);
+	}
 	return 0;
 }
 
@@ -351,7 +354,12 @@ static void verify_signature(struct work_struct *work)
  	 */
         sprintf(dev_name,"/dev/%s",s);
 	p = strstr(s, "APP_");
-	sprintf(size_env,"APP_%c_size", p[4]);
+	if (p) {
+		sprintf(size_env,"APP_%c_size", p[4]);
+	} else {
+		/* No backup case, only one APP part */
+		sprintf(size_env,"APP_size");
+	}
 	s = fw_getenv(size_env);
 	if(!s)
 	{
