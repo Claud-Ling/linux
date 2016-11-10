@@ -187,6 +187,21 @@ config USB_NET_AX88179_178A
 	  This driver creates an interface named "ethX", where X depends on
 	  what other networking devices you have in use.
 
+config USB_NET_AX88772X
+	tristate "ASIX USB 2.0 to Fast Ethernet"
+	default y
+	help
+	  This option adds support for ASIX AX88772 based USB 2.0
+	  to Fast Ethernet adapters.
+
+	  This driver should work with at least the following devices:
+	    * ASIX AX88772
+	    * ASIX AX88772A
+	    * ASIX AX88772B
+
+	  This driver creates an interface named "ethX", where X depends on
+	  what other networking devices you have in use.
+
 config USB_NET_CDCETHER
 	tristate "CDC Ethernet support (smart devices such as cable modems)"
 	depends on USB_USBNET
