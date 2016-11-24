@@ -593,6 +593,9 @@ static int enumerate_env_device(void)
 #endif
 	klib_fclose(filp);
 	filp = NULL;
+	if (mtd->type == MTD_NORFLASH) {
+		goto try_emmc;
+	}
 	goto end;
 
 try_emmc:

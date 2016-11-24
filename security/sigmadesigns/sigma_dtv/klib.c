@@ -84,19 +84,13 @@ int klib_fread(char *buf, int len, struct file *filp)
  
     mm_segment_t oldfs; 
  
-    if (filp == NULL) 
+    if (filp == NULL)
         return -ENOENT; 
- 
-    if (filp->f_op->read == NULL) 
-        return -ENOSYS; 
- 
-    if (((filp->f_flags & O_ACCMODE) & O_RDONLY) != 0) 
-        return -EACCES; 
  
     oldfs = get_fs(); 
     set_fs(KERNEL_DS); 
  
-    readlen = filp->f_op->read(filp, buf, len, &filp->f_pos); 
+    readlen = vfs_read(filp, buf, len, &filp->f_pos); 
  
     set_fs(oldfs); 
  
@@ -207,15 +201,9 @@ int klib_fwrite(char *buf, int len, struct file *filp)
     if (filp == NULL) 
         return -ENOENT; 
  
-    if (filp->f_op->write == NULL) 
-        return -ENOSYS; 
- 
-    if (((filp->f_flags & O_ACCMODE) & (O_WRONLY | O_RDWR)) == 0) 
-        return -EACCES; 
- 
     oldfs = get_fs(); 
     set_fs(KERNEL_DS); 
-    writelen = filp->f_op->write(filp, buf, len, &filp->f_pos); 
+    writelen = vfs_write(filp, buf, len, &filp->f_pos); 
     set_fs(oldfs); 
  
     return writelen; 
