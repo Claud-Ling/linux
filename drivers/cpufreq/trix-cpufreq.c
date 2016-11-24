@@ -55,6 +55,8 @@ struct pll_operations {
 # include "trix-pll-sx6.c"
 #elif defined (CONFIG_SIGMA_SOC_SX7)
 # include "trix-pll-sx7.c"
+#elif defined (CONFIG_SIGMA_SOC_SX8)
+# include "trix-pll-sx8.c"
 #else
 # include "trix-pll-stub.c"	/*stub implementation*/
 #endif
