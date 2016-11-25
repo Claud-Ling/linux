@@ -150,6 +150,8 @@ static struct inhouse_pll{
 	{1300000, 1296000, 1, 2, 1, 0xa2, 0, 2, 0xd, 0x34},
 	{1400000, 1400000, 1, 2, 1, 0xaf, 0, 2, 0xd, 0x35},
 	{1500000, 1496000, 1, 2, 1, 0xbb, 0, 2, 0xd, 0x35},
+	{1600000, 1600000, 1, 2, 1, 0xc8, 0, 2, 0xe, 0x36},
+	{1700000, 1696000, 1, 2, 1, 0xd4, 0, 2, 0xe, 0x36},
 
 	{CPUFREQ_TABLE_END, CPUFREQ_TABLE_END, 0, 0, 0, 0, 0, 0, 0, 0},
 };
@@ -255,7 +257,7 @@ static int inhouse_pll_get(const unsigned int target, struct inhouse_pll *pll)
 	else
 	{
 		//in case missing in pll tbl, try to generate one
-		if(target > 400000 && target < 1500000)
+		if(target > 400000 && target < 1700000)
 		{
 			//Fomula: Fout = Fin * PreFeedback_divider[P] * (Feedback_divider[F] + Feedback_divider_offset[O]) / Input_divider[N] / Post_divider[M])
 			//Note: PreFeedback_divider[P] = 2 ^ fbrange
