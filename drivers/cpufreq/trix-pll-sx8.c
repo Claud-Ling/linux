@@ -346,12 +346,17 @@ static int inhouse_pll_setclock(unsigned int target)
 		Freq_WriteRegByteMask(PLL_CFG0_REG, 0x40, 0xff);
 		pr_debug("setclock (inhouse) prediv:%d, postdiv:%d, fbrange:%d, fbdiv:%d, offset:%d\n", 
 				pll.prediv, pll.postdiv, pll.fbrange, pll.fbdiv, pll.offset);
-		Freq_WriteRegByte(PLL_CFG1_REG, PLL_MK_CFG1(pll.prediv, pll.postdiv, pll.fbrange));
+		Freq_WriteRegByte(PLL_CFG1_REG, PLL_MK_CFG1(pll.postdiv, pll.prediv, pll.fbrange));
 		Freq_WriteRegByteMask(PLL_CFG2_REG, pll.fbdiv, PLL_FBDIV_MASK);
 		Freq_WriteRegByteMask(PLL_SELR_REG, pll.selr, PLL_SELR_MASK); //0x02
 		Freq_WriteRegByteMask(PLL_SELI_REG, pll.seli, PLL_SELI_MASK); //0x0e
 		Freq_WriteRegByteMask(PLL_SELP_REG, pll.selp, PLL_SELP_MASK); //0x36
 		Freq_WriteRegByteMask(PLL_CFG0_REG, 0x41, 0xff);
+		ms_delay(10);
+		//For PLL_A9 setting, after update the setting, toggle the bypass bit in 1500ef00
+		Freq_WriteRegByteMask(PLL_CFG0_REG, 1, PLL_BYPASS_MASK);
+		ms_delay(10);
+		Freq_WriteRegByteMask(PLL_CFG0_REG, 0, PLL_BYPASS_MASK);
 		ms_delay(10);
 		CLK_SCALING_POST();
 	}
