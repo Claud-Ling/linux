@@ -323,8 +323,12 @@ static int sdhci_trihidtv_drv_probe(struct platform_device *pdev)
 	host->quirks = chip->quirks;
 
 	/*FIXME*/
-	//host->quirks |= SDHCI_QUIRK_BROKEN_DMA;
+#ifdef CONFIG_SIGMA_SOC_SX8
+	host->quirks |= SDHCI_QUIRK_BROKEN_DMA;
+	host->quirks |= SDHCI_QUIRK_BROKEN_ADMA;
+#else
 	host->quirks |= SDHCI_QUIRK_FORCE_DMA;/*add by jenny enable DMA*/
+#endif
 	host->quirks2 |= SDHCI_QUIRK2_BROKEN_HS200;
 	if (pdev->id == 1) {
 	/* For SD card, currently, no regulator to adjust IO voltage */
