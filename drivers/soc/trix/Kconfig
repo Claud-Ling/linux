@@ -1,0 +1,18 @@
+#
+# SigmaDesigns DTV SOC drivers
+#
+menuconfig SOC_TRIX
+	bool "Sigma DTV SOC specific drivers"
+
+if SOC_TRIX
+
+config SYSCON_TRIX
+	bool "System Controller Register R/W Based on IO remap"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Select this option to enable accessing system control registers
+	  via ioremap.
+
+
+endif #SOC_TRIX

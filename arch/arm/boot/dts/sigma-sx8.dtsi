@@ -1,0 +1,153 @@
+/*
+ * Device Tree Source for SX8 SoC
+ *
+ * Copyright (C) 2016 Sigmadesigns Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+#include "sigma-dtv-common.dtsi"
+#include "sigma-sx8-pinctrl.dtsi"
+#include "sigma-sx8-clocks.dtsi"
+
+/ {
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		enable-method = "sigma,trix-smp";
+		secondary-boot-reg = <0xfb00f07c>;
+		secondary-boot-id  = <0xf502415c>;
+
+		cpu0: cpu@0 {
+			compatible = "arm,cortex-a9";
+			next-level-cache = <&l2cc>;
+			device_type = "cpu";
+			reg = <0>;
+			clocks = <&inhouse_pll>;
+			clock-latency = <80000>; /* transition time in ns */
+			operating-points = <
+				/*KHz		uV*/
+				400000		0
+				500000		0
+				600000		0
+				700000		0
+				800000		0
+				900000		0
+				1000000		0
+				1100000		0
+				1200000		0
+				1300000		0
+				1400000		0
+				1500000		0
+				1600000		0
+				1700000		0
+			>;
+		};
+
+		cpu1: cpu@1 {
+			compatible = "arm,cortex-a9";
+			next-level-cache = <&l2cc>;
+			device_type = "cpu";
+			reg = <1>;
+		};
+
+		cpu2: cpu@2 {
+			compatible = "arm,cortex-a9";
+			next-level-cache = <&l2cc>;
+			device_type = "cpu";
+			reg = <2>;
+		};
+
+		cpu3: cpu@3 {
+			compatible = "arm,cortex-a9";
+			next-level-cache = <&l2cc>;
+			device_type = "cpu";
+			reg = <3>;
+		};
+
+	};
+
+	l2cc: l2-cache-controller@f2102000 {
+		/*
+		 * SX8 L2CC: PL310@r3p2, 1024K, 16ways, 64K per ways
+		 *
+		 * Override default cache size
+		 * set size	= cache size / sets
+		 * ways		= cache size / (sets * line size)
+		 * way size	= sets * line size
+		 */
+		arm,override-auxreg;
+		cache-size = <1048576>; /*1024kB*/
+		cache-sets = <2048>;
+		cache-line-size = <32>;
+	};
+
+	soc {
+		soc_timer@f5027000 {
+			clocks = <&clk200m>;
+			clock-names = "cntclk";
+		};
+
+		gmac0: eth@f5030000 {
+			status = "ok";
+			phy-mode = "rmii";
+		};
+
+		uart0: serial@fb005100 {
+			status = "ok";
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&uart0_pmx_func>;
+		};
+
+		uart1: serial@fb005200 {
+			status = "ok";
+		};
+
+		uart2: serial@fb005300 {
+			status = "ok";
+		};
+
+		sdhci0: sdhci@fb00a000 { /* eMMC on this bus */
+			no-dma;
+			no-hs200;
+			mmc-ddr-1_8v;
+
+			sigma,mmc_hs_timing	= <0x0 0x6>; /*indelay, outdelay*/
+			sigma,mmc_ddr52_timing	= <0x0 0x5>;
+			sigma,mmc_hs200_timing	= <0x4 0x4>;
+
+			clocks = <&sdio0_clk>;
+			clock-names = "sdioclk";
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&emmc_pmx_func &emmc_cfg_func>;
+		};
+
+		sdhci1: sdhci@fb00c000 { /* SD card on this bus */
+			no-dma;
+			no-1-8-v;
+			no-hs200;
+
+			sigma,sd_hs_timing	= <0x0 0xd>; /*indelay, outdelay*/
+			sigma,sd_sdr50_timing	= <0x0 0x6>;
+			sigma,sd_ddr50_timing	= <0x0 0x5>;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&sd_pmx_func>;
+		};
+
+		cgu: clk-controller@f500e900 {
+			compatible = "trix,syscon";
+			reg = <0xf500e900 0x50>;
+		};
+
+		a9_sub_sys: a9_sub_sys@f500ef00 {
+			compatible = "trix,syscon";
+			reg = <0xf500ef00 0x40>;
+		};
+	};
+};
+

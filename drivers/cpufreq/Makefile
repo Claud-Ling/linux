@@ -80,6 +80,7 @@ obj-$(CONFIG_ARM_SPEAR_CPUFREQ)		+= spear-cpufreq.o
 obj-$(CONFIG_ARM_TEGRA_CPUFREQ)		+= tegra-cpufreq.o
 obj-$(CONFIG_ARM_VEXPRESS_SPC_CPUFREQ)	+= vexpress-spc-cpufreq.o
 obj-$(CONFIG_ARM_TRIX_CPUFREQ)		+= trix-cpufreq.o
+obj-$(CONFIG_ARM_TRIX_OF_CPUFREQ)	+= trix-cpufreq-dt.o
 
 ##################################################################################
 # PowerPC platform drivers

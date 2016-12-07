@@ -283,5 +283,17 @@ config ARM_TRIX_CPUFREQ
 
 	  For details, take a look at <file:Documentation/cpu-freq>.
 
+config ARM_TRIX_OF_CPUFREQ
+	bool "CPUfreq DT based driver for SDesigns SXx series CPUs"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  This enables the CPUfreq driver for the SigmaDesigns SXx family
+	  of CPUs.
+
+	  For details, take a look at <file:Documentation/cpu-freq>.
+
+	  If in doubt, say N.
+
 	  If in doubt, say N.
 

@@ -1,0 +1,62 @@
+/*
+ * pinctrl dts file for sx8
+ *
+ */
+/ {
+	soc {
+		pmx: pinshare@f500ee00 {
+			sd_pmx_func: sd_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x23 0x11 0xff	/* bit[6:4]SD_WP bit[2:0]SD_CD */
+					0x39 0x10 0xf0	/* bit[6:4]SD_DATA0 */
+					0x3a 0x11 0xff	/* bit[6:4]SD_DATA2 bit[2:0]SD_DATA1 */
+					0x3b 0x01 0x0f	/* bit[2:0]SD_DATA3 */
+					0x44 0x20 0xf0	/* bit[6:4]SD_CLK */
+					0x45 0x02 0x0f	/* bit[2:0]SD_CMD */
+				>;
+			};
+
+			emmc_pmx_func: emmc_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x2e 0x11 0xff	/* bit[6:4]EMMC_DATA1 bit[2:0]EMMC_DATA0 */
+					0x2f 0x11 0xff	/* bit[6:4]EMMC_DATA3 bit[2:0]EMMC_DATA2 */
+					0x30 0x11 0xff	/* bit[6:4]EMMC_DATA5 bit[2:0]EMMC_DATA4 */
+					0x31 0x11 0xff	/* bit[6:4]EMMC_DATA7 bit[2:0]EMMC_DATA6 */
+					0x32 0x11 0xff	/* bit[6:4]EMMC_CMD bit[2:0]EMMC_CLK */
+				>;
+			};
+
+			uart0_pmx_func: uart0_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x1d 0x33 0xff /* bit[6:4]RXD bit[2:0]TXD */
+				>;
+			};
+		};
+
+		mio: padconf@f500ea00 {
+			emmc_cfg_func: emmc_cfg_func {
+				pinctrl-single,pins = <
+					/* [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 */
+					/* offset, val*/
+					0x76 0x7b
+					0x77 0x7b
+					0x78 0x7b
+					0x79 0x7b
+					0x7a 0x7b
+					0x7b 0x7b
+					0x7c 0x7b
+					0x7d 0x7b
+					0x7e 0x7b
+					0x7f 0x7b
+				>;
+			};
+		};
+
+		stbio: padconf@f500ed00 {
+			status = "disable";
+		};
+	};
+};

@@ -1,0 +1,146 @@
+/*
+ * Device Tree Source for Sigma DTV 32-bits processor family
+ *
+ * Copyright (C) 2016 Sigmadesigns Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+#include "skeleton.dtsi"
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	interrupt-parent = <&gic>;
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	mpcore {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		gic: interrupt-controller@f2101000 {
+			compatible = "arm,cortex-a9-gic";
+			#interrupt-cells = <3>;
+			#address-cells = <1>;
+			interrupt-controller;
+			reg = <0xf2101000 0x1000>,  /* gic dist base */
+			      <0xf2100100 0x100>;   /* gic cpu base  */
+		};
+
+		twd@f2100600 {
+			compatible = "arm,cortex-a9-twd-timer";
+			reg = <0xf2100600 0x20>;
+			interrupts = <GIC_PPI 13
+				(GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>;
+		};
+	};
+
+	l2cc: l2-cache-controller@f2102000 {
+		compatible = "arm,pl310-cache";
+		reg = <0xf2102000 0x1000>;
+		cache-unified;
+		cache-level = <2>;
+	};
+
+	/*
+	 * A flat representation of the SoC interconnect hierarchy.
+	 * The soc node represents the soc top level view. It is used for IPs
+	 * that are memory mapped in the SoC view.
+	 */
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		interrupt-parent = <&gic>;
+		ranges;
+
+		soc_timer@f5027000 {
+			compatible = "sigma,trix-timer";
+			reg = <0xf5027000 0x100>;
+			interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>, <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "timer0_irq", "timer1_irq";
+			clock-source = <0>;
+			clock-event  = <1>;
+		};
+
+		gmac0: eth@f5030000 {
+			compatible = "sigma,trix-dwmac";
+			reg = <0xf5030000 0x2000>;
+			interrupts = <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>, <GIC_SPI 59 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "mac_irq", "wol_irq";
+			phy-mode = "rmii";
+		};
+
+		uart0: serial@fb005100 {
+			compatible = "ns16550a";
+			reg = <0xfb005100 0x100>;
+			interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>;
+			clock-frequency = <1843200>;	/* 115200 * 16 */
+		};
+
+		uart1: serial@fb005200 {
+			compatible = "ns16550a";
+			reg = <0xfb005200 0x100>;
+			interrupts = <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>;
+			clock-frequency = <1843200>;	/* 115200 * 16 */
+		};
+
+		uart2: serial@fb005300 {
+			compatible = "ns16550a";
+			reg = <0xfb005300 0x100>;
+			interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
+			clock-frequency = <1843200>;	/* 115200 * 16 */
+		};
+
+		sdhci0: sdhci@fb00a000 { /* eMMC on this bus */
+			compatible = "sigma,trix-sdhci";
+			reg = <0xfb00a000 0x420>;
+			interrupts = <GIC_SPI 30 IRQ_TYPE_NONE>;
+			bus-width = <8>;
+		};
+
+		sdhci1: sdhci@fb00c000 { /* SD card on this bus */
+			compatible = "sigma,trix-sdhci";
+			reg = <0xfb00c000 0x420>;
+			interrupts = <GIC_SPI 27 IRQ_TYPE_NONE>;
+			bus-width = <4>;
+		};
+
+		pmx: pinshare@f500ee00 {
+			compatible = "pinctrl-single";
+			reg = <0xf500ee00 0x0100>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-single,bit-per-mux;
+			pinctrl-single,register-width = <8>;
+			pinctrl-single,function-mask = <0xf>;
+		};
+
+		mio: padconf@f500ea00 {
+			compatible = "pinctrl-single";
+			reg = <0xf500ea00 0x100>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-single,register-width = <8>;
+		};
+
+		stbio: padconf@f500ed00 {
+			compatible = "pinctrl-single";
+			reg = <0xf500ed00 0x40>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-single,register-width = <8>;
+		};
+
+		clocks:  clocks {
+			#address-cells = <1>;
+			#size-cells = <1>;
+		};
+	};
+};
+

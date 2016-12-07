@@ -1,0 +1,20 @@
+/dts-v1/;
+#include "sigma-sx8.dtsi"
+/ {
+	model = "Sigma Designs DTV ProSX8";
+	compatible = "sdesigns,sx8", "sdesigns,trix";
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+	};
+
+	/* We expect the bootloader to fill in the chosen node and memory node */
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory {
+	};
+};

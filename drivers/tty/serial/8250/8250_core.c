@@ -100,7 +100,7 @@ static unsigned int skip_txen_test; /* force skip of txen test at init time */
 
 #include <asm/serial.h>
 
-#ifdef CONFIG_SIGMA_DTV
+#if defined(CONFIG_SIGMA_DTV) && !defined(CONFIG_OF)
 #include <mach/serial.h>
 #endif
 
