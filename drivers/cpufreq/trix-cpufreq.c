@@ -33,7 +33,7 @@
 #define Freq_ReadRegByte(addr) ReadRegByte((void*)addr)
 #define Freq_WriteRegByte(addr, val) WriteRegByte((void*)addr, val)
 #define Freq_WriteRegByteMask(addr, val, mask) do{		\
-		unsigned char __tmp = Freq_ReadRegByte(addr);	\
+		unsigned int __tmp = Freq_ReadRegByte(addr);	\
 		__tmp &= ~(mask);				\
 		__tmp |= ((val) & (mask));			\
 		Freq_WriteRegByte(addr, __tmp);			\

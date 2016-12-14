@@ -33,4 +33,14 @@
  */
 extern int trix_mcomm_send_data(void *data, unsigned int len);
 
+/*
+ * @brief it's a wrapper used to send response to MCU side. For mcu_comm driver use only. SMP awared.
+ * @param[in]	param	pointer to user param (N/A for now)
+ *
+ * @return
+ * 	0 	- on success
+ * 	<0	- error code
+ */
+extern int trix_mcomm_response_mcu(void *param);
+
 #endif /*__ASM_ARCH_TRIX_MACH_MCOMM_H__*/

@@ -33,6 +33,11 @@
 
 #define CMD_CTRL_TOTAL_MASK		(0xf<<4)
 #define CMD_CTRL_STAMP_MASK		(0xf)
+/*F,R,C bits are introduced since mcu_comm protocol 1.0.3 (mcu_comm extension)*/
+#define CMD_CTRL_F_MASK			(1<<7)
+#define CMD_CTRL_R_MASK			(1<<6)
+#define CMD_CTRL_C_MASK			(1<<5)
+
 #define CMD_CTRL_ERR_MASK		(1<<4)
 #define CMD_CTRL_LEN_MASK		(0xf)
 
@@ -48,7 +53,7 @@
 #define MCU_DATASEG_START		(MCU_REGFILE_START + CTRLSEG_LEN)
 
 #define MAX_PACKAGE_COUNT		(1<<4)	// 4 bit
-#define MCU_COMM_BUFCOUNT_MAX   210
+#define MCU_COMM_BUFCOUNT_MAX		210	/* (15 x 14) */
 
 typedef enum _tag_mcu_cmd
 {
@@ -76,6 +81,7 @@ static struct mcu_comm_driver {
 	unsigned last_state;
 	int users;
 	struct semaphore lock;
+	struct spinlock spin;		/*spinlock to handle mailbox concurrency*/
 #define MCOMM_TIMEOUT_MS	1000	/*timout 1s*/
 	struct completion finish;
 	struct {
@@ -114,14 +120,56 @@ static int mcomm_debug_push_cmd(struct mcu_comm_driver *drv, unsigned cmd, unsig
 	return 0;
 }
 
-static void mips_int_mcu_reverse(void)
+static void mips_request_mcu(struct spinlock *spin, unsigned char len)
 {
+	unsigned long flags;
 	unsigned char temp;
 
-	temp = readb((volatile void*)MIPS_COMM_BASEREG);
-	temp ^= CMD_MIPS_INTR_MCU_MASK;	//reverse
+	spin_lock_irqsave(spin, flags);
+	/* fill M1 */
+	temp = readb((volatile void*)(MIPS_CTRLSEG_START+1));
+	temp &= ~(CMD_CTRL_C_MASK | CMD_CTRL_LEN_MASK);
+	temp |= (len & CMD_CTRL_LEN_MASK);	/*set len*/
+	/* M1.C = !E1.R */
+	if (!(readb((volatile void*)(MCU_CTRLSEG_START+1)) & CMD_CTRL_R_MASK))
+		temp |= CMD_CTRL_C_MASK;
+	/* M1.F = 1 */
+	temp |= CMD_CTRL_F_MASK;
+	pr_debug("request_mcu, M1/E1 %x/%x\n", temp, readb((volatile void*)(MCU_CTRLSEG_START+1)));
+	writeb( temp, (volatile void*)(MIPS_CTRLSEG_START+1));
+	dmb();
 
+	/* toggle INTR bit */
+	temp = readb((volatile void*)MIPS_COMM_BASEREG);
+	temp ^= CMD_MIPS_INTR_MCU_MASK;	//reverse INTR bit
 	writeb( temp, (volatile void*)MIPS_COMM_BASEREG );
+	spin_unlock_irqrestore(spin, flags);
+}
+
+static void mips_response_mcu(struct spinlock *spin)
+{
+	unsigned long flags;
+	unsigned char temp;
+
+	spin_lock_irqsave(spin, flags);
+	/* deal with M1.R
+	 * M1.R = E1.C
+	 */
+	temp = readb((volatile void*)(MIPS_CTRLSEG_START+1));
+	if (readb((volatile void*)(MCU_CTRLSEG_START+1)) & CMD_CTRL_C_MASK)
+		temp |= CMD_CTRL_R_MASK;
+	else
+		temp &= ~CMD_CTRL_R_MASK;
+	temp |= CMD_CTRL_F_MASK;
+	pr_debug("response_mcu, M1/E1 %x/%x\n", temp, readb((volatile void*)(MCU_CTRLSEG_START+1)));
+	writeb(temp, (volatile void*)(MIPS_CTRLSEG_START+1));
+	dmb();
+
+	/* toggle REST bit */
+	temp = readb((volatile void*)MIPS_COMM_BASEREG);
+	temp ^= CMD_MIPS_RES_MCU_MASK;	//reverse RESP bit
+	writeb( temp, (volatile void*)MIPS_COMM_BASEREG );
+	spin_unlock_irqrestore(spin, flags);
 }
 
 static int protocol_wrap_puart(void *b1,void *b2,int len)
@@ -182,14 +230,13 @@ static int send_one_frame(mcu_comm_param_t * param)
 	pr_debug("sending mcu cmd %x len %d\n", pmcomm_drv->last_cmd, param->buf_len);
 	while( stamp <= total )
 	{
-		//fill in Control Segment
+		//fill in Control Segment except M1
+		//M1 shall be filled inside mips_request_mcu for smp safe.
 		temp = (total<<4) + stamp;
 
 		writeb( temp, (volatile void*)MIPS_CTRLSEG_START );
 
 		len = ( min((int)(param->buf_len - (stamp-1)*DATASEG_LEN), DATASEG_LEN)) & CMD_CTRL_LEN_MASK;
-
-		writeb( len, (volatile void*)(MIPS_CTRLSEG_START+1) );
 
 		//fill in Data Segment
 		for( i=0; i < len; i++ )
@@ -200,7 +247,7 @@ static int send_one_frame(mcu_comm_param_t * param)
 
 		pmcomm_drv->flags |= MCOMM_FLAG_RUNNING;
 		dmb();
-		mips_int_mcu_reverse();	//reverse INIT bit to inform MCU
+		mips_request_mcu(&pmcomm_drv->spin, len);
 
 		/*wait for mcu acknowledge*/
 		pmcomm_drv->try = stamp * DATASEG_LEN;
@@ -375,6 +422,23 @@ int trix_mcomm_send_data(void *data, unsigned int len)
 }
 EXPORT_SYMBOL(trix_mcomm_send_data);
 
+/*
+ * @brief it's a wrapper used to send response to MCU side. For mcu_comm driver use only. SMP awared.
+ * @param[in]	param	pointer to user param (N/A for now)
+ *
+ * @return
+ * 	0 	- on success
+ * 	<0	- error code
+ */
+int trix_mcomm_response_mcu(void *param)
+{
+	BUG_ON(pmcomm_drv == NULL);
+	pr_debug("mcomm_response_mcu\n");
+	mips_response_mcu(&pmcomm_drv->spin);
+	return 0;
+}
+EXPORT_SYMBOL(trix_mcomm_response_mcu);
+
 static int __init trix_mcomm_init(void)
 {
 	int retval = 0;
@@ -387,6 +451,7 @@ static int __init trix_mcomm_init(void)
 	pmcomm_drv->irq_resp = TRIHIDTV_STANDBY_CPU_RESPONSE_INTERRUPT;
 	pmcomm_drv->users = 0;
 	sema_init(&pmcomm_drv->lock, 1);
+	spin_lock_init(&pmcomm_drv->spin);
 	init_completion(&pmcomm_drv->finish);
 	/*
 	 * register IRQs for MCU reponse on A9
