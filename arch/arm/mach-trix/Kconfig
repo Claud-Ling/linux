@@ -192,7 +192,7 @@ config ANDROID_PLATFORM
 	select SYNC
 	select ANDROID
 	select ANDROID_BINDER_IPC
-	select ANDROID_LOGGER
+	#select ANDROID_LOGGER # LOGGER driver was removed
 	select ANDROID_TIMED_OUTPUT
 	select ASHMEM
 	select ANDROID_LOW_MEMORY_KILLER
