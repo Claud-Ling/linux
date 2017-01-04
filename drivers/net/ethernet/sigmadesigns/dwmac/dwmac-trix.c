@@ -318,6 +318,7 @@ static int sigma_dwmac_probe(struct platform_device *pdev)
 	plat_dat->init		= sigma_dwmac_init;
 	plat_dat->exit		= sigma_dwmac_exit;
 	plat_dat->fix_mac_speed	= sigma_dwmac_fix_mac_speed;
+	plat_dat->multicast_filter_bins = HASH_TABLE_SIZE;
 
 	ret = sigma_dwmac_init(pdev, plat_dat->bsp_priv);
 
