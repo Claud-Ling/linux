@@ -2983,6 +2983,17 @@ static void giveback_first_trb(struct xhci_hcd *xhci, int slot_id,
 		start_trb->field[3] |= cpu_to_le32(start_cycle);
 	else
 		start_trb->field[3] &= cpu_to_le32(~TRB_CYCLE);
+
+	/*
+	 * Before ring doorbell we need make sure the first trb cycle bit
+	 * is already write to memory.(In some low bandwidth case, memory
+	 * is slower than IO space register)
+	 */
+	wmb();
+	if (start_trb->field[3] & TRB_CYCLE) {
+		nop();
+	}
+
 	xhci_ring_ep_doorbell(xhci, slot_id, ep_index, stream_id);
 }
 

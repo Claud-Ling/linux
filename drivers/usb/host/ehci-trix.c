@@ -36,18 +36,18 @@ static void usb_phy_fixup(void)
 {
 	int ret = 0;
 
-	MWriteRegWord(USB1_PHY_TST_CR, 0x0000, 0xffff);
-	MWriteRegWord(USB1_PHY_TST_CR, 0x4000, 0xffff);
-	MWriteRegWord(USB1_PHY_TST_CR, 0x0000, 0xffff);
-	MWriteRegWord(USB1_PHY_TST_CR, 0x4000, 0xffff);
-	MWriteRegWord(USB1_PHY_TST_CR, 0x0000, 0xffff);
-	MWriteRegWord(USB1_PHY_TST_CR, 0x2000, 0xffff);
-	MWriteRegWord(USB1_PHY_TST_CR, 0x6000, 0xffff);
-	MWriteRegWord(USB1_PHY_TST_CR, 0x2000, 0xffff);
-	MWriteRegWord(USB1_PHY_TST_CR, 0x6000, 0xffff);
-	MWriteRegWord(USB1_PHY_TST_CR, 0x2000, 0xffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x00000, 0xfffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x40000, 0xfffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x00000, 0xfffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x40000, 0xfffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x00000, 0xfffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x20000, 0xfffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x60000, 0xfffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x20000, 0xfffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x60000, 0xfffff);
+	MWriteRegWord(USB1_PHY_TST_CR, 0x20000, 0xfffff);
 
-	ret = phy_handshake(USB1_PHY_TST_CR, 0x2000, 0xffff, 1000);
+	ret = phy_handshake(USB1_PHY_TST_CR, 0x20000, 0xfffff, 1000);
 	if (ret)
 		printk(KERN_INFO"Wait PHY_TST_CR(%p) transition to 0x2000, timeout\n", USB1_PHY_TST_CR);
 
@@ -68,18 +68,18 @@ static void usb_phy_fixup(void)
 		printk(KERN_INFO"Wait PHY_TST_RR(%p) transition to 0x00, timeout\n", USB1_PHY_TST_RR);
 
 
-	MWriteRegWord(USB2_PHY_TST_CR, 0x0000, 0xffff);
-	MWriteRegWord(USB2_PHY_TST_CR, 0x4000, 0xffff);
-	MWriteRegWord(USB2_PHY_TST_CR, 0x0000, 0xffff);
-	MWriteRegWord(USB2_PHY_TST_CR, 0x4000, 0xffff);
-	MWriteRegWord(USB2_PHY_TST_CR, 0x0000, 0xffff);
-	MWriteRegWord(USB2_PHY_TST_CR, 0x2000, 0xffff);
-	MWriteRegWord(USB2_PHY_TST_CR, 0x6000, 0xffff);
-	MWriteRegWord(USB2_PHY_TST_CR, 0x2000, 0xffff);
-	MWriteRegWord(USB2_PHY_TST_CR, 0x6000, 0xffff);
-	MWriteRegWord(USB2_PHY_TST_CR, 0x2000, 0xffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x00000, 0xfffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x40000, 0xfffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x00000, 0xfffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x40000, 0xfffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x00000, 0xfffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x20000, 0xfffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x60000, 0xfffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x20000, 0xfffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x60000, 0xfffff);
+	MWriteRegWord(USB2_PHY_TST_CR, 0x20000, 0xfffff);
 
-	ret = phy_handshake(USB2_PHY_TST_CR, 0x2000, 0xffff, 1000);
+	ret = phy_handshake(USB2_PHY_TST_CR, 0x20000, 0xfffff, 1000);
 	if (ret)
 		printk(KERN_INFO"Wait PHY_TST_CR(%p) transition to 0x2000, timeout\n", USB2_PHY_TST_CR);
 
@@ -230,6 +230,11 @@ int usb_ehci_trihidtv_probe(const struct hc_driver *driver,
 	retval =
 	    usb_add_hcd(hcd, dev->resource[1].start, IRQF_SHARED);
 	platform_set_drvdata(dev, hcd);
+
+	/* Enable SDIS(Stream Diabale Mode) */
+#define USBMODE		(0xA8)
+	MWriteRegWord((void *)(hcd->rsrc_start + USBMODE), 0x10, 0x10);
+
 	if (retval == 0)
 		return retval;
 
@@ -361,7 +366,7 @@ static const struct hc_driver ehci_trihidtv_hc_driver = {
 	.irq = ehci_irq,
 #endif
 	.flags = HCD_MEMORY | HCD_USB2 | HCD_BH,
-	.reset			= ehci_init,
+	.reset			= ehci_setup,
 	.start			= ehci_run,
 	.stop			= ehci_stop,
 	.shutdown		= ehci_shutdown,
