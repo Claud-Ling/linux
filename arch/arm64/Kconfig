@@ -266,19 +266,29 @@ menuconfig ARCH_SIGMA_TRIX_OF
 	  This enables support for Sigmadesigns DTV SoC ARM64 Family
 
 if ARCH_SIGMA_TRIX_OF
+
 config SIGMA_DTV
 	bool
 	depends on ARCH_SIGMA_TRIX_OF
 
-config SIGMA_SOC_UNION1
-	bool "Sigma DTV UNION1 SoCs support"
+choice
+	prompt "Select SIGMA DTV SoC type"
 	depends on ARCH_SIGMA_TRIX_OF
-	default y
+	help
+	  Sigma DTV Soc selection
+
+config SIGMA_SOC_UNION
+	bool "UNION"
+	help
+	  Sigma DTV UNION SoCs support(AARCH64)
 
 config SIGMA_SOC_UNION2
-	bool "Sigma DTV UNION2 SoCs support"
-	depends on ARCH_SIGMA_TRIX_OF
-	default y
+	bool "UNION2"
+	help
+	  Sigma DTV UNION2 SoCs support(AARCH64)
+
+endchoice
+
 endif
 
 endmenu

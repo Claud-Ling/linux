@@ -2,13 +2,24 @@ if  ARCH_SIGMA_TRIX_OF
 
 menu "Sigma SX series SoC Specific Features"
 
-config SIGMA_SOC_UNION1
-	bool "Sigma DTV UNION1 SoCs support(AARCH32)"
-	default y
+choice
+	prompt "Select SIGMA DTV SoC type"
+	depends on ARCH_SIGMA_TRIX_OF
+	help
+	  Sigma DTV Soc selection
+
+config SIGMA_SOC_UNION
+	bool "UNION"
+	help
+	  Sigma DTV UNION SoCs support(AARCH32)
 
 config SIGMA_SOC_SX8_OF
-	bool "Sigma DTV SX8 SoCs support"
-	default y
+	bool "SX8"
+	help
+	  Sigma DTV SX8 SoCs support
+
+endchoice
+
 
 config TRIX_CACHE_L2X0
 	bool "Enable L2 Cache "

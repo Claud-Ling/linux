@@ -7,4 +7,4 @@ obj-$(CONFIG_ARCH_QCOM)		+= qcom/
 obj-$(CONFIG_ARCH_TEGRA)	+= tegra/
 obj-$(CONFIG_SOC_TI)		+= ti/
 obj-$(CONFIG_PLAT_VERSATILE)	+= versatile/
-obj-$(CONFIG_SOC_TRIX)		+= trix/
+obj-$(CONFIG_ARCH_SIGMA_TRIX_OF)	+= trix/

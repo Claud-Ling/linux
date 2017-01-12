@@ -7,11 +7,11 @@
  */
 
 /dts-v1/;
-#include "sigma-union1.dtsi"
+#include "sigma-union.dtsi"
 
 / {
-	model = "Sigma TRIX-UNION1 board";
-	compatible = "sdesigns,union1", "sdesigns,trix";
+	model = "Sigma TRIX-UNION board";
+	compatible = "sdesigns,union", "sdesigns,trix";
 
 	aliases {
 		serial0 = &uart0;

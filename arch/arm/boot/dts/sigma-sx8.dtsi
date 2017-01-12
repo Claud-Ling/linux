@@ -84,6 +84,67 @@
 		cache-line-size = <32>;
 	};
 
+	io-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		compatible = "trix,io-accessor";
+
+		io-space-0 {
+			reg = <0xf5000000 0x8000000>;
+		};
+
+		a9-private {
+			reg = <0xf2100000 0x3000>;
+		};
+
+		pman-sec0 {
+			reg = <0xf5005000 0x1000>;
+			secure-io;
+		};
+
+		pman-sec1 {
+			reg = <0xf5008000 0x1000>;
+			secure-io;
+		};
+
+		plf_mmio_sec {
+			reg = <0xf5002000 0x1000>;
+			secure-io;
+		};
+
+		plf_mmio_conf {
+			reg = <0xf5003000 0x1000>;
+			secure-io;
+		};
+
+		av_mmio_sec {
+			reg = <0xf0016000 0x1000>;
+			secure-io;
+		};
+
+		av_mmio_conf {
+			reg = <0xf0017000 0x1000>;
+			secure-io;
+		};
+
+		disp_mmio_sec {
+			reg = <0xfa000000 0x1000>;
+			secure-io;
+		};
+
+		disp_mmio_conf {
+			reg = <0xfa001000 0x1000>;
+			secure-io;
+		};
+
+		turing {
+			reg = <0xf1040000 0x20000>;
+			secure-io;
+		};
+	};
+
 	soc {
 		soc_timer@f5027000 {
 			clocks = <&clk200m>;

@@ -1,0 +1,22 @@
+menu "DTV Firmware Drivers"
+
+config TRIX_MCU_COMM
+	tristate "mcu comm driver"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  This option enables support for communicating with the MCU firmware
+
+config TRIX_SECURE_FIRMWARE
+	tristate "secure firmware support"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  we are booted with the Trusted Zone, requiring some core operations
+	  to be performed by the secure world instead of the kernel
+
+	  This option allows the kernel to invoke the secure world whenever
+	  required on devices using SMC calls.
+
+endmenu
+

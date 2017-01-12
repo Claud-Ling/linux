@@ -21,4 +21,8 @@ static inline void acpi_irq_init(void)
 }
 #define acpi_irq_init acpi_irq_init
 
+#ifdef CONFIG_ARCH_SIGMA_TRIX_OF
+#include <linux/soc/sigma-dtv/irqs.h>
+#endif /* CONFIG_ARCH_SIGMA_TRIX_OF */
+
 #endif

@@ -35,6 +35,10 @@ extern void (*handle_arch_irq)(struct pt_regs *);
 extern void set_handle_irq(void (*handle_irq)(struct pt_regs *));
 #endif
 
+#ifdef CONFIG_ARCH_SIGMA_TRIX_OF
+#include <linux/soc/sigma-dtv/irqs.h>
+#endif /* CONFIG_ARCH_SIGMA_TRIX_OF */
+
 #endif
 
 #endif

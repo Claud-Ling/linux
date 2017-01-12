@@ -247,7 +247,7 @@ module_platform_driver(trix_cpufreq_platdrv);
 
 static const struct of_device_id machines[] __initconst = {
 	{ .compatible = "sdesigns,sx8", },
-	{ .compatible = "sdesigns,union1", },
+	{ .compatible = "sdesigns,union", },
 	{ }
 };
 

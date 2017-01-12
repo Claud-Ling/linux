@@ -65,21 +65,24 @@
 		};
 
 		uart0: serial@fb005100 {
-			compatible = "sigma,trix-uart";
+			compatible = "ns16550a";
 			reg = <0x0 0xfb005100 0x0 0x100>;
 			interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>;
+			clock-frequency = <1843200>;	/* 115200 * 16 */
 		};
 
 		uart1: serial@fb005200 {
-			compatible = "sigma,trix-uart";
+			compatible = "ns16550a";
 			reg = <0x0 0xfb005200 0x0 0x100>;
 			interrupts = <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>;
+			clock-frequency = <1843200>;	/* 115200 * 16 */
 		};
 
 		uart2: serial@fb005300 {
-			compatible = "sigma,trix-uart";
+			compatible = "ns16550a";
 			reg = <0x0 0xfb005300 0x0 0x100>;
 			interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
+			clock-frequency = <1843200>;	/* 115200 * 16 */
 		};
 
 	};

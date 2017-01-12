@@ -402,5 +402,9 @@ extern int devmem_is_allowed(unsigned long pfn);
 extern void register_isa_ports(unsigned int mmio, unsigned int io,
 			       unsigned int io_shift);
 
+#ifdef CONFIG_ARCH_SIGMA_TRIX_OF
+#include <linux/soc/sigma-dtv/io.h>
+#endif /* CONFIG_ARCH_SIGMA_TRIX_OF */
+
 #endif	/* __KERNEL__ */
 #endif	/* __ASM_ARM_IO_H */

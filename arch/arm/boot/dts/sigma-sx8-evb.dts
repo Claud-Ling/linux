@@ -1,7 +1,7 @@
 /dts-v1/;
 #include "sigma-sx8.dtsi"
 / {
-	model = "Sigma Designs DTV ProSX8";
+	model = "Sigma TRIX-SX8 board";
 	compatible = "sdesigns,sx8", "sdesigns,trix";
 
 	aliases {

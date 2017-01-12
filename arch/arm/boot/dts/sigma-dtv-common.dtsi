@@ -141,6 +141,12 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 		};
+
+		mcu_comm: mcomm@f5000000 {
+			compatible = "trix,mcomm";
+			reg = <0xf5000000 0x40>;
+			interrupts = <GIC_SPI 49 IRQ_TYPE_EDGE_RISING>;
+		};
 	};
 };
 

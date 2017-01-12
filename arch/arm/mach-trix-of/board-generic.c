@@ -22,7 +22,7 @@ static char const *const trix_of_compat[] __initconst = {
 	"sdesigns,sx7",
 	"sdesigns,uxlb",
 	"sdesigns,sx8",
-	"sdesigns,union1",
+	"sdesigns,union",
 	NULL,
 };
 
