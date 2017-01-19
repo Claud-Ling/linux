@@ -28,6 +28,13 @@ config TRIX_DRV_HELPER
 	  The driver provides an interface to access system resource among
 	  various kernel drivers/modules.
 
+config TRIX_OTP_FUSE
+	bool "OTP(One Time Programable) interface"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Select this option to enable accessing OTP fuse bits.
+
 source "drivers/soc/trix/firmware/Kconfig"
 
 endmenu

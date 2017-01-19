@@ -12,6 +12,8 @@
 #include "sigma-sx8-pinctrl.dtsi"
 #include "sigma-sx8-clocks.dtsi"
 
+#include <dt-bindings/soc/sigma-dtv/proc_fuse.h>
+
 / {
 	cpus {
 		#address-cells = <1>;
@@ -230,6 +232,14 @@
 		a9_sub_sys: a9_sub_sys@f500ef00 {
 			compatible = "trix,syscon";
 			reg = <0xf500ef00 0x40>;
+		};
+
+		otp_fuse: otp_fuse {
+			compatible = "trix,sx8-otp";
+			reg = <0xf1040000 0x2000>;
+
+			#define CONFIG_SIGMA_SOC_SX8
+			#include <dt-bindings/soc/sigma-dtv/fuse_data_map.inc>
 		};
 	};
 };

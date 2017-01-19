@@ -1,0 +1,409 @@
+/*
+ * otp.c
+ * - interface for accessing OTP(One Time Programable) bits
+ * - expose SoC's OTP configuration in procfs(read-only, under /proc/otp/)
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ */
+
+#include <linux/err.h>
+#include <linux/io.h>
+#include <linux/module.h>
+#include <linux/list.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_platform.h>
+#include <linux/platform_device.h>
+#include <linux/slab.h>
+#include <linux/mod_devicetable.h>
+
+#include "otp.h"
+
+static struct trix_otp *otp = NULL;
+
+#ifdef CONFIG_PROC_FS
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
+
+
+struct node_descriptor {
+	struct device_node *node;
+	char name[40];
+	unsigned int offset;
+	unsigned int length;
+	bool has_field;
+
+	struct proc_dir_entry *pe;
+	struct list_head n;
+};
+
+/*
+ * present <n> bytes data array
+ */    
+static int seq_print_data(struct seq_file *m, void *d, int n)
+{
+        int i = 0;
+        char *t = (char*)d;
+        for (i = 0; i < n; i++) {
+                seq_printf(m, "%02x", *t++);
+        }
+        seq_printf(m, "\n");
+        return i;
+}
+
+static int node_generic_show(struct seq_file *m, void *v)
+{
+	struct node_descriptor *item = (struct node_descriptor *)m->private;
+	uint32_t *buf = NULL;
+	uint32_t len = item->length;
+
+	buf = kzalloc(sizeof(char)*len, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+	if (otp->read_array &&
+		 !(otp->read_array(otp, item->offset, buf, len))) {
+
+		seq_print_data(m, (void*)buf, len);
+	}
+
+	kfree(buf);
+
+	return 0;
+}
+
+#ifdef GET_BITS
+# undef GET_BITS
+#endif
+#define GET_BITS(v, s, n) (((v) & (((1 << (n)) - 1) << (s))) >> (s))
+
+static int entry_field_show(struct seq_file *m, uint32_t val,
+					struct device_node *field)
+{
+	int bit, nbits;
+
+	if (of_property_read_u32(field, "field-offset", &bit))
+		return -EINVAL;
+
+	if (of_property_read_u32(field, "field-width", &nbits))
+		return -EINVAL;
+
+	seq_printf(m, "%s: %x\n", field->name,		\
+				GET_BITS(val, bit, nbits));
+
+	return 0;
+}
+
+static int node_entry_show(struct seq_file *m, void *v)
+{
+	struct device_node *field;
+	struct node_descriptor *item = (struct node_descriptor *)m->private;
+	uint32_t _t1, _t2;
+
+	if ( otp->read &&
+	     !(otp->read(otp, item->offset, &_t1))) {
+
+		_t2 = htonl(_t1); /*network byte order for reading*/
+		seq_print_data(m, (void*)&_t2, 4);
+
+		for_each_child_of_node(item->node, field) {
+			entry_field_show(m, _t1, field);
+		}
+	}
+
+	return 0;
+}
+
+static int node_show(struct seq_file *m, void *v)
+{
+	struct node_descriptor *item =
+			(struct node_descriptor *)m->private;
+
+	if (item->has_field)
+		return node_entry_show(m, v);
+	else
+		return node_generic_show(m, v);
+}
+
+static int node_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, node_show, PDE_DATA(inode));
+}
+
+static const struct file_operations otp_node_fops = {
+	.open		= node_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+static int show_node_helper(struct seq_file *m,
+			struct node_descriptor *item)
+{
+	if(!item->has_field) {
+		seq_printf(m, "[%03x] %03x %s\n",
+				item->offset, item->length, item->name);
+	} else {
+		struct device_node *field;
+		unsigned int bit, nbits;
+
+		seq_printf(m, "[%03x] 004 %s\n", item->offset, item->name);
+
+		for_each_child_of_node(item->node, field) {
+			if (of_property_read_u32(field, "field-offset", &bit))
+				return -EINVAL;
+
+			if (of_property_read_u32(field, "field-width", &nbits))
+				return -EINVAL;
+
+			if (nbits > 1)
+				seq_printf(m, "\tbit[%-2d:%-2d]  - %s\n",
+					(bit + nbits-1), bit, field->name);
+			else
+				 seq_printf(m, "\tbit[%-2d]     - %s\n",
+					bit, field->name);
+		}
+	}
+
+	return 0;
+}
+
+static int index_show(struct seq_file *m, void *v)
+{
+	struct node_descriptor *item;
+
+	seq_printf(m, "<ofs  len name>\n");
+	list_for_each_entry(item, &otp->fuse_map_list, n) {
+		show_node_helper(m, item);
+	}
+
+	return 0;
+}
+
+static int index_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, index_show, NULL);
+}
+
+static const struct file_operations otp_index_fops = {
+	.open		= index_open,
+	.read		= seq_read,    
+	.llseek		= seq_lseek,   
+	.release	= single_release,
+};
+
+static int create_one_node(struct device_node *node)
+{
+	struct node_descriptor *item;
+	int ret;
+
+	item = kzalloc(sizeof(*item), GFP_KERNEL);
+	if (!item)
+		return -ENOMEM;
+
+	item->node = node;
+
+	strncpy(item->name, node->name, strlen(node->name));
+
+	if (of_property_read_u32(node, "fuse-offset", &item->offset)) {
+		ret = -EINVAL;
+		goto free_mem;
+	}
+
+	item->has_field = of_property_read_bool(node, "has-field");
+	if (!item->has_field) {
+		/* generated by otp_fuse_generic(name, ofs, len) */
+		if (of_property_read_u32(node, "fuse-size", &item->length)) {
+			ret = -EINVAL;
+			goto free_mem;
+		}
+	} else {
+		/* generated by otp_fuse_entry(name, offset[, field[, field[, ...]]]) */
+		item->length = 4;
+	}
+
+	item->pe = proc_create_data(node->name, S_IRUGO,
+				otp->proc_dir, &otp_node_fops, (void *)item);
+	if (!item->pe) {
+		ret = -EINVAL;
+		goto free_mem;
+	}
+
+	list_add_tail(&item->n, &otp->fuse_map_list);
+
+	return 0;
+free_mem:
+	kfree(item);
+	return ret;
+}
+
+static int fuse_map_of_parse(struct device_node *np)
+{
+	struct device_node *child;
+	int ret;
+
+	for_each_child_of_node(np, child) {
+		if ((ret = create_one_node(child)))
+			return ret;
+	}
+
+
+	return 0;
+}
+#endif
+
+/*
+ * get security boot state from OTP
+ * return value
+ * 	false	-  security boot disabled (default)
+ * 	true	-  security boot enabled
+ */
+bool otp_get_security_boot_state(void)
+{
+	if ( !otp->soc && !otp->soc->get_security_boot_state)
+		return false;
+
+	return otp->soc->get_security_boot_state(otp);
+}
+EXPORT_SYMBOL(otp_get_security_boot_state);
+
+/*
+ * get new NAND selection state from OTP
+ * return value
+ * 	false	-  legacy NAND controller (default)
+ * 	true	-  new NAND controller
+ */
+bool otp_get_new_nand_sel_state(void)
+{
+	if (!otp->soc && !otp->soc->get_new_nand_sel_state)
+		return false;
+
+	return otp->soc->get_new_nand_sel_state(otp);
+}
+EXPORT_SYMBOL(otp_get_new_nand_sel_state);
+
+/*
+ * get index value of current using RSA public key
+ * return value
+ * 	0       -  use OTP RSA public key
+ * 	1 ~ 16  -  index to ROM embedded RSA public key that is in use
+ * 	<0	-  error
+ */
+int otp_get_rsa_key_index(void)
+{
+	if (!otp->soc && !otp->soc->get_rsa_key_index)
+		return -EINVAL;
+
+	return otp->soc->get_rsa_key_index(otp);
+}
+EXPORT_SYMBOL(otp_get_rsa_key_index);
+
+/*
+ * read RSA public key from OTP
+ * inputs:
+ * 	buf     -  point to a buffer
+ * 	nbytes  -  length of buffer, it's at least OTP_RSA_KEY_NBYTES long
+ * return value:
+ * 	0 on success. Otherwise non-zero
+ */
+uint32_t otp_get_rsa_key(uint32_t *buf, uint32_t nbytes)
+{
+	if (!otp->soc && !otp->soc->get_rsa_key)
+		return 1;
+
+	return otp->soc->get_rsa_key(otp, (uint32_t*)buf, nbytes);
+}
+EXPORT_SYMBOL(otp_get_rsa_key);
+
+/*
+ * get value of bits [<s>+<nbits>-1:<s>] of fuse <ofs>
+ * inputs:
+ * 	ofs     -  specify fuse offset
+ * 	s	-  start bit (begin at 0)
+ * 	nb	-  number of bits to get against
+ * outputs:
+ * 	ptr	-  pointer of buffer to load fuse value on success
+ * return value:
+ * 	0 on success with value of specified bits stored in buffer
+ * 	pointed by <ptr>. Otherwise errors.
+ */
+int otp_get_fuse_bits(const uint32_t ofs, const unsigned s, const unsigned nbits, uint32_t *ptr)
+{
+	int ret = 0;
+	uint32_t tmp;
+
+	if (s > 31 || nbits > 31 || ptr == NULL) {
+		pr_err("invalid parameter! s %d nb %d\n", s, nbits);
+		return -EINVAL;
+	}
+
+	if ( otp->read && !(otp->read(otp, ofs, &tmp)) ){
+		pr_debug("get fuse value %#x (ofs %#x)\n", tmp, ofs);
+		*ptr = GET_BITS(tmp, s, nbits);
+	} else {
+		pr_err("failed to get fuse value at ofs %#x\n", ofs);
+		ret = -EINVAL;
+	}
+	return ret;
+}
+EXPORT_SYMBOL(otp_get_fuse_bits);
+
+static const struct of_device_id trix_otp_match[] = {
+	{ .compatible = "trix,sx8-otp",    .data = &sxx_fuse_soc},
+	{ .compatible = "trix,union-otp",  .data = &sxx_fuse_soc},
+	{ /* sentinel */ }
+};
+
+static int __init trix_init_otp(void)
+{
+	const struct of_device_id *match;
+	struct device_node *np;
+	int ret = 0;
+
+	np = of_find_matching_node_and_match(NULL, trix_otp_match, &match);
+	if (!np)
+		return -ENODEV;
+
+	otp =  kzalloc(sizeof(struct trix_otp), GFP_KERNEL);
+	if (IS_ERR_OR_NULL(otp))
+		return -ENOMEM;
+
+	INIT_LIST_HEAD(&otp->fuse_map_list);
+
+	/*
+	 * Extract information from the device tree if we've found a
+	 * matching node
+	 */
+	otp->base = of_iomap(np, 0);
+	if(IS_ERR_OR_NULL(otp->base)) {
+		ret = -ENOMEM;
+		goto free_mem;
+	}
+
+#ifdef CONFIG_PROC_FS
+	otp->proc_dir = proc_mkdir("otp", NULL);
+	/*
+	 * parse device-tree for the fuse map
+	 */
+	fuse_map_of_parse(np);
+
+	proc_create("index", S_IRUGO, otp->proc_dir, &otp_index_fops);
+#endif
+
+	/* get SoC specific hook */
+	otp->soc = (struct trix_otp_soc *)match->data;
+
+	if (otp->soc && otp->soc->init)
+		otp->soc->init(otp);
+
+	return 0;
+
+free_mem:
+	kfree(otp);
+	return ret;
+}
+early_initcall(trix_init_otp);
+
