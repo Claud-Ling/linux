@@ -19,7 +19,7 @@
 
 *******************************************************************************/
 
-#include <mach/gmac.h>
+#include <linux/gmac.h>
 #include "common.h"
 #include "descs_com.h"
 

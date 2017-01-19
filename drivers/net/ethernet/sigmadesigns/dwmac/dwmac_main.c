@@ -1674,13 +1674,6 @@ static int dwmac_open(struct net_device *dev)
 
 	dwmac_check_ether_addr(priv);
 
-	ret = dwmac_init_phy(dev);
-	if (ret) {
-		pr_err("%s: Cannot attach to PHY (error: %d)\n",
-		       __func__, ret);
-		return ret;
-	}
-
 	/* Extra statistics */
 	memset(&priv->xstats, 0, sizeof(struct dwmac_extra_stats));
 	priv->xstats.threshold = tc;
@@ -1744,8 +1737,6 @@ wolirq_error:
 init_error:
 	free_dma_desc_resources(priv);
 dma_desc_error:
-	if (priv->phydev)
-		phy_disconnect(priv->phydev);
 
 	return ret;
 }
@@ -1762,13 +1753,6 @@ static int dwmac_release(struct net_device *dev)
 
 	if (priv->eee_enabled)
 		del_timer_sync(&priv->eee_ctrl_timer);
-
-	/* Stop and disconnect the PHY */
-	if (priv->phydev) {
-		phy_stop(priv->phydev);
-		phy_disconnect(priv->phydev);
-		priv->phydev = NULL;
-	}
 
 	netif_stop_queue(dev);
 
@@ -2365,9 +2349,6 @@ static int dwmac_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 	struct dwmac_priv *priv = netdev_priv(dev);
 	int ret = -EOPNOTSUPP;
 
-	if (!netif_running(dev))
-		return -EINVAL;
-
 	switch (cmd) {
 	case SIOCGMIIPHY:
 	case SIOCGMIIREG:
@@ -2377,6 +2358,8 @@ static int dwmac_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 		ret = phy_mii_ioctl(priv->phydev, rq, cmd);
 		break;
 	case SIOCSHWTSTAMP:
+		if (!netif_running(dev))
+			return -EINVAL;
 		ret = dwmac_hwtstamp_ioctl(dev, rq);
 		break;
 	default:
@@ -2780,6 +2763,13 @@ int dwmac_dvr_probe(struct device *device,
 	}
 #endif
 
+	ret = dwmac_init_phy(ndev);
+	if (ret) {
+		pr_err("%s: Cannot attach to PHY (error: %d)\n",
+		       __func__, ret);
+		goto error_mdio_register;	
+	}
+
 	return 0;
 
 error_mdio_register:
@@ -2804,6 +2794,13 @@ int dwmac_dvr_remove(struct net_device *ndev)
 	struct dwmac_priv *priv = netdev_priv(ndev);
 
 	pr_info("%s:\n\tremoving driver", __func__);
+
+	/* Stop and disconnect the PHY */
+	if (priv->phydev) {
+		phy_stop(priv->phydev);
+		phy_disconnect(priv->phydev);
+		priv->phydev = NULL;
+	}
 
 	priv->hw->dma->stop_rx(priv->ioaddr);
 	priv->hw->dma->stop_tx(priv->ioaddr);

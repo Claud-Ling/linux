@@ -26,7 +26,7 @@
 #include <linux/phy.h>
 #include <linux/ptp_clock_kernel.h>
 #include "common.h"
-#include <mach/gmac.h>
+#include <linux/gmac.h>
 
 struct dwmac_resources {
 	void __iomem *addr;	/* virtual base address */

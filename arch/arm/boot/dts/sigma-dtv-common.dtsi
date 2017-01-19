@@ -142,6 +142,11 @@
 			compatible = "sigma,trix-xhci";
 			reg = <0xf5200000 0xd000>;
 			interrupts = <GIC_SPI 90 IRQ_TYPE_NONE>;
+		
+		spi_nor: spi_nor@fb002000 { /* spi nor on this bus */
+			compatible = "sigma,spi-nor";
+			reg = <0xfb002000 0x400>,
+			      <0xfdbe0000 0x400000>;
 		};
 
 		pmx: pinshare@f500ee00 {

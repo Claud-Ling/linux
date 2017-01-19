@@ -40,9 +40,17 @@
 #define IS_RMII(iface)     (iface == PHY_INTERFACE_MODE_RMII)
 #define IS_RGMII(iface)     (iface == PHY_INTERFACE_MODE_RGMII)
 
+#define mask_writel(v, m, a) do{   \
+		typeof(v) tmp;                 \
+		tmp = readl(a);                \
+		tmp &= ~(m);                   \
+		tmp |= ((v) & (m));            \
+		writel(tmp, a);                \
+	}while(0)
+
 struct sigma_dwmac {
 	int interface;		/* phy interface */
-	u32 ctrl_reg;		/* GMAC glue-logic control register */
+	void __iomem *ctrl_reg;		/* GMAC glue-logic control register */
 	u32 speed;
 
 	struct device *device;
@@ -93,7 +101,10 @@ static int sigma_dwmac_probe_config_dt(struct platform_device *pdev,
 			        struct plat_dwmacenet_data *plat,
 			        const char **mac)
 {
-	//TODO:support Open Firmware
+	struct device_node *np = pdev->dev.of_node;
+
+	*mac = of_get_mac_address(np);
+	plat->interface = of_get_phy_mode(np);
 
 	return 0;
 }
@@ -137,8 +148,7 @@ int sigma_dwmac_get_platform_resources(struct platform_device *pdev,
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 
-	//dwmac_res->addr = devm_ioremap_resource(&pdev->dev, res);
-	dwmac_res->addr = SIGMA_IO_ADDRESS(res->start);
+	dwmac_res->addr = devm_ioremap_resource(&pdev->dev, res);
 
 	return IS_ERR_OR_NULL(dwmac_res->addr);
 }
@@ -171,13 +181,11 @@ static void sigma_dwmac_fix_mac_speed(void *bsp_priv, unsigned int speed)
 #endif
 	if(IS_RGMII(priv->phydev->interface)) {
 		/* RGMII - 125Mhz clock */
-		MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_PHY_IF_CTRL),
-			      GMAC_PHY_IF_SEL_RGMII, GMAC_PHY_IF_SEL_MASK);
+		mask_writel(GMAC_PHY_IF_SEL_RGMII, GMAC_PHY_IF_SEL_MASK, dwmac->ctrl_reg + GMAC_PHY_IF_CTRL);
 	}
 	else {
 		/* RMII - 25Mhz clock */
-		MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_PHY_IF_CTRL),
-			      GMAC_PHY_IF_SEL_RMII, GMAC_PHY_IF_SEL_MASK);
+		mask_writel(GMAC_PHY_IF_SEL_RMII, GMAC_PHY_IF_SEL_MASK, dwmac->ctrl_reg + GMAC_PHY_IF_CTRL);
 	}
 
 	return;
@@ -207,18 +215,15 @@ static int sigma_dwmac_init(struct platform_device *pdev, void *priv)
 #endif
 
 	/* enable interrupt logic to CPU */
-	MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_MON_CTR_REG),
-		        GMAC_MON_CTRL_INT_ENABLE, GMAC_MON_CTRL_INT_MASK);
+	mask_writel(GMAC_MON_CTRL_INT_ENABLE, GMAC_MON_CTRL_INT_MASK, dwmac->ctrl_reg + GMAC_MON_CTR_REG);
 
 	if(IS_RGMII(iface)) {
 		/* RGMII - 125Mhz clock */
-		MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_PHY_IF_CTRL),
-			      GMAC_PHY_IF_SEL_RGMII, GMAC_PHY_IF_SEL_MASK);
+		mask_writel(GMAC_PHY_IF_SEL_RGMII, GMAC_PHY_IF_SEL_MASK, dwmac->ctrl_reg + GMAC_PHY_IF_CTRL);
 	}
 	else {
 		/* RMII - 25Mhz clock */
-		MWriteRegWord( (volatile void *)(dwmac->ctrl_reg + GMAC_PHY_IF_CTRL),
-			      GMAC_PHY_IF_SEL_RMII, GMAC_PHY_IF_SEL_MASK);
+		mask_writel(GMAC_PHY_IF_SEL_RMII, GMAC_PHY_IF_SEL_MASK, dwmac->ctrl_reg + GMAC_PHY_IF_CTRL);
 	}
 
 	return 0;
@@ -232,16 +237,13 @@ static void sigma_dwmac_exit(struct platform_device *dev, void *priv)
 static int sigma_dwmac_parse_data(struct sigma_dwmac *dwmac,
 				  struct platform_device *pdev)
 {
-#ifndef CONFIG_OF
 	struct resource *res;
 	struct plat_dwmacenet_data *plat_dat;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	dwmac->ctrl_reg = (u32)SIGMA_IO_ADDRESS(res->start);
-
+	dwmac->ctrl_reg = SIGMA_IO_ADDRESS(res->start);
 	plat_dat = pdev->dev.platform_data;
 	dwmac->interface = plat_dat->interface;	/* RMII or RGMII */
-#endif
 
 	return 0;
 }
@@ -288,10 +290,15 @@ static int sigma_dwmac_probe(struct platform_device *pdev)
 
 	dwmac->device = &pdev->dev;
 
-	ret = sigma_dwmac_parse_data(dwmac, pdev);
-	if (ret) {
-		dev_err(&pdev->dev, "Unable to parse OF data\n");
-		return ret;
+	if(pdev->dev.of_node) {
+		dwmac->interface = plat_dat->interface;
+		dwmac->ctrl_reg = dwmac_res.addr;
+	}else{
+		ret = sigma_dwmac_parse_data(dwmac, pdev);
+		if (ret) {
+			dev_err(&pdev->dev, "Unable to parse OF data\n");
+			return ret;
+		}
 	}
 
 	plat_dat->mdio_bus_data = devm_kzalloc(&pdev->dev,
@@ -384,7 +391,7 @@ SIMPLE_DEV_PM_OPS(sigma_dwmac_pm_ops, sigma_dwmac_suspend,
 				      sigma_dwmac_resume);
 
 static const struct of_device_id sigma_dwmac_match[] = {
-	{ .compatible = "sigma,sx7-dwmac"},
+	{ .compatible = "sigma,trix-dwmac"},
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, sigma_dwmac_match);

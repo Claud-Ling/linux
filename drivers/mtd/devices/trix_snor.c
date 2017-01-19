@@ -531,7 +531,7 @@ static int trix_snor_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id trix_snor_match[] = {
-        { .compatible = "sdesigns,spi-nor", },
+        { .compatible = "sigma,spi-nor", },
         {},
 };
 MODULE_DEVICE_TABLE(of, trix_snor_match);

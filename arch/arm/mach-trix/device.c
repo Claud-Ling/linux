@@ -22,7 +22,7 @@
 
 #if defined(CONFIG_GMAC_ETH)
 #include <linux/phy.h>
-#include <mach/gmac.h>
+#include <linux/gmac.h>
 #endif
 
 #if defined(CONFIG_USB_EHCI_SIGMA_DTV)
