@@ -200,6 +200,28 @@
 			pinctrl-0 = <&sd_pmx_func>;
 		};
 
+		usb1: usb1@f502f100 {
+			stream-disable-mode; /* low memory bandwidth system, avoid FIFO overflow */
+			usb-phy = <&usb1_phy>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&usb1_pwr_pin_func>;
+
+		};
+
+		usb2: usb2@fb008100 {
+			stream-disable-mode; /* low memory bandwidth system, avoid FIFO overflow */
+			usb-phy = <&usb2_phy>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&usb2_pwr_pin_func>;
+
+		};
+
+		usb3: usb3@f5200000 {
+			usb-phy = <&usb3_phy>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&usb3_pwr_pin_func>;
+		};
+
 		cgu: clk-controller@f500e900 {
 			compatible = "trix,syscon";
 			reg = <0xf500e900 0x50>;

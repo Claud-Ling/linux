@@ -111,6 +111,39 @@
 			bus-width = <4>;
 		};
 
+		usb1_phy: usb1_phy{
+			compatible = "sigma,candence-usb2-phy";
+			reg = <0xf502f000 0x300>;
+		};
+
+		usb2_phy: usb2_phy{
+			compatible = "sigma,candence-usb2-phy";
+			reg = <0xfb008000 0x300>;
+		};
+
+		usb3_phy: usb3_phy{
+			compatible = "sigma,candence-usb3-phy";
+			reg = <0xf5200000 0xd000>;
+		};
+
+		usb1: usb1@f502f100 {
+			compatible = "sigma,trix-ehci";
+			reg = <0xf502f100 0x200>;
+			interrupts = <GIC_SPI 18 IRQ_TYPE_NONE>;
+		};
+
+		usb2: usb2@fb008100 {
+			compatible = "sigma,trix-ehci";
+			reg = <0xfb008100 0x200>;
+			interrupts = <GIC_SPI 19 IRQ_TYPE_NONE>;
+		};
+
+		usb3: usb3@f5200000 {
+			compatible = "sigma,trix-xhci";
+			reg = <0xf5200000 0xd000>;
+			interrupts = <GIC_SPI 90 IRQ_TYPE_NONE>;
+		};
+
 		pmx: pinshare@f500ee00 {
 			compatible = "pinctrl-single";
 			reg = <0xf500ee00 0x0100>;

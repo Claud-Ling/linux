@@ -324,6 +324,15 @@ config USB_EHCI_SIGMA_DTV
 	  This will enable USB 2.0 support accordingly.
 	  If unsure, say Y.
 
+config USB_EHCI_SIGMA_DTV_OF
+	bool "OF SIGMA DTV EHCI HCD support"
+	depends on USB_EHCI_HCD && SIGMA_DTV
+	default y
+	---help---
+	  Say 'Y' to enable support for on-chip EHCI controller on sigma DTV chipsets.
+	  This will enable USB 2.0 support accordingly.
+	  If unsure, say Y.
+
 endif # USB_EHCI_HCD
 
 config USB_OXU210HP_HCD

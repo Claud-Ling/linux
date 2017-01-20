@@ -59,6 +59,7 @@
 #define TRIX_USB3_GRXTHRCFG_USBRxPktCntSel_VAL		BIT(29)		/*bit[29]*/
 #define TRIX_USB3_GRXTHRCFG_USBRxPktCntSel_MASK		BIT(29)		/*bit[29]*/
 
+#if !defined(CONFIG_OF)
 static void xhci_trix_init_quirks(struct usb_hcd *hcd)
 {
 #ifdef CONFIG_SIGMA_SOC_SX6
@@ -156,6 +157,7 @@ static void xhci_trix_start(struct usb_hcd *hcd)
 			TRIX_USB3_GRXTHRCFG_USBRxPktCntSel_MASK);
 #endif
 }
+#endif /*!CONFIG_OF*/
 
 static struct hc_driver __read_mostly xhci_plat_hc_driver;
 
@@ -234,8 +236,9 @@ static int xhci_plat_probe(struct platform_device *pdev)
 		if (ret)
 			goto put_hcd;
 	}
-
+#if !defined(CONFIG_OF)
 	xhci_trix_init_quirks(hcd);
+#endif
 	ret = usb_add_hcd(hcd, irq, IRQF_SHARED);
 	if (ret)
 		goto disable_clk;
@@ -281,7 +284,9 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	if (ret)
 		goto disable_usb_phy;
 
+#if !defined(CONFIG_OF)
 	xhci_trix_start(hcd);
+#endif
 	return 0;
 
 disable_usb_phy:
@@ -343,9 +348,14 @@ static int xhci_plat_resume(struct device *dev)
 {
 	struct usb_hcd	*hcd = dev_get_drvdata(dev);
 	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
-	
+
+#if !defined(CONFIG_OF)
 	xhci_trix_init_quirks(hcd);
 	xhci_trix_start(hcd);
+#endif
+	if (usb_phy_init(hcd->usb_phy))
+		dev_err(dev, "%s: phy resume failed\n", __func__);
+
 	return xhci_resume(xhci, 0);
 }
 
@@ -357,11 +367,17 @@ static const struct dev_pm_ops xhci_plat_pm_ops = {
 #define DEV_PM_OPS	NULL
 #endif /* CONFIG_PM */
 
+static const struct of_device_id xhci_trix_dt_match[] = {
+	{ .compatible = "sigma,trix-xhci" },
+	{/* sentinel */}
+};
+
 static struct platform_driver usb_xhci_driver = {
 	.probe	= xhci_plat_probe,
 	.remove	= xhci_plat_remove,
 	.driver	= {
 		.name = "trix-xhci",
+		.of_match_table = of_match_ptr(xhci_trix_dt_match),
 		.pm = DEV_PM_OPS,
 	},
 };

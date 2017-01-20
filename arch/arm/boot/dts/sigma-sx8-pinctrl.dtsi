@@ -34,6 +34,27 @@
 					0x1d 0x33 0xff /* bit[6:4]RXD bit[2:0]TXD */
 				>;
 			};
+
+			usb1_pwr_pin_func: usb1_pwr_pin_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x20 0x00 0x0f	/* GPIO4 functionally as GPIO*/
+				>;
+			};
+
+			usb2_pwr_pin_func: usb2_pwr_pin_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x21 0x00 0x0f	/* GPIO6 functionally as GPIO*/
+				>;
+			};
+
+			usb3_pwr_pin_func: usb3_pwr_pin_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x22 0x00 0xf0	/* GPIO9 functionally as GPIO*/
+				>;
+			};
 		};
 
 		mio: padconf@f500ea00 {
