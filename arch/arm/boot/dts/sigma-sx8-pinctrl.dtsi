@@ -55,6 +55,34 @@
 					0x22 0x00 0xf0	/* GPIO9 functionally as GPIO*/
 				>;
 			};
+
+			mi2c0_pmx_func: mi2c0_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x1b 0x00 0xff	/* SCL SDA */
+				>;
+			};
+
+			mi2c1_pmx_func: mi2c1_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x1c 0x00 0xff	/* SCL SDA */
+				>;
+			};
+
+			mi2c2_pmx_func: mi2c2_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x1a 0x00 0xff	/* SCL SDA */
+				>;
+			};
+
+			mi2c3_pmx_func: mi2c3_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x19 0x11 0xff	/* SCL SDA */
+				>;
+			};
 		};
 
 		mio: padconf@f500ea00 {
@@ -72,6 +100,42 @@
 					0x7d 0x7b
 					0x7e 0x7b
 					0x7f 0x7b
+				>;
+			};
+
+			mi2c0_cfg_func: mi2c0_cfg_func {
+				pinctrl-single,pins = <
+					/* [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 */
+					/* offset, val*/
+					0x4c 0x80	/* open-drain mode */
+					0x4d 0x80	/* open-drain mode */
+				>;
+			};
+
+			mi2c1_cfg_func: mi2c1_cfg_func {
+				pinctrl-single,pins = <
+					/* [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 */
+					/* offset, val*/
+					0x4e 0x80	/* open-drain mode */
+					0x4f 0x80	/* open-drain mode */
+				>;
+			};
+
+			mi2c2_cfg_func: mi2c2_cfg_func {
+				pinctrl-single,pins = <
+					/* [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 */
+					/* offset, val*/
+					0x4a 0x80	/* open-drain mode */
+					0x4b 0x80	/* open-drain mode */
+				>;
+			};
+
+			mi2c3_cfg_func: mi2c3_cfg_func {
+				pinctrl-single,pins = <
+					/* [0]:IE [1]:ST [2]:PU [3]:PD [4]:DS0 [5]:DS1 [6]:DS2 */
+					/* offset, val*/
+					0x48 0x80	/* open-drain mode */
+					0x49 0x80	/* open-drain mode */
 				>;
 			};
 		};

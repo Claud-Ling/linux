@@ -17,7 +17,7 @@
 #include <asm/io.h>
 #include <asm/irq.h>
 #if defined(CONFIG_I2C_SIGMA_TRIX)
-#include <mach/mi2c.h>
+#include <linux/soc/sigma-dtv/mi2c.h>
 #endif
 
 #if defined(CONFIG_GMAC_ETH)

@@ -147,7 +147,31 @@
 		spi_nor: spi_nor@fb002000 { /* spi nor on this bus */
 			compatible = "sigma,spi-nor";
 			reg = <0xfb002000 0x400>,
-			      <0xfdbe0000 0x400000>;
+				<0xfdbe0000 0x400000>;
+		};
+
+		mi2c0: mi2c0 {
+			compatible = "sigma,trix-mi2c";
+			reg = <0xf502c000 0x100>;
+			interrupts = <GIC_SPI 50 IRQ_TYPE_NONE>;
+		};
+
+		mi2c1: mi2c1 {
+			compatible = "sigma,trix-mi2c";
+			reg = <0xf502d000 0x100>;
+			interrupts = <GIC_SPI 51 IRQ_TYPE_NONE>;
+		};
+
+		mi2c2: mi2c2 {
+			compatible = "sigma,trix-mi2c";
+			reg = <0xf502e000 0x100>;
+			interrupts = <GIC_SPI 52 IRQ_TYPE_NONE>;
+		};
+
+		mi2c3: mi2c3 {
+			compatible = "sigma,trix-mi2c";
+			reg = <0xf502b000 0x100>;
+			interrupts = <GIC_SPI 85 IRQ_TYPE_NONE>;
 		};
 
 		pmx: pinshare@f500ee00 {

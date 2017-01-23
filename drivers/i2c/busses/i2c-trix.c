@@ -10,7 +10,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/slab.h>
-#include <mach/mi2c.h>
+#include <linux/soc/sigma-dtv/mi2c.h>
 
 #define MI2C_DBG(dev, fmt, arg...) ({			\
 	if (mi2c_dbg)					\
@@ -22,7 +22,7 @@
 /* Control debug log output */
 static u32 mi2c_dbg = 0;
 
-
+#if !defined(CONFIG_OF)
 void sigma_mi2c_pinshare_init(struct sigma_mi2c_dev *dev)
 {
 	struct i2c_adapter *adap = &dev->adapter;
@@ -103,16 +103,18 @@ void sigma_mi2c_pinshare_init(struct sigma_mi2c_dev *dev)
 	}
 	return;
 }
-
+#endif /* !CONFIG_OF */
 
 static u8 mi2c_readb(struct sigma_mi2c_dev *dev, u32 ptr)
 {
-	return ReadRegByte((void *)((unsigned int)(dev->base) + (unsigned int)ptr));
+	return readb((const volatile void __iomem *)
+			((unsigned long)(dev->base) + (unsigned int)ptr));
 }
 
 static void mi2c_writeb(struct sigma_mi2c_dev *dev, u8 val, u32 ptr)
 {
-	WriteRegByte((void *)((unsigned int)(dev->base) +(unsigned int)ptr), val);
+	writeb(val, (volatile void __iomem *)
+			((unsigned long)(dev->base) +(unsigned int)ptr));
 	return;
 }
 
@@ -307,7 +309,7 @@ irqreturn_t sigma_mi2c_irq_handler(int irq, void * data)
 	msg = dev->ctx.msg;
 
 	size = min(dev->fifo_size, (__u16)(msg->len - ctx->offs));
-	p = (u8 *)(((u32) msg->buf) + ctx->offs);
+	p = (u8 *)(((unsigned long) msg->buf) + ctx->offs);
 
 	if (!size) {
 		/* Write case, last data be tranfered */
@@ -524,14 +526,72 @@ static const struct i2c_algorithm sigma_mi2c_algo = {
 };
 
 
+static void sigma_mi2c_setup_platdata(struct device *dev,
+				 struct sigma_mi2c_platform_data *pdata)
+{
+	struct device_node *np = dev->of_node;
+	u32 val = 0;
+
+	/* Assume base clock is 200MHz */
+	pdata->clkbase = 200000000;
+
+	if(!of_property_read_u32(np,"mi2c,fifosize", &val)) {
+		pdata->fifo_size = val;
+	} else {
+		/* Assume not support FIFO */
+		pdata->fifo_size = 1;
+	}
+
+	if (pdata->fifo_size > 1) {
+		pdata->capacity |= MI2C_CAP_BULK;
+	}
+
+	if(!of_property_read_u32(np,"mi2c,default-speed", &val)) {
+		pdata->default_speed = val;
+	} else {
+		/* Normal speed is 100kHz */
+		pdata->default_speed = 100000;
+	}
+
+	/* Refer to I2C spec, normal speed is 100kHz, up to 400kHz */
+	if (pdata->default_speed > 400000) {
+		pdata->default_speed = 400000;
+	}
+
+	return;
+}
+
+static struct sigma_mi2c_platform_data *sigma_mi2c_get_platdata_by_of(struct device *dev)
+{
+	struct sigma_mi2c_platform_data *pdata = NULL;
+
+	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
+
+	if (pdata == NULL)
+		return ERR_PTR(-ENOMEM);
+
+	sigma_mi2c_setup_platdata(dev, pdata);
+
+	return pdata;
+}
+
 static int sigma_mi2c_probe(struct platform_device *pdev)
 {
-	struct sigma_mi2c_dev	*dev;
-	struct i2c_adapter	*adap;
-	struct resource		*mem;
+	struct sigma_mi2c_dev	*mdev = NULL;
+	struct i2c_adapter	*adap = NULL;
+	struct resource		*mem = NULL;
 	int irq, ret;
+	void __iomem 		*regs = NULL;
+	struct device 		*dev = &pdev->dev;
 
 	struct sigma_mi2c_platform_data *pdata = pdev->dev.platform_data;
+
+	if (pdata == NULL) {
+		pdata = sigma_mi2c_get_platdata_by_of(dev);
+	}
+
+	if (IS_ERR(pdata))
+		return PTR_ERR(pdata);
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!mem) {
@@ -545,43 +605,44 @@ static int sigma_mi2c_probe(struct platform_device *pdev)
 		return irq;
 	}
 
-	dev = devm_kzalloc(&pdev->dev, sizeof(struct sigma_mi2c_dev), GFP_KERNEL);
-	if (!dev) {
+	mdev = devm_kzalloc(&pdev->dev, sizeof(struct sigma_mi2c_dev), GFP_KERNEL);
+	if (!mdev) {
 		dev_err(&pdev->dev, "Menory allocation failed\n");
 		return -ENOMEM;
 	}
 
-	dev->base = (void __iomem *)(mem->start + MI2C_REG_OFFS);
-	dev->irq = irq;
-	dev->dev = &pdev->dev;
+	regs = devm_ioremap_resource(dev, mem);
+	mdev->base = (void __iomem *)((unsigned long)regs + MI2C_REG_OFFS);
+	mdev->irq = irq;
+	mdev->dev = &pdev->dev;
 
 	platform_set_drvdata(pdev, dev);
-	init_completion(&dev->rq_complete);
+	init_completion(&mdev->rq_complete);
 
 	/* Get device physical attribute */
-	dev->clkbase = pdata->clkbase;
-	dev->capacity = pdata->capacity;
-	dev->fifo_size = pdata->fifo_size;
-	dev->speed = pdata->default_speed;
-	dev->scl_high_time = speed_to_divide(dev, dev->speed);
-	dev->scl_low_time = dev->scl_high_time;
+	mdev->clkbase = pdata->clkbase;
+	mdev->capacity = pdata->capacity;
+	mdev->fifo_size = pdata->fifo_size;
+	mdev->speed = pdata->default_speed;
+	mdev->scl_high_time = speed_to_divide(mdev, mdev->speed);
+	mdev->scl_low_time = mdev->scl_high_time;
 
-	if (dev->capacity & MI2C_CAP_BULK) {
+	if (mdev->capacity & MI2C_CAP_BULK) {
 		/* Enable BULK fifo */
-		mi2c_writeb(dev, MI2C_BULK_EN, MI2C_BULK_CTL);
+		mi2c_writeb(mdev, MI2C_BULK_EN, MI2C_BULK_CTL);
 
 	} else {
 		/* Not support BULK, set fifo_size equ 1 */
 
-		dev_err(dev->dev, "MI2C(%d) not support MI2C_CAP_BULK, overwrite fifo size equ '1'\n", pdev->id);
-		dev->fifo_size = 1;
+		dev_err(mdev->dev, "MI2C(%d) not support MI2C_CAP_BULK, overwrite fifo size equ '1'\n", pdev->id);
+		mdev->fifo_size = 1;
 	}
 
 	/* Setup SCL speed, default is 100k specified from platform data */
-	sigma_mi2c_set_scl_timing(dev);
+	sigma_mi2c_set_scl_timing(mdev);
 
 
-	adap = &dev->adapter;
+	adap = &mdev->adapter;
 	adap->owner = THIS_MODULE;
 	adap->class = I2C_CLASS_HWMON;
 	adap->nr = pdev->id;
@@ -590,36 +651,38 @@ static int sigma_mi2c_probe(struct platform_device *pdev)
 	/* Msg transfer failed, retry one more time */
 	adap->retries = 1;
 
+#if !defined(CONFIG_OF)
 	/* Setup pinshare */
-	sigma_mi2c_pinshare_init(dev);
+	sigma_mi2c_pinshare_init(mdev);
+#endif
 
 	/* Make sure no interrupt pending here */
-	ret = devm_request_irq(dev->dev, irq, sigma_mi2c_irq_handler, IRQF_SHARED,
-									pdev->name, dev);
+	ret = devm_request_irq(mdev->dev, irq, sigma_mi2c_irq_handler, IRQF_SHARED,
+									pdev->name, mdev);
 	if (ret) {
 
-		dev_err(dev->dev, "Unable request irq %d, ret = %d\n", irq, ret);
+		dev_err(mdev->dev, "Unable request irq %d, ret = %d\n", irq, ret);
 		goto err;
 	}
 
 	ret = i2c_add_numbered_adapter(adap);
 	if (ret) {
-		dev_err(dev->dev, "Register I2C adapter %s err\n", adap->name);
+		dev_err(mdev->dev, "Register I2C adapter %s err\n", adap->name);
 		goto err;
 	}
 
 	ret = sysfs_create_group(&adap->dev.kobj, &mi2c_attrgp);
 
 	if (ret) {
-		dev_err(dev->dev, "Create sysfs for  %s err\n", adap->name);
+		dev_err(mdev->dev, "Create sysfs for  %s err\n", adap->name);
 		goto err1;
 	}
 
-	dev_info(dev->dev, "Register MI2C(%d) with speed %uHz, clk div %04x, irq %d\n", adap->nr, dev->speed, dev->scl_high_time, irq);
+	dev_info(mdev->dev, "Register MI2C(%d) with speed %uHz, clk div %04x, irq %d\n", adap->nr, mdev->speed, mdev->scl_high_time, irq);
 	return ret;
 
 err1:
-	i2c_del_adapter(&dev->adapter);
+	i2c_del_adapter(&mdev->adapter);
 err:
 	return -ENODEV;
 }
@@ -636,7 +699,7 @@ static int sigma_mi2c_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#if CONFIG_PM
+#if defined(CONFIG_PM)
 int sigma_mi2c_suspend(struct device *dev)
 {
 	/* Nothing need to do */
@@ -649,8 +712,10 @@ int sigma_mi2c_resume(struct device *dev)
 	struct platform_device *pdev = container_of(dev, struct platform_device, dev);
 	struct sigma_mi2c_dev *mdev = (struct sigma_mi2c_dev *)platform_get_drvdata(pdev);
 
+#if !defined(CONFIG_OF)
 	/* Setup pinshare */
 	sigma_mi2c_pinshare_init(mdev);
+#endif
 
 	/* Setup SCL timing */
 	sigma_mi2c_set_scl_timing(mdev);
@@ -673,6 +738,12 @@ static struct dev_pm_ops sigma_mi2c_pm_ops = {
 #else
 #define SIGMA_MI2C_PM_OPS	(NULL)
 #endif
+
+static const struct of_device_id sigma_mi2c_dt_match[] = {
+	{ .compatible = "sigma,trix-mi2c" },
+	{/* sentinel */}
+};
+
 static struct platform_driver sigma_mi2c_driver = {
 	.probe		= sigma_mi2c_probe,
 	.remove		= sigma_mi2c_remove,
@@ -680,6 +751,7 @@ static struct platform_driver sigma_mi2c_driver = {
 		.name	= "trix-mi2c",
 		.owner	= THIS_MODULE,
 		.pm	= SIGMA_MI2C_PM_OPS,
+		.of_match_table = of_match_ptr(sigma_mi2c_dt_match),
 	},
 };
 

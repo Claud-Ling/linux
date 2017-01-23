@@ -224,6 +224,34 @@
 			pinctrl-0 = <&usb3_pwr_pin_func>;
 		};
 
+		mi2c0: mi2c0 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c0_pmx_func &mi2c0_cfg_func>;
+		};
+
+		mi2c1: mi2c1 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c1_pmx_func &mi2c1_cfg_func>;
+		};
+
+		mi2c2: mi2c2 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c2_pmx_func &mi2c2_cfg_func>;
+		};
+
+		mi2c3: mi2c3 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c3_pmx_func &mi2c3_cfg_func>;
+		};
+
 		cgu: clk-controller@f500e900 {
 			compatible = "trix,syscon";
 			reg = <0xf500e900 0x50>;
