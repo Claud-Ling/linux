@@ -40,12 +40,6 @@
 
 #include <asm/io.h>
 
-enum access_mode {
-	BYTE = 0,
-	HALFWORD,
-	WORD,
-};
-
 #if IS_REACHABLE(CONFIG_TRIX_DRV_HELPER)
 /*
  * @fn		int io_accessor_read_reg(uint32_t mode, uint32_t pa, uint32_t *pval);

@@ -20,6 +20,12 @@
 
 #include <linux/soc/sigma-dtv/io.h>
 
+enum access_mode {
+	BYTE = 0,
+	HALFWORD,
+	WORD,
+};
+
 /**
  * struct system_io_region - IO memory region
  * @phys_base:	base address for the memory region
