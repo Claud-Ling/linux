@@ -317,7 +317,7 @@ config USB_OCTEON_EHCI
 
 config USB_EHCI_SIGMA_DTV
 	bool "SIGMA DTV EHCI HCD support"
-	depends on USB_EHCI_HCD && SIGMA_DTV
+	depends on USB_EHCI_HCD && SIGMA_DTV && !OF
 	default y
 	---help---
 	  Say 'Y' to enable support for on-chip EHCI controller on sigma DTV chipsets.
@@ -326,7 +326,7 @@ config USB_EHCI_SIGMA_DTV
 
 config USB_EHCI_SIGMA_DTV_OF
 	bool "OF SIGMA DTV EHCI HCD support"
-	depends on USB_EHCI_HCD && SIGMA_DTV
+	depends on USB_EHCI_HCD && SIGMA_DTV && OF
 	default y
 	---help---
 	  Say 'Y' to enable support for on-chip EHCI controller on sigma DTV chipsets.
