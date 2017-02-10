@@ -66,6 +66,9 @@ static int (*check_part[])(struct parsed_partitions *) = {
 	adfspart_check_ADFS,
 #endif
 
+#ifdef CONFIG_CMDLINE_PARTITION
+	cmdline_partition,
+#endif
 #ifdef CONFIG_EFI_PARTITION
 	efi_partition,		/* this must come before msdos */
 #endif
@@ -104,9 +107,6 @@ static int (*check_part[])(struct parsed_partitions *) = {
 #endif
 #ifdef CONFIG_SYSV68_PARTITION
 	sysv68_partition,
-#endif
-#ifdef CONFIG_CMDLINE_PARTITION
-	cmdline_partition,
 #endif
 	NULL
 };
@@ -184,12 +184,12 @@ check_partition(struct gendisk *hd, struct block_device *bdev)
 	if (err)
 	/* The partition is unrecognized. So report I/O errors if there were any */
 		res = err;
-	if (!res)
-		strlcat(state->pp_buf, " unknown partition table\n", PAGE_SIZE);
-	else if (warn_no_part)
-		strlcat(state->pp_buf, " unable to read partition table\n", PAGE_SIZE);
-
-	printk(KERN_INFO "%s", state->pp_buf);
+	if (res) {
+		if (warn_no_part)
+			strlcat(state->pp_buf,
+				" unable to read partition table\n", PAGE_SIZE);
+		printk(KERN_INFO "%s", state->pp_buf);
+	}
 
 	free_page((unsigned long)state->pp_buf);
 	free_partitions(state);
