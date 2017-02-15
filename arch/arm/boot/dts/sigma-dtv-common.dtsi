@@ -11,6 +11,7 @@
 #include "skeleton.dtsi"
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -198,6 +199,16 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			pinctrl-single,register-width = <8>;
+		};
+
+		gpio: gpio@fb005500 {
+			compatible = "sigma,trix-gpio";
+			reg = <0xfb005500 0x100>;
+			interrupts = <GIC_SPI 32 IRQ_TYPE_NONE>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
 		};
 
 		clocks:  clocks {
