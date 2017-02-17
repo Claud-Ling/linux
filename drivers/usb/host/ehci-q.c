@@ -77,6 +77,17 @@ qtd_fill(struct ehci_hcd *ehci, struct ehci_qtd *qtd, dma_addr_t buf,
 			count -= (count % maxpacket);
 	}
 	qtd->hw_token = cpu_to_hc32(ehci, (count << 16) | token);
+
+#if defined(CONFIG_SIGMA_SOC_SX8)
+	__hc32	hw_token = cpu_to_hc32(ehci, (count << 16) | token);
+	volatile __hc32 *p_token = (volatile __hc32 *)&qtd->hw_token;
+
+	/* Dead loop read, wait have same value */
+	while ((*p_token) != hw_token) {
+		nop();
+	}
+#endif
+
 	qtd->length = count;
 
 	return count;
@@ -1061,6 +1072,12 @@ static struct ehci_qh *qh_append_tds (
 			 */
 			token = qtd->hw_token;
 			qtd->hw_token = HALT_BIT(ehci);
+#if defined(CONFIG_SIGMA_SOC_SX8)
+			volatile __hc32 *ptoken = &qtd->hw_token;
+			while ((*ptoken) != HALT_BIT(ehci)) {
+				nop();
+			}
+#endif
 
 			dummy = qh->dummy;
 
