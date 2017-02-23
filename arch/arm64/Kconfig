@@ -271,6 +271,7 @@ if ARCH_SIGMA_TRIX_OF
 config SIGMA_DTV
 	bool
 	depends on ARCH_SIGMA_TRIX_OF
+	select SMP
 
 choice
 	prompt "Select SIGMA DTV SoC type"

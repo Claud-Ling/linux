@@ -22,12 +22,12 @@
 	/* We expect the bootloader to fill in the chosen node and memory node */
 	chosen {
 		stdout-path = "serial0:115200n8";
-		bootargs = "earlycon=uart8250,0xfb005100,115200n8 console=ttyS0,115200n8 mem=128m loglevel=8 /dev/ram0 rw";
+		bootargs = "earlycon=uart8250,0xfb005100,115200n8 console=ttyS0,115200n8 mem=188m loglevel=8 /dev/ram0 rw";
 	};
 
 	memory {
 		device_type = "memory";
-		reg = <0x00000000 0x00000000 0x00000000 0x08000000>;
+		reg = <0x00000000 0x00000000 0x00000000 0x0bc00000>;
 	};
 
 };
