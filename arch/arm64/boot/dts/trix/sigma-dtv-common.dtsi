@@ -46,6 +46,11 @@
 		#size-cells = <2>;
 		ranges;
 
+		clocks: clocks {
+			#address-cells = <1>;
+			#size-cells = <1>;
+		};
+
 		soc_timer@f5027000 {
 			compatible = "sigma,trix-timer";
 			reg = <0x0 0xf5027000 0x0 0x100>;
@@ -89,6 +94,32 @@
 			compatible = "sigma,spi-nor";
 			reg = <0x0 0xfb002000 0x0 0x400>,
 			      <0x0 0xfdbe0000 0x0 0x400000>;
+		};
+
+		sdhci0: sdhci@fb00a000 { /* eMMC on this bus */
+			compatible = "sigma,trix-sdhci";
+			reg = <0x0 0xfb00a000 0x0 0x420>;
+			interrupts = <GIC_SPI 30 IRQ_TYPE_NONE>;
+			bus-width = <8>;
+		};
+
+		sdhci1: sdhci@fb00c000 { /* SD card on this bus */
+			compatible = "sigma,trix-sdhci";
+			reg = <0x0 0xfb00c000 0x0 0x420>;
+			interrupts = <GIC_SPI 27 IRQ_TYPE_NONE>;
+			bus-width = <4>;
+		};
+
+		usb1: usb1@f502f100 {
+			compatible = "sigma,trix-ehci";
+			reg = <0x0 0xf502f100 0x0 0x200>;
+			interrupts = <GIC_SPI 18 IRQ_TYPE_NONE>;
+		};
+
+		usb2: usb2@fb008100 {
+			compatible = "sigma,trix-ehci";
+			reg = <0x0 0xfb008100 0x0 0x200>;
+			interrupts = <GIC_SPI 19 IRQ_TYPE_NONE>;
 		};
 
 	};

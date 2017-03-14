@@ -9,6 +9,7 @@
  */
 
 #include "sigma-dtv-common.dtsi"
+#include "sigma-union-clocks.dtsi"
 
 / {
 	psci {
@@ -46,6 +47,36 @@
 		L2_0: l2-cache {
 			compatible = "cache";
 			cache-level = <2>;
+		};
+	};
+
+	soc {
+
+		sdhci0: sdhci@fb00a000 { /* eMMC on this bus */
+			no-hs200;
+			mmc-ddr-1_8v;
+
+			sigma,mmc_hs_timing	= <0x0 0x6>; /*indelay, outdelay*/
+			sigma,mmc_ddr52_timing	= <0x0 0x6>;
+			sigma,mmc_hs200_timing	= <0x4 0x4>;
+
+			clocks = <&clk200m>;
+			clock-names = "sdioclk";
+
+		};
+
+		sdhci1: sdhci@fb00c000 { /* SD card on this bus */
+			status = "disabled";
+		};
+
+		usb1: usb1@f502f100 {
+			stream-disable-mode; /* low memory bandwidth system, avoid FIFO overflow */
+
+		};
+
+		usb2: usb2@fb008100 {
+			stream-disable-mode; /* low memory bandwidth system, avoid FIFO overflow */
+
 		};
 	};
 };
