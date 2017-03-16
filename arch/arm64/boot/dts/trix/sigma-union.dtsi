@@ -72,7 +72,7 @@
 			mmc-ddr-1_8v;
 
 			sigma,mmc_hs_timing	= <0x0 0x6>; /*indelay, outdelay*/
-			sigma,mmc_ddr52_timing	= <0x0 0x6>;
+			sigma,mmc_ddr52_timing	= <0x0 0x7>;
 			sigma,mmc_hs200_timing	= <0x4 0x4>;
 
 			clocks = <&clk200m>;
