@@ -132,7 +132,7 @@ static inline void WriteRegHWord(uint32_t pa, unsigned short v)
 
 static inline void WriteRegWord(uint32_t pa, unsigned int v)
 {
-	sys_io_write_uint16(pa, v, U32_MAX);
+	sys_io_write_uint32(pa, v, U32_MAX);
 }
 
 
