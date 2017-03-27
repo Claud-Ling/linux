@@ -1,0 +1,54 @@
+/*
+ * pinctrl dts file for Union
+ *
+ */
+/ {
+	soc {
+		pmx: pinshare@f500ee00 {
+
+			emmc_pmx_func: emmc_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x27 0x10 0xf0	/* bit[6:4]EMMC_DATA0 */
+					0x29 0x11 0xff	/* bit[6:4]EMMC_DATA2 bit[2:0]EMMC_DATA1 */
+					0x2a 0x11 0xff	/* bit[6:4]EMMC_DATA4 bit[2:0]EMMC_DATA3 */
+					0x2b 0x11 0xff	/* bit[6:4]EMMC_DATA6 bit[2:0]EMMC_DATA5 */
+					0x2c 0x11 0xff	/* bit[6:4]EMMC_CLK bit[2:0]EMMC_DATA7 */
+					0x2d 0x01 0x0f	/* bit[2:0]EMMC_CMD */
+				>;
+			};
+
+			mi2c0_pmx_func: mi2c0_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x1b 0x00 0xff	/* SCL SDA */
+				>;
+			};
+
+			mi2c1_pmx_func: mi2c1_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x1c 0x00 0xff	/* SCL SDA */
+				>;
+			};
+
+			mi2c2_pmx_func: mi2c2_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x1a 0x00 0xff	/* SCL SDA */
+				>;
+			};
+
+			mi2c3_pmx_func: mi2c3_pmx_func {
+				pinctrl-single,bits = <
+					/* offset, val, mask */
+					0x19 0x11 0xff	/* SCL SDA */
+				>;
+			};
+		};
+
+		stbio: padconf@f500ed00 {
+			status = "disable";
+		};
+	};
+};

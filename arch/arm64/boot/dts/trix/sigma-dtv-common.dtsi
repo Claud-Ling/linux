@@ -60,6 +60,31 @@
 			clock-event  = <1>;
 		};
 
+		pmx: pinshare@f500ee00 {
+			compatible = "pinctrl-single";
+			reg = <0x0 0xf500ee00 0x0 0x0100>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-single,bit-per-mux;
+			pinctrl-single,register-width = <8>;
+			pinctrl-single,function-mask = <0xf>;
+		};
+
+		mio: padconf@f500ea00 {
+			compatible = "pinctrl-single";
+			reg = <0x0 0xf500ea00 0x0 0x100>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-single,register-width = <8>;
+		};
+
+		stbio: padconf@f500ed00 {
+			compatible = "pinctrl-single";
+			reg = <0x0 0xf500ed00 0x0 0x40>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-single,register-width = <8>;
+		};
 
 		gmac0: eth@f5030000 {
 			compatible = "sigma,trix-dwmac";
@@ -120,6 +145,30 @@
 			compatible = "sigma,trix-ehci";
 			reg = <0x0 0xfb008100 0x0 0x200>;
 			interrupts = <GIC_SPI 19 IRQ_TYPE_NONE>;
+		};
+
+		mi2c0: mi2c0 {
+			compatible = "sigma,trix-mi2c";
+			reg = <0x0 0xf502c000 0x0 0x100>;
+			interrupts = <GIC_SPI 50 IRQ_TYPE_NONE>;
+		};
+
+		mi2c1: mi2c1 {
+			compatible = "sigma,trix-mi2c";
+			reg = <0x0 0xf502d000 0x0 0x100>;
+			interrupts = <GIC_SPI 51 IRQ_TYPE_NONE>;
+		};
+
+		mi2c2: mi2c2 {
+			compatible = "sigma,trix-mi2c";
+			reg = <0x0 0xf502e000 0x0 0x100>;
+			interrupts = <GIC_SPI 52 IRQ_TYPE_NONE>;
+		};
+
+		mi2c3: mi2c3 {
+			compatible = "sigma,trix-mi2c";
+			reg = <0x0 0xf502b000 0x0 0x100>;
+			interrupts = <GIC_SPI 85 IRQ_TYPE_NONE>;
 		};
 
 	};

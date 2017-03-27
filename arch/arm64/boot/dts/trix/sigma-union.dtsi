@@ -10,6 +10,8 @@
 
 #include "sigma-dtv-common.dtsi"
 #include "sigma-union-clocks.dtsi"
+#include "sigma-union-pinctrl.dtsi"
+
 
 #include <dt-bindings/soc/sigma-dtv/proc_fuse.h>
 
@@ -92,6 +94,34 @@
 		usb2: usb2@fb008100 {
 			stream-disable-mode; /* low memory bandwidth system, avoid FIFO overflow */
 
+		};
+
+		mi2c0: mi2c0 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c0_pmx_func>;
+		};
+
+		mi2c1: mi2c1 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c1_pmx_func>;
+		};
+
+		mi2c2: mi2c2 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c2_pmx_func>;
+		};
+
+		mi2c3: mi2c3 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c3_pmx_func>;
 		};
 	};
 };
