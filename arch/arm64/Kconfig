@@ -264,6 +264,7 @@ menuconfig ARCH_SIGMA_TRIX_OF
 	bool "Sigma DTV arm 64-bit SoC Family"
 	select SIGMA_DTV
 	select PINCTRL
+	select PINCTRL_SINGLE
 	help
 	  This enables support for Sigmadesigns DTV SoC ARM64 Family
 
