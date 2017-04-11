@@ -123,5 +123,10 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&mi2c3_pmx_func>;
 		};
+
+		gmac0: eth@f5030000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&gmac_io_func>;
+		};
 	};
 };

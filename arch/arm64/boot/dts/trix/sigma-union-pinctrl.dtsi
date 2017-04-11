@@ -47,6 +47,19 @@
 			};
 		};
 
+		mio: padconf@f500ea00 {
+			gmac_io_func: gmac_io_func {
+				pinctrl-single,pins = <
+					/* [0]:REN [1]:E1 [2]:E2 [3]:SR [4]:P1 [5]:P2 [6]:SMT */
+					/* offset,  val */
+					0x06 0x7f	/* GBE_TXEN */
+					0x07 0x7f	/* GBE_TXD0 */
+					0x08 0x7f	/* GBE_TXD1 */
+					0x0c 0x7f	/* GBE_MDC */
+				>;
+			};
+		};
+
 		stbio: padconf@f500ed00 {
 			status = "disable";
 		};
