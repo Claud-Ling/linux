@@ -35,6 +35,7 @@ static int ehci_trix_of_probe(struct platform_device *pdev)
 	void __iomem *regs = NULL;
 	struct device *dev = &pdev->dev;
 	struct device_node *np = pdev->dev.of_node;
+	u32 tmp;
 
 	/* USB not support case */
 	if (usb_disabled())
@@ -89,9 +90,12 @@ static int ehci_trix_of_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, hcd);
 
+#define MODE_SDIS (1<<4)
 	if (of_get_property(np, "stream-disable-mode", NULL)) {
 		/* Enable SDIS(Stream Diabale Mode) */
-		ehci_writel(ehci, (USBMODE_SDIS|USBMODE_CM_HC), &ehci->regs->usbmode);
+		tmp = ehci_readl(ehci, &ehci->regs->usbmode);
+		tmp |= MODE_SDIS;
+		ehci_writel(ehci, tmp, &ehci->regs->usbmode);
 	}
 
 put_hcd:

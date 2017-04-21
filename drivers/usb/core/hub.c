@@ -4226,6 +4226,14 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	if (oldspeed == USB_SPEED_LOW)
 		delay = HUB_LONG_RESET_TIME;
 
+#if defined(CONFIG_SIGMA_DTV)
+	/*
+	 * Guarantee the reset signal no less than expected, due to
+	 * low precision jiffies
+	*/
+	delay += 1;
+#endif
+
 	mutex_lock(hcd->address0_mutex);
 
 	/* Reset the device; full speed may morph to high speed */

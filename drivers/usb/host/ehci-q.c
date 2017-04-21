@@ -78,7 +78,15 @@ qtd_fill(struct ehci_hcd *ehci, struct ehci_qtd *qtd, dma_addr_t buf,
 	}
 	qtd->hw_token = cpu_to_hc32(ehci, (count << 16) | token);
 
-#if defined(CONFIG_SIGMA_SOC_SX8)
+#if defined(CONFIG_SIGMA_DTV)
+	/*
+	 * Add wmb() here, make sure all data be written to memory
+	 * In UNION1, if omit wmb(), we can observe the (*ptoken) value
+	 * have below transition status.
+	 * correct value -> invalid value -> correct value
+	 */
+	wmb();
+
 	__hc32	hw_token = cpu_to_hc32(ehci, (count << 16) | token);
 	volatile __hc32 *p_token = (volatile __hc32 *)&qtd->hw_token;
 
@@ -1072,7 +1080,15 @@ static struct ehci_qh *qh_append_tds (
 			 */
 			token = qtd->hw_token;
 			qtd->hw_token = HALT_BIT(ehci);
-#if defined(CONFIG_SIGMA_SOC_SX8)
+#if defined(CONFIG_SIGMA_DTV)
+			/*
+			 * Add wmb() here, make sure all data be written to memory
+			 * In UNION1, if omit wmb(), we can observe the (*ptoken) value
+			 * have below transition status.
+			 * correct value -> invalid value -> correct value
+			 */
+			wmb();
+
 			volatile __hc32 *ptoken = &qtd->hw_token;
 			while ((*ptoken) != HALT_BIT(ehci)) {
 				nop();
