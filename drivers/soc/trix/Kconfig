@@ -35,6 +35,15 @@ config TRIX_OTP_FUSE
 	help
 	  Select this option to enable accessing OTP fuse bits.
 
+config TRIX_HIDTVMEM
+	tristate "/dev/hidtvmem virtual device support"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Say Y here if you want to support the /dev/hidtvmem device.
+	  The /dev/hidtvmem device is used to access physical memory
+	  and MMIO.
+
 source "drivers/soc/trix/firmware/Kconfig"
 
 endmenu

@@ -174,7 +174,7 @@
 
 		mcu_comm: mcomm@f5000000 {
 			compatible = "trix,mcomm";
-			reg = <0xf5000000 0x40>;
+			reg = <0x0 0xf5000000 0x0 0x40>;
 			interrupts = <GIC_SPI 49 IRQ_TYPE_NONE>;
 		};
 	};
