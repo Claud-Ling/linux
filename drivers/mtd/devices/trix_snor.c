@@ -390,12 +390,12 @@ static int snor_flash_memcpy(struct trix_snor *snor,
 				void *dest, u32 addr,
 				unsigned int len)
 {
-	u32 src;
+	unsigned long src;
 
 	snor->mode = SPI_HW_MODE;
 	snor_trans_init(snor);
 
-	src = (u32)snor->io + addr;
+	src = (unsigned long)snor->io + addr;
 	memcpy_fromio(dest, (const volatile void *)src, len);
 
 	return 0;
