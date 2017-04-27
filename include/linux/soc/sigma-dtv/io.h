@@ -20,6 +20,7 @@
 #define __ARCH_SIGMA_DTV_IO_H__
 
 #include <linux/types.h>
+#include <linux/printk.h>
 
 /*
  * ----------------------------------------------------------------------------
@@ -88,18 +89,26 @@ int io_accessor_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mas
 
 #endif /* CONFIG_TRIX_DRV_HELPER */
 
-#define io_accessor_read_generic(pa, m, t) ({					\
-				uint32_t _tmp;					\
-				io_accessor_read_reg(m, (uint32_t)pa, &_tmp);	\
-				(t)_tmp;					\
+#define io_accessor_read_generic(md, pa, t) ({						\
+		int _ret;								\
+		uint32_t _tmp = 0;							\
+		_ret = io_accessor_read_reg(md, (uint32_t)pa, &_tmp);			\
+		if (_ret != 0)								\
+			pr_warn("read_reg(0x%08x) failed: %d\n", pa, _ret);		\
+		(t)_tmp;								\
 })
-#define sys_io_read_uint8(pa)	io_accessor_read_generic(pa, 0, uint8_t)
-#define sys_io_read_uint16(pa)	io_accessor_read_generic(pa, 1, uint16_t)
-#define sys_io_read_uint32(pa)	io_accessor_read_generic(pa, 2, uint32_t)
-#define sys_io_write_uint8(pa, val, m)	io_accessor_write_reg(0, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
-#define sys_io_write_uint16(pa, val, m)	io_accessor_write_reg(1, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
-#define sys_io_write_uint32(pa, val, m)	io_accessor_write_reg(2, (uint32_t)pa, (uint32_t)v, (uint32_t)m)
-
+#define io_accessor_write_generic(md, pa, v, m) do {					\
+		int _ret;								\
+		_ret = io_accessor_write_reg(md,(uint32_t)pa,(uint32_t)v,(uint32_t)m);	\
+		if (_ret != 0)								\
+			pr_warn("write_reg(0x%08x) failed: %d\n", pa, _ret);		\
+}while(0)
+#define sys_io_read_uint8(pa)	io_accessor_read_generic(0, pa, uint8_t)
+#define sys_io_read_uint16(pa)	io_accessor_read_generic(1, pa, uint16_t)
+#define sys_io_read_uint32(pa)	io_accessor_read_generic(2, pa, uint32_t)
+#define sys_io_write_uint8(pa, val, m)	io_accessor_write_generic(0, pa, val, m)
+#define sys_io_write_uint16(pa, val, m)	io_accessor_write_generic(1, pa, val, m)
+#define sys_io_write_uint32(pa, val, m)	io_accessor_write_generic(2, pa, val, m)
 
 /*
  *  I/O helpers for modules

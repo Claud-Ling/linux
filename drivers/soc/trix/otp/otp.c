@@ -14,7 +14,6 @@
 #include <linux/module.h>
 #include <linux/list.h>
 #include <linux/of.h>
-#include <linux/of_address.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
@@ -42,16 +41,16 @@ struct node_descriptor {
 
 /*
  * present <n> bytes data array
- */    
-static int seq_print_data(struct seq_file *m, void *d, int n)
+ */
+static int seq_print_data(struct seq_file *m, void *d, int n, uint32_t prot)
 {
-        int i = 0;
-        char *t = (char*)d;
-        for (i = 0; i < n; i++) {
-                seq_printf(m, "%02x", *t++);
-        }
-        seq_printf(m, "\n");
-        return i;
+	int i = 0;
+	char *t = (char*)d;
+	for (i = 0; i < n; i++) {
+		seq_printf(m, "%02x", *t++);
+	}
+	seq_printf(m, ":%08x\n", prot);
+	return i;
 }
 
 static int node_generic_show(struct seq_file *m, void *v)
@@ -59,20 +58,22 @@ static int node_generic_show(struct seq_file *m, void *v)
 	struct node_descriptor *item = (struct node_descriptor *)m->private;
 	uint32_t *buf = NULL;
 	uint32_t len = item->length;
+	uint32_t prot;
+	int ret = -1;
 
 	buf = kzalloc(sizeof(char)*len, GFP_KERNEL);
 	if (!buf)
 		return -ENOMEM;
 
 	if (otp->read_array &&
-		 !(otp->read_array(otp, item->offset, buf, len))) {
+		 !(ret = otp->read_array(otp, item->offset, buf, len, &prot))) {
 
-		seq_print_data(m, (void*)buf, len);
+		seq_print_data(m, (void*)buf, len, prot);
 	}
 
 	kfree(buf);
 
-	return 0;
+	return ret;
 }
 
 #ifdef GET_BITS
@@ -101,20 +102,21 @@ static int node_entry_show(struct seq_file *m, void *v)
 {
 	struct device_node *field;
 	struct node_descriptor *item = (struct node_descriptor *)m->private;
-	uint32_t _t1, _t2;
+	uint32_t _t1, _t2, prot;
+	int ret = -1;
 
 	if ( otp->read &&
-	     !(otp->read(otp, item->offset, &_t1))) {
+	     !(ret = otp->read(otp, item->offset, &_t1, &prot))) {
 
 		_t2 = htonl(_t1); /*network byte order for reading*/
-		seq_print_data(m, (void*)&_t2, 4);
+		seq_print_data(m, (void*)&_t2, 4, prot);
 
 		for_each_child_of_node(item->node, field) {
 			entry_field_show(m, _t1, field);
 		}
 	}
 
-	return 0;
+	return ret;
 }
 
 static int node_show(struct seq_file *m, void *v)
@@ -340,7 +342,7 @@ int otp_get_fuse_bits(const uint32_t ofs, const unsigned s, const unsigned nbits
 		return -EINVAL;
 	}
 
-	if ( otp->read && !(otp->read(otp, ofs, &tmp)) ){
+	if ( otp->read && !(otp->read(otp, ofs, &tmp, NULL)) ){
 		pr_debug("get fuse value %#x (ofs %#x)\n", tmp, ofs);
 		*ptr = GET_BITS(tmp, s, nbits);
 	} else {
@@ -361,7 +363,6 @@ static int __init trix_init_otp(void)
 {
 	const struct of_device_id *match;
 	struct device_node *np;
-	int ret = 0;
 
 	np = of_find_matching_node_and_match(NULL, trix_otp_match, &match);
 	if (!np)
@@ -372,16 +373,6 @@ static int __init trix_init_otp(void)
 		return -ENOMEM;
 
 	INIT_LIST_HEAD(&otp->fuse_map_list);
-
-	/*
-	 * Extract information from the device tree if we've found a
-	 * matching node
-	 */
-	otp->base = of_iomap(np, 0);
-	if(IS_ERR_OR_NULL(otp->base)) {
-		ret = -ENOMEM;
-		goto free_mem;
-	}
 
 #ifdef CONFIG_PROC_FS
 	otp->proc_dir = proc_mkdir("otp", NULL);
@@ -400,10 +391,6 @@ static int __init trix_init_otp(void)
 		otp->soc->init(otp);
 
 	return 0;
-
-free_mem:
-	kfree(otp);
-	return ret;
 }
 early_initcall(trix_init_otp);
 

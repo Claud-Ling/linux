@@ -18,5 +18,19 @@ config TRIX_SECURE_FIRMWARE
 	  This option allows the kernel to invoke the secure world whenever
 	  required on devices using SMC calls.
 
+config TRIX_TEE_OPTEE
+	bool "optee"
+	depends on ARM64 && TRIX_SECURE_FIRMWARE
+	default y
+	help
+	  select tee implementation based on atf & optee
+
+config TRIX_TEE_ARMOR
+	bool "armor"
+	depends on ARM && TRIX_SECURE_FIRMWARE
+	default y
+	help
+	  select tee implementation based on armor
+
 endmenu
 

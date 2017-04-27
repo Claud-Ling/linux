@@ -32,30 +32,19 @@ struct trix_otp_soc {
 	bool (*get_security_boot_state)(struct trix_otp *host);
 	bool (*get_new_nand_sel_state)(struct trix_otp *host);
 	int  (*get_rsa_key_index)(struct trix_otp *host);
-	uint32_t (*get_rsa_key)(struct trix_otp *host, uint32_t *buf, uint32_t nbytes);
+	int (*get_rsa_key)(struct trix_otp *host, uint32_t *buf, uint32_t nbytes);
 };
 
 struct trix_otp {
-	void __iomem *base;
-	struct trix_otp_soc *soc;	
-	int (*read)(struct trix_otp *otp, const uint32_t offset, uint32_t *pval);
-	int (*read_array)(struct trix_otp *otp, uint32_t ofs, uint32_t *buf, uint32_t nbytes);
+	struct trix_otp_soc *soc;
+	int (*read)(struct trix_otp *otp, const uint32_t offset, uint32_t *pval, uint32_t *pprot);
+	int (*read_array)(struct trix_otp *otp, const uint32_t ofs, uint32_t *buf, const uint32_t nbytes, uint32_t *pprot);
 
 #ifdef CONFIG_PROC_FS
 	struct proc_dir_entry *proc_dir;
 	struct list_head fuse_map_list;
 #endif
 };
-
-static inline uint32_t OTP_READL(struct trix_otp *dev, size_t ofs)
-{
-	return readl_relaxed(dev->base + ofs);
-}
-
-static inline void OTP_WRITEL(struct trix_otp *dev, uint32_t val, size_t ofs)
-{
-	writel_relaxed(val, dev->base + ofs);
-}
 
 extern const struct trix_otp_soc sxx_fuse_soc;
 

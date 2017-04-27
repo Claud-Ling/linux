@@ -19,6 +19,7 @@
 #include <linux/slab.h>
 
 #include <linux/soc/sigma-dtv/io.h>
+#include <linux/soc/sigma-dtv/security.h>
 
 enum access_mode {
 	BYTE = 0,
@@ -123,8 +124,7 @@ int io_accessor_read_reg(uint32_t mode, uint32_t pa, uint32_t *pval)
 		return -EINVAL;
 
 	if (region->secure) {
-		//TODO add support for smc call
-		return -EACCES;
+		return secure_read_reg(mode, pa, pval);
 	} else {
 		va = region->virt_base + (reg - region->phys_base);
 
@@ -159,8 +159,7 @@ int io_accessor_write_reg(uint32_t mode, uint32_t pa, uint32_t val, uint32_t mas
 		return -EINVAL;
 
 	if (region->secure) {
-		//TODO add support for smc call
-		return -EACCES;
+		return secure_write_reg(mode, pa, val, mask);
 	} else {
 		va = region->virt_base + (reg - region->phys_base);
 
@@ -191,39 +190,36 @@ EXPORT_SYMBOL(io_accessor_write_reg);
 static int add_system_io_region(struct device_node *np,
 			struct io_accessor *acc, bool is_secure)
 {
-	struct system_io_region *region;
+	struct system_io_region *region = NULL;
 	struct resource r;
-	int ret;
+	int i, ret = 0;
 
-	region = kzalloc(sizeof(*region), GFP_KERNEL);
-	if (!region)
-		return -ENOMEM;
-
-	ret = of_address_to_resource(np, 0, &r);
-	of_node_put(np);
-	if(ret)
-		goto free;
-
-	region->phys_base = (phys_addr_t)r.start;
-	region->size = resource_size(&r);
-	region->secure = is_secure;
-
-	if (is_secure) {
-		list_add_tail(&region->node, &acc->sec);
-	} else {
-		region->virt_base = ioremap_nocache(r.start, resource_size(&r));
-		if (!region->virt_base) {
+	for (i = 0; of_address_to_resource(np, i, &r) == 0; i++) {
+		region = kzalloc(sizeof(*region), GFP_KERNEL);
+		if (!region) {
 			ret = -ENOMEM;
-			goto free;
+			goto out;
 		}
 
-		list_add_tail(&region->node, &acc->nsec);
+		region->phys_base = (phys_addr_t)r.start;
+		region->size = resource_size(&r);
+		region->secure = is_secure;
+
+		if (is_secure) {
+			list_add_tail(&region->node, &acc->sec);
+		} else {
+			region->virt_base = ioremap_nocache(r.start, resource_size(&r));
+			if (!region->virt_base) {
+				ret = -ENOMEM;
+				kfree(region);
+				region = NULL;
+				goto out;
+			}
+
+			list_add_tail(&region->node, &acc->nsec);
+		}
 	}
-
-	return 0;
-
-free:
-	kfree(region);
+out:
 	return ret;
 }
 

@@ -12,7 +12,6 @@
 #include "sigma-union-clocks.dtsi"
 #include "sigma-union-pinctrl.dtsi"
 
-
 #include <dt-bindings/soc/sigma-dtv/proc_fuse.h>
 
 / {
@@ -24,6 +23,11 @@
 	firmware {
 		optee {
 			compatible = "linaro,optee-tz";
+			method = "smc";
+		};
+
+		sip {
+			compatible = "trix,arm-tf-sip";
 			method = "smc";
 		};
 	};
@@ -61,10 +65,22 @@
 
 		compatible = "trix,io-accessor";
 
-		io-space-0 {
-			reg = <0x0 0xf5000000 0x0 0x8000000>;
+		/* secure io space */
+		io-space-s {
+			secure-io;
+			reg = <0x0 0xf0016000 0x0 0x00002000>,	/*AV_MMIO Security & Configure (8k)*/
+			      <0x0 0xf1040000 0x0 0x00020000>,	/*Turing (128k)*/
+			      <0x0 0xf5002000 0x0 0x00002000>,	/*PLF_MMIO Security & Configure (8k)*/
+			      <0x0 0xf5005000 0x0 0x00001000>,	/*PMAN_SEC0 (4k)*/
+			      <0x0 0xfa000000 0x0 0x00002000>;	/*DISP_MMIO Security & Configure (8k)*/
 		};
 
+		/* non-secure io space */
+		io-space-n {
+			reg = <0x0 0xf5000000 0x0 0x00002000>,
+			      <0x0 0xf5006000 0x0 0x04ffa000>,
+			      <0x0 0xfa002000 0x0 0x02ffe000>;
+		};
 	};
 
 	soc {
@@ -131,6 +147,11 @@
 		gmac0: eth@f5030000 {
 			pinctrl-names = "default";
 			pinctrl-0 = <&gmac_io_func>;
+		};
+
+		otp_fuse: otp_fuse {
+			compatible = "trix,union-otp";
+			#include <dt-bindings/soc/sigma-dtv/fuse_data_map-union.inc>
 		};
 	};
 };

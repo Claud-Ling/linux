@@ -15,6 +15,14 @@
 #include <dt-bindings/soc/sigma-dtv/proc_fuse.h>
 
 / {
+	firmware {
+		armor {
+			compatible = "trix,armor";
+			method = "smc";
+			armor,rsa-key-ofs = <0xd50>;	/*rsa public key*/
+		};
+	};
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -264,8 +272,6 @@
 
 		otp_fuse: otp_fuse {
 			compatible = "trix,sx8-otp";
-			reg = <0xf1040000 0x2000>;
-
 			#define CONFIG_SIGMA_SOC_SX8
 			#include <dt-bindings/soc/sigma-dtv/fuse_data_map.inc>
 		};
