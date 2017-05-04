@@ -16,8 +16,8 @@ config ASHMEM
 
 config ANDROID_LOGGER
 	tristate "Android log driver"
+	default m if SIGMA_DTV
 	default n
-	depends on ARCH_SIGMA_TRIX && m
 
 config ANDROID_TIMED_OUTPUT
 	bool "Timed output class driver"
