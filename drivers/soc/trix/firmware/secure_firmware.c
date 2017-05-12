@@ -27,7 +27,7 @@
 
 
 #define call_secure_fw_op(op, ...)					\
-	((secure_fw_ops->op) ? secure_fw_ops->op(__VA_ARGS__) : (-ENOSYS))
+	((secure_fw_ops && secure_fw_ops->op) ? secure_fw_ops->op(__VA_ARGS__) : (-ENOSYS))
 
 /**************************************************************************/
 /* secure fw operations                                                   */

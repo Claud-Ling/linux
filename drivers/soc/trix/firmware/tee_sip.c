@@ -18,6 +18,7 @@
 #include <linux/of_platform.h>
 #include <linux/arm-smccc.h>
 #include <linux/soc/sigma-dtv/security.h>
+#include <linux/soc/sigma-dtv/sd_pool.h>
 #include "sd_sip_svc.h"
 
 #ifdef DEBUG
@@ -109,14 +110,14 @@ static int sd_sip_set_mem_protection(unsigned long va, unsigned long sz)
 	uint32_t high, low;
 	void *tmp = NULL;
 	BUG_ON(va == 0);
-	if ((tmp = kzalloc(sz, GFP_KERNEL)) == NULL) {
+	if ((tmp = sd_pool_alloc(sz)) == NULL) {
 		return -ENOMEM;
 	}
 	memcpy(tmp, (void*)va, sz);
 	reg_pair_from_64(&high, &low, virt_to_phys(tmp));
 	call_invoke_fn(SD_SIP_FUNC_N_SET_PST, high, low, sz, 0, 0, 0, 0, &res);
 	NOISE_ON_FAIL(res.a0);
-	kfree(tmp);
+	sd_pool_free(tmp);
 	return sip_to_linux_ret(res.a0);
 }
 
@@ -144,7 +145,7 @@ static int sd_sip_fuse_read(unsigned long ofs, unsigned long va, unsigned long l
 	uint32_t high, low;
 	void *tmp = NULL;
 	if (va != 0) {
-		if ((tmp = kzalloc(len, GFP_KERNEL)) == NULL)
+		if ((tmp = sd_pool_alloc(len)) == NULL)
 			return -ENOMEM;
 	}
 	reg_pair_from_64(&high, &low, (tmp != NULL) ? virt_to_phys(tmp) : 0);
@@ -157,7 +158,7 @@ static int sd_sip_fuse_read(unsigned long ofs, unsigned long va, unsigned long l
 			*pprot = res.a1;
 	}
 
-	if (tmp != NULL) kfree(tmp);
+	if (tmp != NULL) sd_pool_free(tmp);
 	return sip_to_linux_ret(res.a0);
 }
 
@@ -167,7 +168,7 @@ static int sd_sip_get_rsa_key(unsigned long va, unsigned long len)
 	uint32_t high, low;
 	void *tmp = NULL;
 	BUG_ON(va == 0);
-	if ((tmp = kzalloc(len, GFP_KERNEL)) == NULL)
+	if ((tmp = sd_pool_alloc(len)) == NULL)
 		return -ENOMEM;
 	reg_pair_from_64(&high, &low, virt_to_phys(tmp));
 	call_invoke_fn(SD_SIP_FUNC_N_RSA_KEY, high, low, len, 0, 0, 0, 0, &res);
@@ -175,7 +176,7 @@ static int sd_sip_get_rsa_key(unsigned long va, unsigned long len)
 	if (SD_SIP_E_SUCCESS == res.a0) {
 		memcpy((void*)va, tmp, len);
 	}
-	kfree(tmp);
+	sd_pool_free(tmp);
 	return sip_to_linux_ret(res.a0);
 }
 
