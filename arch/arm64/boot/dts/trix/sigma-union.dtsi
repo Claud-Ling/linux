@@ -149,6 +149,27 @@
 			pinctrl-0 = <&gmac_io_func>;
 		};
 
+		sist: soc_sensor {
+			compatible = "trix,sist-soc-sensor";
+			reg = <0x0 0xf9b00070 0x0 0x20>;
+
+			UMAC0 {
+				bit-shift = <0>;
+			};
+			GFX {
+				bit-shift = <4>;
+			};
+			A53 {
+				bit-shift = <8>;
+			};
+			PMAN {
+				bit-shift = <12>;
+			};
+			VDETN {
+				bit-shift = <16>;
+			};
+		};
+
 		otp_fuse: otp_fuse {
 			compatible = "trix,union-otp";
 			#include <dt-bindings/soc/sigma-dtv/fuse_data_map-union.inc>
