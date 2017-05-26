@@ -22,7 +22,49 @@
 #include "ehci.h"
 
 
+#if defined(CONFIG_SIGMA_SOC_UNION)
+#define UTMI_CTL_REG	(0x104)		/* UTMI signal control reg */
+#define UTMI_RST	(1<<4)		/* Assert UTMI reset signal */
 
+#define SIGNAL_CTL_SEL	(0x10c)		/* Signal control select reg*/
+#define SOFT_CTL_EN	(1<<7)		/* Software control enable*/
+int ehci_trix_hub_control(
+	struct usb_hcd	*hcd,
+	u16		typeReq,
+	u16		wValue,
+	u16		wIndex,
+	char		*buf,
+	u16		wLength
+) {
+	struct ehci_hcd	*ehci = hcd_to_ehci (hcd);
+	u32 __iomem *utmi_ctl =
+			(u32 __iomem *)((unsigned long)hcd->regs + UTMI_CTL_REG);
+
+	u32 __iomem *signal_sel = (u32 __iomem *)((unsigned long)hcd->regs + SIGNAL_CTL_SEL);
+	int retval = 0;
+	u32 temp;
+
+	if (typeReq == SetPortFeature && wValue == USB_PORT_FEAT_RESET) {
+		/* Preload signal control select content */
+		temp = ehci_readl(ehci, signal_sel);
+
+		/* Pre-set UTMI reset */
+		ehci_writel(ehci, UTMI_RST, utmi_ctl);
+	}
+
+	retval = ehci_hub_control(hcd, typeReq, wValue, wIndex, buf, wLength);
+
+	if (typeReq == SetPortFeature && wValue == USB_PORT_FEAT_RESET) {
+
+		/* Switch signal select to software */
+		ehci_writel(ehci, (temp | SOFT_CTL_EN), signal_sel);
+
+		/* Switch back to MAC control UTMI signal */
+		ehci_writel(ehci, (temp), signal_sel);
+	}
+	return retval;
+}
+#endif
 
 static struct hc_driver __read_mostly ehci_trix_hc_driver;
 
@@ -58,6 +100,15 @@ static int ehci_trix_of_probe(struct platform_device *pdev)
 		return ret;
 
 	ehci_init_driver(&ehci_trix_hc_driver, NULL);
+#if defined(CONFIG_SIGMA_SOC_UNION)
+	/*
+	 * Due to UNION1 USB2.0 PHY(Innosilicon) have bug cause
+	 * MAC can't send out SOF, after high-speed hand shake.
+	 * So, we need over write 'hub_control' method here for
+	 * apply work around patch.
+	 */
+	ehci_trix_hc_driver.hub_control = ehci_trix_hub_control;
+#endif
 	hcd = usb_create_hcd(&ehci_trix_hc_driver, dev, dev_name(dev));
 	if (!hcd)
 		return -ENOMEM;
