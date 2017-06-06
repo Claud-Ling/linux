@@ -35,11 +35,11 @@ static void wireless_seq_printf_stats(struct seq_file *seq,
 
 	/* show device if it's wireless regardless of current stats */
 	if (!stats) {
-#ifdef CONFIG_WIRELESS_EXT
+#if IS_ENABLED(CONFIG_WIRELESS_EXT)
 		if (dev->wireless_handlers)
 			stats = &nullstats;
 #endif
-#ifdef CONFIG_CFG80211
+#if IS_ENABLED(CONFIG_CFG80211)
 		if (dev->ieee80211_ptr)
 			stats = &nullstats;
 #endif
