@@ -374,6 +374,7 @@ static int mi2c_calculate_wait_time(struct i2c_adapter *adap, struct i2c_msg *ms
 	u32 transfer_bits = 0;
 	u32 wait_millsec = 0;
 	u32 bit_per_microsec = 1000000 / speed;
+	u32 bonus = 0;
 
 	/* data length from device, the MAX is 256 bytes */
 	if (msg->flags & I2C_M_RECV_LEN) {
@@ -383,11 +384,21 @@ static int mi2c_calculate_wait_time(struct i2c_adapter *adap, struct i2c_msg *ms
 		transfer_bits = (msg->len << 3);
 	}
 
+	if (msg->len > 1 || msg->flags & I2C_M_RECV_LEN) {
+	/*
+	 * message len greater than 1, should not be probe operation
+	 * from i2c-core, so add more wait time here should not impact
+	 * performance.
+	 */
+		bonus = (10*jiffies_to_msecs(HZ));
+	}
+
 	/* Bonus for START STOP ACK bit & with some redundance, totally 300% */
 	transfer_bits += ((transfer_bits * 30) / 10);
 
 	/* Convert to million seconds and with add-on 200ms for interrupt delay in system busy case */
 	wait_millsec = ((transfer_bits * bit_per_microsec) / 1000) + 200;
+	wait_millsec += bonus;
 
 	MI2C_DBG(mdev->dev, "Calculate msg transfer wait time\n");
 	MI2C_DBG(mdev->dev, "bit_per_microsec = %u\n", bit_per_microsec);
@@ -459,6 +470,8 @@ static int sigma_mi2c_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg, in
 
 	if (!timeout) {
 		dev_err(dev->dev, "Timeout wait for msg transfer!\n");
+		dev_err(dev->dev, "msg submit by %s(%d)!\n", current->comm, current->pid);
+		dev_err(dev->dev, "\taddr:%04x len:%04x\n", msg->addr, msg->len);
 		err = -EAGAIN;
 	}
 
