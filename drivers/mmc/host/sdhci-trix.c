@@ -408,11 +408,22 @@ static int sdhci_sx6_suspend(struct device *dev)
 
 static int sdhci_sx6_resume(struct device *dev)
 {
+#define CARD_DETECT_TIMEOUT_US  1000000
+#define DELAY_TIME_SLICE_US     1000
+	int retry = CARD_DETECT_TIMEOUT_US / DELAY_TIME_SLICE_US;
+	u32 state = 0;
 	struct sdhci_trihidtv_chip *chip = dev_get_drvdata(dev);
 	struct sdhci_host *host = chip->host;
 	struct platform_device *pdev = to_platform_device(dev);
 
 	sdhci_sx6_pinshare_init(pdev->id);
+	while (retry--) {
+		state = sdhci_readl(host, SDHCI_PRESENT_STATE);
+		if (state & SDHCI_CARD_PRESENT) break;
+		udelay(DELAY_TIME_SLICE_US);
+	}
+	if (retry < 0)
+		printk("failed to detect mmc card in %d ms\n", CARD_DETECT_TIMEOUT_US / 1000);
 
 	return sdhci_resume_host(host);
 }
