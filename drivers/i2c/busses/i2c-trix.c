@@ -121,14 +121,45 @@ static void mi2c_writeb(struct sigma_mi2c_dev *dev, u8 val, u32 ptr)
 /*
  * Calculate divide for particular speed with 50% duty cycle
  */
-static u32 speed_to_divide(struct sigma_mi2c_dev *dev, u32 speed)
+#define MIN_SPEED	(1600) /* 1.6KHz */
+static u32 set_divide_by_speed(struct sigma_mi2c_dev *dev, u32 speed)
 {
-	u32 div = 0;
+	u32 div = 0, dt = 0, dh = 0, dl = 0, s_speed = MIN_SPEED;
 
-	/* split by 2 with 50% duty cycle */
-	div = (dev->clkbase / speed) >> 1;
 
-	return div;
+	s_speed = max((u32)MIN_SPEED, speed);
+	div = (dev->clkbase / s_speed) >> 1;
+	dt = (2*div)/5;
+
+	/* 50% duty cycle fit for less than 100KHz clock*/
+	if (speed<=100000) {
+		dh = dl = div;
+	} else {
+		dh = dt*2;
+		dl = dt*3;
+	}
+
+	dev->speed = s_speed;
+	dev->scl_high_time = dh;
+	dev->scl_low_time = dl;
+
+	return 0;
+}
+
+/*
+ * For 400Khz case, we need fixup SDA hold time
+ * refer to DTVSXE-649
+ */
+static void sda_hold_fixup(struct sigma_mi2c_dev *dev)
+{
+
+	if (dev->speed <= 100000) {
+		mi2c_writeb(dev, 0xe1, MI2C_DAT_HOLD_LSB);
+	} else {
+		mi2c_writeb(dev, 0x3e, MI2C_DAT_HOLD_LSB);
+	}
+
+	return;
 }
 
 static void sigma_mi2c_set_scl_timing(struct sigma_mi2c_dev *dev)
@@ -159,7 +190,7 @@ static ssize_t set_speed(struct device *dev, struct device_attribute *attr,
 {
 	unsigned long flags, val;
 	int err = 0;
-	u32 speed = 0, div = 0;
+	u32 speed = 0;
 	struct i2c_adapter *adap = container_of(dev, struct i2c_adapter, dev);
 	struct sigma_mi2c_dev *mdev = container_of(adap, struct sigma_mi2c_dev, adapter);
 
@@ -169,12 +200,10 @@ static ssize_t set_speed(struct device *dev, struct device_attribute *attr,
 
 	speed = val;
 
-	div = speed_to_divide(mdev, speed);
 
 	spin_lock_irqsave(&mdev->lock, flags);
-	mdev->speed = speed;
-	mdev->scl_high_time = div;
-	mdev->scl_low_time = div;
+	set_divide_by_speed(mdev, speed);
+	sda_hold_fixup(mdev);
 	sigma_mi2c_set_scl_timing(mdev);
 	spin_unlock_irqrestore(&mdev->lock, flags);
 
@@ -636,9 +665,7 @@ static int sigma_mi2c_probe(struct platform_device *pdev)
 	mdev->clkbase = pdata->clkbase;
 	mdev->capacity = pdata->capacity;
 	mdev->fifo_size = pdata->fifo_size;
-	mdev->speed = pdata->default_speed;
-	mdev->scl_high_time = speed_to_divide(mdev, mdev->speed);
-	mdev->scl_low_time = mdev->scl_high_time;
+	set_divide_by_speed(mdev, pdata->default_speed);
 
 	if (mdev->capacity & MI2C_CAP_BULK) {
 		/* Enable BULK fifo */
