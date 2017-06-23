@@ -241,7 +241,7 @@ static int sigma_dwmac_parse_data(struct sigma_dwmac *dwmac,
 	struct plat_dwmacenet_data *plat_dat;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	dwmac->ctrl_reg = SIGMA_IO_ADDRESS(res->start);
+	dwmac->ctrl_reg = (void __iomem *)SIGMA_IO_ADDRESS(res->start);
 	plat_dat = pdev->dev.platform_data;
 	dwmac->interface = plat_dat->interface;	/* RMII or RGMII */
 

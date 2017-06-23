@@ -57,7 +57,7 @@ static int dwmac_jumbo_frm(void *p, struct sk_buff *skb, int csum)
 		priv->tx_skbuff_dma[entry].buf = desc->des2;
 		desc->des3 = desc->des2 + BUF_SIZE_4KiB;
 		priv->hw->desc->prepare_tx_desc(desc, 1, bmax, csum,
-						DWMAC_RING_MODE);
+						DWMAC_RING_MODE, 0, false);
 		wmb();
 		priv->tx_skbuff[entry] = NULL;
 		entry = (++priv->cur_tx) % txsize;
@@ -74,9 +74,8 @@ static int dwmac_jumbo_frm(void *p, struct sk_buff *skb, int csum)
 		priv->tx_skbuff_dma[entry].buf = desc->des2;
 		desc->des3 = desc->des2 + BUF_SIZE_4KiB;
 		priv->hw->desc->prepare_tx_desc(desc, 0, len, csum,
-						DWMAC_RING_MODE);
+						DWMAC_RING_MODE, 1, true);
 		wmb();
-		priv->hw->desc->set_tx_owner(desc);
 	} else {
 		desc->des2 = dma_map_single(priv->device, skb->data,
 					    nopaged_len, DMA_TO_DEVICE);
@@ -85,7 +84,7 @@ static int dwmac_jumbo_frm(void *p, struct sk_buff *skb, int csum)
 		priv->tx_skbuff_dma[entry].buf = desc->des2;
 		desc->des3 = desc->des2 + BUF_SIZE_4KiB;
 		priv->hw->desc->prepare_tx_desc(desc, 1, nopaged_len, csum,
-						DWMAC_RING_MODE);
+						DWMAC_RING_MODE, 0, true);
 	}
 
 	return entry;
