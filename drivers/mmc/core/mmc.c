@@ -339,7 +339,11 @@ static void mmc_manage_gp_partitions(struct mmc_card *card, u8 *ext_csd)
 /*
  * Decode extended CSD.
  */
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd, int update)
+#else
 static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
+#endif
 {
 	int err = 0, idx;
 	unsigned int part_size;
@@ -422,7 +426,11 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		 * There are two boot regions of equal size, defined in
 		 * multiples of 128K.
 		 */
-		if (ext_csd[EXT_CSD_BOOT_MULT] && mmc_boot_partition_access(card->host)) {
+		if (ext_csd[EXT_CSD_BOOT_MULT] && mmc_boot_partition_access(card->host)
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+		&& !update
+#endif
+		) {
 			for (idx = 0; idx < MMC_NUM_BOOT_PARTITION; idx++) {
 				part_size = ext_csd[EXT_CSD_BOOT_MULT] << 17;
 				mmc_part_add(card, part_size,
@@ -454,7 +462,12 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 
 		mmc_manage_enhanced_area(card, ext_csd);
 
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+		if (!update)
+			mmc_manage_gp_partitions(card, ext_csd);
+#else
 		mmc_manage_gp_partitions(card, ext_csd);
+#endif
 
 		card->ext_csd.sec_trim_mult =
 			ext_csd[EXT_CSD_SEC_TRIM_MULT];
@@ -534,7 +547,11 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		 * RPMB regions are defined in multiples of 128K.
 		 */
 		card->ext_csd.raw_rpmb_size_mult = ext_csd[EXT_CSD_RPMB_MULT];
-		if (ext_csd[EXT_CSD_RPMB_MULT] && mmc_host_cmd23(card->host)) {
+		if (ext_csd[EXT_CSD_RPMB_MULT] && mmc_host_cmd23(card->host)
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+		&& !update
+#endif
+		) {
 			mmc_part_add(card, ext_csd[EXT_CSD_RPMB_MULT] << 17,
 				EXT_CSD_PART_CONFIG_ACC_RPMB,
 				"rpmb", 0, false,
@@ -630,7 +647,11 @@ static int mmc_read_ext_csd(struct mmc_card *card)
 		return err;
 	}
 
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+	err = mmc_decode_ext_csd(card, ext_csd, 0);
+#else
 	err = mmc_decode_ext_csd(card, ext_csd);
+#endif
 	kfree(ext_csd);
 	return err;
 }
@@ -2002,6 +2023,30 @@ static const struct mmc_bus_ops mmc_ops = {
 	.shutdown = mmc_shutdown,
 	.reset = mmc_reset,
 };
+
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+/*
+ * update driver internal ext_csd structure in case ext_csd was touched by ioctl, i.e. mmc-utils
+ */
+int mmc_update_ext_csd(struct mmc_card *card)
+{
+	u8 *new_ext_csd;
+	int err;
+
+	if (!mmc_can_ext_csd(card))
+		return 0;
+
+	err = mmc_get_ext_csd(card, &new_ext_csd);
+	if (err || new_ext_csd == NULL)
+		goto out;
+
+	err = mmc_decode_ext_csd(card, new_ext_csd, 1);	/*update only*/
+
+out:
+	kfree(new_ext_csd);
+	return err;
+}
+#endif
 
 /*
  * Starting point for MMC card init.

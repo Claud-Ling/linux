@@ -786,3 +786,34 @@ config MMC_MTK
 	  If you have a machine with a integrated SD/MMC card reader, say Y or M here.
 	  This is needed if support for any SD/SDIO/MMC devices is required.
 	  If unsure, say N.
+
+config MMC_SDHCI_OF_TRIX
+	tristate "SDHCI OF support for the Sigmadesigns SDHCI controllers"
+	depends on ARCH_SIGMA_TRIX_OF
+	depends on MMC_SDHCI_PLTFM
+	depends on OF
+	select MMC_SDHCI_SIGMA_DTV
+	help
+	  This selects Sigma designs SOC sdhci.
+
+config MMC_SDHCI1_TRIX
+	tristate "Sigma Designs SDHCI1 support"
+	depends on MMC_SDHCI && !SIGMA_DTV_ROM_NAND && SIGMA_DTV && ((SIGMA_SOC_SX6 && !MMC_SDHCI2_TRIX) || (!SIGMA_SOC_SX6))
+	select MMC_SDHCI_SIGMA_DTV
+	select MMC_SDHCI_TRIX
+	help
+	  This selects Sigma designs SOC sdhci1.
+
+config MMC_SDHCI2_TRIX
+	tristate "Sigma Designs SDHCI2 support"
+	depends on MMC_SDHCI && !SIGMA_DTV_ROM_NAND && SIGMA_DTV
+	select MMC_SDHCI_SIGMA_DTV
+	select MMC_SDHCI_TRIX
+	help
+	  This selects Sigma designs SOC sdhci2.
+
+config MMC_SDHCI_TRIX
+	bool
+
+config MMC_SDHCI_SIGMA_DTV
+	bool

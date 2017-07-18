@@ -1,0 +1,33 @@
+/*
+ * Copyright (C) 2016 Sigmadesigns Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+/dts-v1/;
+#include "sigma-union.dtsi"
+
+/ {
+	model = "Sigma TRIX-UNION board";
+	compatible = "sdesigns,union", "sdesigns,trix";
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+	};
+
+	/* We expect the bootloader to fill in the chosen node and memory node */
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs = "earlycon=uart8250,0xfb005100,115200n8 console=ttyS0,115200n8 mem=188m loglevel=8 /dev/ram0 rw";
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x00000000 0x00000000 0x00000000 0x0bc00000>;
+	};
+
+};

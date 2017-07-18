@@ -14,6 +14,11 @@ config ASHMEM
 	  It is, in theory, a good memory allocator for low-memory devices,
 	  because it can discard shared memory units when under memory pressure.
 
+config ANDROID_LOGGER
+	tristate "Android log driver"
+	default m if SIGMA_DTV
+	default n
+
 config ANDROID_TIMED_OUTPUT
 	bool "Timed output class driver"
 	default y

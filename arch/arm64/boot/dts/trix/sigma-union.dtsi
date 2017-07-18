@@ -1,0 +1,178 @@
+/*
+ * Device Tree Source for UNION SoC
+ *
+ * Copyright (C) 2016 Sigmadesigns Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+#include "sigma-dtv-common.dtsi"
+#include "sigma-union-clocks.dtsi"
+#include "sigma-union-pinctrl.dtsi"
+
+#include <dt-bindings/soc/sigma-dtv/proc_fuse.h>
+
+/ {
+	psci {
+		compatible = "arm,psci-0.2";
+		method = "smc";
+	};
+
+	firmware {
+		optee {
+			compatible = "linaro,optee-tz";
+			method = "smc";
+		};
+
+		sip {
+			compatible = "trix,arm-tf-sip";
+			method = "smc";
+		};
+	};
+
+	cpus {
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x0 0x0>;
+			enable-method = "psci";
+			next-level-cache = <&L2_0>;
+		};
+
+		cpu@1 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x0 0x1>;
+			enable-method = "psci";
+			next-level-cache = <&L2_0>;
+		};
+
+		L2_0: l2-cache {
+			compatible = "cache";
+			cache-level = <2>;
+		};
+	};
+
+	io-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		compatible = "trix,io-accessor";
+
+		/* secure io space */
+		io-space-s {
+			secure-io;
+			reg = <0x0 0xf0016000 0x0 0x00002000>,	/*AV_MMIO Security & Configure (8k)*/
+			      <0x0 0xf1040000 0x0 0x00020000>,	/*Turing (128k)*/
+			      <0x0 0xf5002000 0x0 0x00002000>,	/*PLF_MMIO Security & Configure (8k)*/
+			      <0x0 0xf5005000 0x0 0x00001000>,	/*PMAN_SEC0 (4k)*/
+			      <0x0 0xfa000000 0x0 0x00002000>;	/*DISP_MMIO Security & Configure (8k)*/
+		};
+
+		/* non-secure io space */
+		io-space-n {
+			reg = <0x0 0xf5000000 0x0 0x00002000>,
+			      <0x0 0xf5006000 0x0 0x04ffa000>,
+			      <0x0 0xfa002000 0x0 0x02ffe000>;
+		};
+	};
+
+	soc {
+		pmu {
+			compatible = "arm,armv8-pmuv3";
+			interrupts = <GIC_PPI 7 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>;	/* PMU PPI */
+		};
+
+		sdhci0: sdhci@fb00a000 { /* eMMC on this bus */
+			no-hs200;
+			mmc-ddr-1_8v;
+
+			sigma,mmc_hs_timing	= <0x0 0x6>; /*indelay, outdelay*/
+			sigma,mmc_ddr52_timing	= <0x0 0x2>;
+			sigma,mmc_hs200_timing	= <0x4 0x4>;
+
+			clocks = <&clk200m>;
+			clock-names = "sdioclk";
+
+		};
+
+		sdhci1: sdhci@fb00c000 { /* SD card on this bus */
+			status = "disabled";
+		};
+
+		usb1: usb1@f502f100 {
+			stream-disable-mode; /* low memory bandwidth system, avoid FIFO overflow */
+
+		};
+
+		usb2: usb2@fb008100 {
+			stream-disable-mode; /* low memory bandwidth system, avoid FIFO overflow */
+
+		};
+
+		mi2c0: mi2c0 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c0_pmx_func>;
+		};
+
+		mi2c1: mi2c1 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c1_pmx_func>;
+		};
+
+		mi2c2: mi2c2 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c2_pmx_func>;
+		};
+
+		mi2c3: mi2c3 {
+			mi2c,fifosize = <32>;
+			mi2c,default-speed = <100000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&mi2c3_pmx_func>;
+		};
+
+		gmac0: eth@f5030000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&gmac_io_func>;
+		};
+
+		sist: soc_sensor {
+			compatible = "trix,sist-soc-sensor";
+			reg = <0x0 0xf9b00070 0x0 0x20>;
+
+			UMAC0 {
+				bit-shift = <0>;
+			};
+			GFX {
+				bit-shift = <4>;
+			};
+			A53 {
+				bit-shift = <8>;
+			};
+			PMAN {
+				bit-shift = <12>;
+			};
+			VDETN {
+				bit-shift = <16>;
+			};
+		};
+
+		otp_fuse: otp_fuse {
+			compatible = "trix,union-otp";
+			#include <dt-bindings/soc/sigma-dtv/fuse_data_map-union.inc>
+		};
+	};
+};

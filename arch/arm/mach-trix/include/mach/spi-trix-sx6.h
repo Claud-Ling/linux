@@ -1,0 +1,157 @@
+/*
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ *  Author: Tony He, 2016.
+ */
+
+#ifndef __ASM_ARCH_TRIX_MACH_SPI_TRIX_SX6_H__
+#define __ASM_ARCH_TRIX_MACH_SPI_TRIX_SX6_H__
+
+/**SX6 SPIs**/
+#define TRIHIDTV_AVMIPS_RQST_0_IRQ                    (TRIHIDTV_EIC_IRQ_BASE + 0)
+#define TRIHIDTV_AVMIPS_RSPNS_0_IRQ                   (TRIHIDTV_EIC_IRQ_BASE + 1)
+#define TRIHIDTV_AVMIPS_RQST_1_IRQ                    (TRIHIDTV_EIC_IRQ_BASE + 2)
+#define TRIHIDTV_AVMIPS_RSPNS_1_IRQ                   (TRIHIDTV_EIC_IRQ_BASE + 3)
+
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_0                (TRIHIDTV_EIC_IRQ_BASE + 4 )
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_1                (TRIHIDTV_EIC_IRQ_BASE + 5 )
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_2                (TRIHIDTV_EIC_IRQ_BASE + 6 )
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_3                (TRIHIDTV_EIC_IRQ_BASE + 7 )
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_4                (TRIHIDTV_EIC_IRQ_BASE + 8 )
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_5                (TRIHIDTV_EIC_IRQ_BASE + 9 )
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_6                (TRIHIDTV_EIC_IRQ_BASE + 10)
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_7                (TRIHIDTV_EIC_IRQ_BASE + 11)
+
+#define TRIHIDTV_GE2D_INTERRUPT                       (TRIHIDTV_EIC_IRQ_BASE + 12)
+
+#define TRIHIDTV_DISP_MIPS_REQUEST_INTERRUPT_0        (TRIHIDTV_EIC_IRQ_BASE + 13)
+#define TRIHIDTV_DISP_MIPS_REQUEST_INTERRUPT_1        (TRIHIDTV_EIC_IRQ_BASE + 14)
+#define TRIHIDTV_DISP_MIPS_RESPONSE_INTERRUPT_0       (TRIHIDTV_EIC_IRQ_BASE + 15)
+#define TRIHIDTV_DISP_MIPS_RESPONSE_INTERRUPT_1       (TRIHIDTV_EIC_IRQ_BASE + 16)
+
+#define TRIHIDTV_GC_INTERRUPT                         (TRIHIDTV_EIC_IRQ_BASE + 17)
+
+#define TRIHIDTV_USB_0_INTERRUPT                      (TRIHIDTV_EIC_IRQ_BASE + 18)
+#define TRIHIDTV_USB_1_INTERRUPT                      (TRIHIDTV_EIC_IRQ_BASE + 19)
+
+#define TRIHIDTV_PMAN_HUB_0_INTERRUPT                 (TRIHIDTV_EIC_IRQ_BASE + 20)
+#define TRIHIDTV_PMAN_HUB_1_INTERRUPT                 (TRIHIDTV_EIC_IRQ_BASE + 21)
+#define TRIHIDTV_PMAN_HUB_0_MONITOR_INTERRUPT         (TRIHIDTV_EIC_IRQ_BASE + 22)
+#define TRIHIDTV_PMAN_HUB_1_MONITOR_INTERRUPT         (TRIHIDTV_EIC_IRQ_BASE + 23)
+
+#define TRIHIDTV_TIMER_0_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 24)
+#define TRIHIDTV_TIMER_1_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 25)
+
+#define TRIHIDTV_FLASH_INTERRUPT                      (TRIHIDTV_EIC_IRQ_BASE + 26)
+#define TRIHIDTV_HS_UART_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 27)
+#define TRIHIDTV_CA_INTERRUPT                         (TRIHIDTV_EIC_IRQ_BASE + 28)
+#define TRIHIDTV_ETHERNET_INTERRUPT                   (TRIHIDTV_EIC_IRQ_BASE + 29)
+#define TRIHIDTV_SDIO_0_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 30)
+#define TRIHIDTV_SDIO_1_INTERRUPT                     TRIHIDTV_SDIO_0_INTERRUPT
+
+#define TRIHIDTV_MDISP_RES_CH1                        (TRIHIDTV_EIC_IRQ_BASE + 31)
+#define TRIHIDTV_GPIO_INTERRUPT                       (TRIHIDTV_EIC_IRQ_BASE + 32)
+#define TRIHIDTV_PLF_DCS_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 33)
+#define TRIHIDTV_SPI_CONTROLLER_0_INTERRUPT           (TRIHIDTV_EIC_IRQ_BASE + 34)
+#define TRIHIDTV_SPI_CONTROLLER_1_INTERRUPT           (TRIHIDTV_EIC_IRQ_BASE + 35)
+#define TRIHIDTV_MDISP_RES_CH2                        (TRIHIDTV_EIC_IRQ_BASE + 36)
+
+#define TRIHIDTV_DEMUX_TSA_IRQ                        (TRIHIDTV_EIC_IRQ_BASE + 37)
+#define TRIHIDTV_DEMUX_MCX_IRQ                        (TRIHIDTV_EIC_IRQ_BASE + 38)
+#define TRIHIDTV_DEMUX_TSP_IRQ                        (TRIHIDTV_EIC_IRQ_BASE + 39)
+#define TRIHIDTV_DEMUX_TSR_IRQ                        (TRIHIDTV_EIC_IRQ_BASE + 40)
+#define TRIHIDTV_DEMUX_TSX_IRQ                        (TRIHIDTV_EIC_IRQ_BASE + 41)
+#define TRIHIDTV_DEMUX_VD0_IRQ                        (TRIHIDTV_EIC_IRQ_BASE + 42)
+#define TRIHIDTV_DEMUX_VD1_IRQ                        (TRIHIDTV_EIC_IRQ_BASE + 43)
+
+#define TRIHIDTV_TURING_CKL_IRQ                       (TRIHIDTV_EIC_IRQ_BASE + 44)
+#define TRIHIDTV_TURING_CRYPTO_IRQ                    (TRIHIDTV_EIC_IRQ_BASE + 45)
+#define TRIHIDTV_TURING_ACC_IRQ                       (TRIHIDTV_EIC_IRQ_BASE + 46)
+#define TRIHIDTV_TURING_SAM_IRQ                       (TRIHIDTV_EIC_IRQ_BASE + 47)
+
+#define TRIHIDTV_STANDBY_CPU_REQUEST_INTERRUPT        (TRIHIDTV_EIC_IRQ_BASE + 48)
+#define TRIHIDTV_STANDBY_CPU_RESPONSE_INTERRUPT       (TRIHIDTV_EIC_IRQ_BASE + 49)
+#define TRIHIDTV_MASTER_I2C_0_INTERRUPT               (TRIHIDTV_EIC_IRQ_BASE + 50)
+#define TRIHIDTV_MASTER_I2C_1_INTERRUPT               (TRIHIDTV_EIC_IRQ_BASE + 51)
+#define TRIHIDTV_MASTER_I2C_2_INTERRUPT               (TRIHIDTV_EIC_IRQ_BASE + 52)
+
+#define TRIHIDTV_PLF_UART_0_INTERRUPT                 (TRIHIDTV_EIC_IRQ_BASE + 53)
+#define TRIHIDTV_PLF_UART_1_INTERRUPT                 (TRIHIDTV_EIC_IRQ_BASE + 54)
+#define TRIHIDTV_PLF_UART_2_INTERRUPT                 (TRIHIDTV_EIC_IRQ_BASE + 55)
+
+#define TRIHIDTV_PMAN_HUB_2_INTERRUPT                 (TRIHIDTV_EIC_IRQ_BASE + 56)
+#define TRIHIDTV_DEMOD_INTERRUPT                      (TRIHIDTV_EIC_IRQ_BASE + 57)
+#define TRIHIDTV_SMART_CARD_INTERRUPT                 (TRIHIDTV_EIC_IRQ_BASE + 58)
+#define TRIHIDTV_ETHERNET_PMT_INTERRUPT               (TRIHIDTV_EIC_IRQ_BASE + 59)
+
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_8                (TRIHIDTV_EIC_IRQ_BASE + 60)
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_9                (TRIHIDTV_EIC_IRQ_BASE + 61)
+#define TRIHIDTV_GE3D_MALI_INTERRUPT_10               (TRIHIDTV_EIC_IRQ_BASE + 62)
+
+#define TRIHIDTV_HEADPHONE_DETECT_INTERRUPT           (TRIHIDTV_EIC_IRQ_BASE + 63)
+
+#define TRIHIDTV_WINDSOR_INTERRUPT_0                  (TRIHIDTV_EIC_IRQ_BASE + 64)
+#define TRIHIDTV_WINDSOR_INTERRUPT_1                  (TRIHIDTV_EIC_IRQ_BASE + 65)
+
+#define TRIHIDTV_MPEGDISP_CHANNEL_1_INTERRUPT         (TRIHIDTV_EIC_IRQ_BASE + 66)
+#define TRIHIDTV_GIC_INTERRUPT                        (TRIHIDTV_EIC_IRQ_BASE + 67)
+#define TRIHIDTV_DEMUX_IPC_INTERRUPT                  (TRIHIDTV_EIC_IRQ_BASE + 68)
+
+#define TRIHIDTV_ABP_DTV_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 69)
+#define TRIHIDTV_ABP_MSP_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 70)
+
+#define TRIHIDTV_AUDIO_BRIDGE_INTRRUPT                (TRIHIDTV_EIC_IRQ_BASE + 71)
+#define TRIHIDTV_MPEGDISP_CHANNEL_2_INTERRUPT         (TRIHIDTV_EIC_IRQ_BASE + 72)
+#define TRIHIDTV_LVDS_INTERRUPT                       (TRIHIDTV_EIC_IRQ_BASE + 73)
+
+#define TRIHIDTV_V_PROC_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 74)
+#define TRIHIDTV_V_AFE_INTERRUPT                      (TRIHIDTV_EIC_IRQ_BASE + 75)
+#define TRIHIDTV_V_BLEND_INTERRUPT_VIDEO              (TRIHIDTV_EIC_IRQ_BASE + 76)
+#define TRIHIDTV_V_DETN_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 77)
+#define TRIHIDTV_V_FRCA_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 78)
+#define TRIHIDTV_V_FRCB_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 79)
+#define TRIHIDTV_V_INCAP_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 80)
+#define TRIHIDTV_V_PANEL_INTERRUPT                    (TRIHIDTV_EIC_IRQ_BASE + 81)
+
+#define TRIHIDTV_HDMI_1_INTERRUPT                     (TRIHIDTV_EIC_IRQ_BASE + 82)
+#define TRIHIDTV_HDMI_INTERRUPT                       (TRIHIDTV_EIC_IRQ_BASE + 83)
+#define TRIHIDTV_V_BLENDER_INTERRUPT_OSD              (TRIHIDTV_EIC_IRQ_BASE + 84)
+
+#define TRIHIDTV_MASTER_I2C_3_INTERRUPT               (TRIHIDTV_EIC_IRQ_BASE + 85)
+
+#define TRIHIDTV_SPI_CONTROLLER_0_DMAC_INTERRUPT      (TRIHIDTV_EIC_IRQ_BASE + 86)
+#define TRIHIDTV_SPI_CONTROLLER_1_DMAC_INTERRUPT      (TRIHIDTV_EIC_IRQ_BASE + 87)
+
+#define TRIHIDTV_V_PANEL_NEW                          (TRIHIDTV_EIC_IRQ_BASE + 88)
+#define TRIHIDTV_V_FRCA_NEW                           (TRIHIDTV_EIC_IRQ_BASE + 89)
+
+#define TRIHIDTV_USB_3_INTERRUPT                      (TRIHIDTV_EIC_IRQ_BASE + 90)
+
+#define TRIHIDTV_RESERVED                             (TRIHIDTV_EIC_IRQ_BASE + 91)
+
+#define TRIHIDTV_A9_DMA_CONTROLLER_INTERRUPT          (TRIHIDTV_EIC_IRQ_BASE + 96)
+#define TRIHIDTV_L2C_INTERRUPT                        (TRIHIDTV_EIC_IRQ_BASE + 97)
+#define TRIHIDTV_A9_CPU0_COMMRX_INTERRUPT             (TRIHIDTV_EIC_IRQ_BASE + 98)
+#define TRIHIDTV_A9_CPU0_COMMTX_INTERRUPT             (TRIHIDTV_EIC_IRQ_BASE + 99)
+#define TRIHIDTV_A9_CPU0_CTI_INTERRUPT                (TRIHIDTV_EIC_IRQ_BASE + 100)
+#define TRIHIDTV_A9_CPU0_PMU_INTERRUPT                (TRIHIDTV_EIC_IRQ_BASE + 101)
+#define TRIHIDTV_A9_CPU1_COMMRX_INTERRUPT             (TRIHIDTV_EIC_IRQ_BASE + 102)
+#define TRIHIDTV_A9_CPU1_COMMTX_INTERRUPT             (TRIHIDTV_EIC_IRQ_BASE + 103)
+#define TRIHIDTV_A9_CPU1_CTI_INTERRUPT                (TRIHIDTV_EIC_IRQ_BASE + 104)
+#define TRIHIDTV_A9_CPU1_PMU_INTERRUPT                (TRIHIDTV_EIC_IRQ_BASE + 105)
+
+#define TRIHIDTV_RESERVED_IRQ                         (TRIHIDTV_EIC_IRQ_BASE + 106)
+
+#endif /*__ASM_ARCH_TRIX_MACH_SPI_TRIX_SX6_H__*/

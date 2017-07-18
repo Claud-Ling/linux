@@ -741,6 +741,52 @@ config ARCH_OMAP1
 	help
 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
 
+config ARCH_SIGMA_TRIX
+	bool "SDesigns SX series SoC"
+	select HAVE_CLK
+	select HAVE_ARM_SCU if SMP
+	select HAVE_ARM_TWD if SMP
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_CLOCKEVENTS
+	select ARCH_HAS_HOLES_MEMORYMODEL
+	select CLKDEV_LOOKUP
+	select CLKSRC_MMIO
+	select HOTPLUG_CPU if SMP
+	select NEED_MACH_IO_H
+	select SIGMA_DTV
+	help
+	  Support for Sigma's SX series SoC.
+
+config ARCH_SIGMA_TRIX_OF
+	bool "SDesigns SX series SoC with Open Firmware"
+	select AEABI
+	select REGULATOR
+	select PM
+	select PM_RUNTIME
+	select VFP
+	select NEON
+	select CPU_V7
+	select ARM_GIC
+	select HAVE_SMP
+	select SMP
+	select ARCH_HAS_OPP
+	select PM_OPP if PM
+	select HAVE_CLK
+	select COMMON_CLK
+	select HAVE_ARM_SCU if SMP
+	select HAVE_ARM_TWD if SMP
+	select HOTPLUG_CPU if SMP
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_CLOCKEVENTS
+	select ARCH_HAS_HOLES_MEMORYMODEL
+	select CLKDEV_LOOKUP
+	select CLKSRC_MMIO
+	select SPARSE_IRQ
+	select USE_OF
+	select TRIX_TIMER
+	select PINCTRL
+	select SIGMA_DTV
+
 endchoice
 
 menu "Multiple platform selection"
@@ -794,6 +840,10 @@ config ARCH_MULTI_CPU_AUTO
 	select ARCH_MULTI_V5
 
 endmenu
+
+config SIGMA_DTV
+	bool "sigma DTV arch"
+	depends on ARCH_SIGMA_TRIX || ARCH_SIGMA_TRIX_OF
 
 config ARCH_VIRT
 	bool "Dummy Virtual Machine" if ARCH_MULTI_V7
@@ -938,6 +988,10 @@ source "arch/arm/mach-w90x900/Kconfig"
 source "arch/arm/mach-zx/Kconfig"
 
 source "arch/arm/mach-zynq/Kconfig"
+
+source "arch/arm/mach-trix/Kconfig"
+
+source "arch/arm/mach-trix-of/Kconfig"
 
 # ARMv7-M architecture
 config ARCH_EFM32

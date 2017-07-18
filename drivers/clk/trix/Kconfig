@@ -1,0 +1,7 @@
+config COMMON_CLK_TRIX
+	bool "Clock driver for SigmaDesigns DTV SoCs"
+	default y
+	depends on ARCH_SIGMA_TRIX_OF
+	select SYSCON_TRIX
+	---help---
+	  Support for the Sigma Designs DTV SoC reference, PLL, and device clocks.

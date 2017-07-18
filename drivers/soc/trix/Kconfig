@@ -1,0 +1,49 @@
+#
+# SigmaDesigns DTV SOC drivers
+#
+menu "Sigma DTV SOC specific drivers"
+
+config TRIX_SOC_INFO
+	bool "SoC information for Sigma DTV platform"
+	depends on ARCH_SIGMA_TRIX_OF
+	select SOC_BUS
+	default y
+	help
+	  Select this option to enable displaying soc information
+
+config SYSCON_TRIX
+	bool "System Controller Register R/W Based on IO remap"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Select this option to enable accessing system control registers
+	  via ioremap.
+
+config TRIX_DRV_HELPER
+	tristate "system drivers/modules helper"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Say y here to enable support for the Sigma DTV driver helper API.
+	  The driver provides an interface to access system resource among
+	  various kernel drivers/modules.
+
+config TRIX_OTP_FUSE
+	bool "OTP(One Time Programable) interface"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Select this option to enable accessing OTP fuse bits.
+
+config TRIX_HIDTVMEM
+	tristate "/dev/hidtvmem virtual device support"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Say Y here if you want to support the /dev/hidtvmem device.
+	  The /dev/hidtvmem device is used to access physical memory
+	  and MMIO.
+
+source "drivers/soc/trix/firmware/Kconfig"
+
+endmenu

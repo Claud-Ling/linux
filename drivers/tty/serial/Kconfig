@@ -18,6 +18,17 @@ source "drivers/tty/serial/8250/Kconfig"
 
 comment "Non-8250 serial port support"
 
+config TRIX_MIPS_SERIAL_CONSOLE
+	tristate "Sigma DTV support for console on MIPS serial port"
+	depends on SIGMA_DTV
+	select SERIAL_CORE
+	select SERIAL_CORE_CONSOLE
+	default n
+	help
+	  For SLT cover chip with secure enabled, the original serial
+	  ports be disabled by fuse, we can use MIPS uart to temporarily output log.
+	  If unsure, say N.
+
 config SERIAL_AMBA_PL010
 	tristate "ARM AMBA PL010 serial port support"
 	depends on ARM_AMBA

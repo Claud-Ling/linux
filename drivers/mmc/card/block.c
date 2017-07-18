@@ -70,6 +70,10 @@ MODULE_ALIAS("mmc:block");
 #define PACKED_CMD_VER	0x01
 #define PACKED_CMD_WR	0x02
 
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+int mmc_update_ext_csd(struct mmc_card *card);
+#endif
+
 static DEFINE_MUTEX(block_mutex);
 
 /*
@@ -585,6 +589,19 @@ static int __mmc_blk_ioctl_cmd(struct mmc_card *card, struct mmc_blk_data *md,
 					__func__, status, err);
 	}
 
+#ifdef CONFIG_MMC_SDHCI_SIGMA_DTV
+	if ((cmd.opcode == MMC_SWITCH) && ((cmd.arg >> 24) == 0x3)) {
+		/*
+		 * In case the IOCTL has modified the EXT_CSD,
+		 * update it, i.e. re-read the EXT_CSD.
+		 */
+		err = mmc_update_ext_csd(card);
+		if (err)
+			dev_err(mmc_dev(card->host),
+				"%s: EXT_CSD update failed, error %d\n",
+				__func__, err);
+	}
+#endif
 	return err;
 }
 
@@ -2252,7 +2269,14 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	md->disk->queue = md->queue.queue;
 	md->disk->driverfs_dev = parent;
 	set_disk_ro(md->disk, md->read_only || default_ro);
+#if defined(CONFIG_SIGMA_DTV)
+	/*
+	 * Sigma DTV case need partition scan for boot area.
+	 */ 
+	if (area_type & MMC_BLK_DATA_AREA_RPMB)
+#else
 	if (area_type & (MMC_BLK_DATA_AREA_RPMB | MMC_BLK_DATA_AREA_BOOT))
+#endif
 		md->disk->flags |= GENHD_FL_NO_PART_SCAN;
 
 	/*

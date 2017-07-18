@@ -128,4 +128,42 @@ config ARCH_ZYNQMP
 	help
 	  This enables support for Xilinx ZynqMP Family
 
+config ARCH_SIGMA_TRIX_OF
+	bool "Sigma DTV arm 64-bit SoC Family"
+	select SIGMA_DTV
+	select PINCTRL
+	select PINCTRL_SINGLE
+	help
+	  This enables support for Sigmadesigns DTV SoC ARM64 Family
+if  ARCH_SIGMA_TRIX_OF
+
+menu "Sigma SX series SoC Specific Features"
+
+config SIGMA_DTV
+	bool
+	depends on ARCH_SIGMA_TRIX_OF
+	select SMP
+
+choice
+	prompt "Select SIGMA DTV SoC type"
+	depends on ARCH_SIGMA_TRIX_OF
+	help
+	  Sigma DTV Soc selection
+
+config SIGMA_SOC_UNION
+	bool "UNION"
+	help
+	  Sigma DTV UNION SoCs support(AARCH64)
+
+config SIGMA_SOC_UNION2
+	bool "UNION2"
+	help
+	  Sigma DTV UNION2 SoCs support(AARCH64)
+
+endchoice
+
+endmenu
+
+endif
+
 endmenu

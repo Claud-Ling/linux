@@ -565,6 +565,12 @@ config GPIO_TS5500
 	  blocks of the TS-5500: DIO1, DIO2 and the LCD port, and the TS-5600
 	  LCD port.
 
+config GPIO_TRIX
+	tristate "Sigma DTV GPIO support"
+	depends on ARCH_SIGMA_TRIX_OF
+	select GPIOLIB_IRQCHIP
+	help
+	  Say yes here to support Sigma DTV GPIO controller.
 endmenu
 
 menu "I2C GPIO expanders"

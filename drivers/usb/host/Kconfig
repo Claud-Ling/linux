@@ -57,6 +57,15 @@ config USB_XHCI_RCAR
 	  Say 'Y' to enable the support for the xHCI host controller
 	  found in Renesas R-Car ARM SoCs.
 
+config USB_XHCI_SIGMA_DTV
+	bool "SIGMA DTV xHCI HCD(USB 3.0) support"
+	depends on USB_XHCI_HCD && SIGMA_DTV
+	default y
+	---help---
+	  Say 'Y' to enable support for on-chip xHCI host controller on sigma DTV chipsets.
+	  This will enable USB 3.0 support accordingly.
+	  If unsure, say Y.
+
 endif # USB_XHCI_HCD
 
 config USB_EHCI_HCD
@@ -312,6 +321,24 @@ config USB_OCTEON_EHCI
 	  controller.  It is needed for high-speed (480Mbit/sec)
 	  USB 2.0 device support.  All CN6XXX based chips with USB are
 	  supported.
+
+config USB_EHCI_SIGMA_DTV
+	bool "SIGMA DTV EHCI HCD support"
+	depends on USB_EHCI_HCD && SIGMA_DTV && !OF
+	default y
+	---help---
+	  Say 'Y' to enable support for on-chip EHCI controller on sigma DTV chipsets.
+	  This will enable USB 2.0 support accordingly.
+	  If unsure, say Y.
+
+config USB_EHCI_SIGMA_DTV_OF
+	bool "OF SIGMA DTV EHCI HCD support"
+	depends on USB_EHCI_HCD && SIGMA_DTV && OF
+	default y
+	---help---
+	  Say 'Y' to enable support for on-chip EHCI controller on sigma DTV chipsets.
+	  This will enable USB 2.0 support accordingly.
+	  If unsure, say Y.
 
 endif # USB_EHCI_HCD
 

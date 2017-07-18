@@ -61,6 +61,11 @@ static unsigned int skip_txen_test; /* force skip of txen test at init time */
 #define PASS_LIMIT	512
 
 #include <asm/serial.h>
+
+#if defined(CONFIG_SIGMA_DTV) && !defined(CONFIG_OF)
+#include <mach/serial.h>
+#endif
+
 /*
  * SERIAL_PORT_DFNS tells us about built-in ports that have no
  * standard enumeration mechanism.   Platforms that can find all

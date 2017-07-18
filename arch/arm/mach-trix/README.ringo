@@ -1,0 +1,27 @@
+###############################################################
+#                                                             #
+#       Sigma SIST sensor "/proc" interface note              #
+#                                                             #
+###############################################################
+
+
+Sigma SOC support a set of SIST sensor can observe each module's status
+in the whole chip. Ringo is one status of them. Now kernel support a 
+"proc" filesystem interface for Ringo value observation.
+
+1. How to observe Ringo value ?
+
+	$cat /proc/SIST/ringo
+	UMAC0 341 479 473
+	GFX 325 467 468
+	UMAC2 343 488 488
+	VEDR 345 480 480
+	VDETN 335 478 478
+	ARM 304 412 413
+
+	The first column is each HW marco name
+	The second column is the Feringo_LL vaule
+	The third column is the Feringo_LS value
+	The fourth colume is the Beringo value
+
+

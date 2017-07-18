@@ -1,0 +1,52 @@
+/*
+ * Device Tree Source for UNION clock data
+ *
+ * Copyright (C) 2016 Sigmadesigns Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+&clocks {
+
+	/*
+	 * This is a dummy clock, to be used as a placeholder on
+	 * other mux clocks when a specific parent clock is not
+	 * yet implemented. It should be dropped when the driver
+	 * is fully functional.
+	 */
+	dummy: dummy {
+		compatible = "fixed-clock";
+		clock-frequency = <0>;
+		#clock-cells = <0>;
+	};
+
+	/*
+	 * Fixed 24MHz oscillator inputs to SoC
+	 */
+	xtal: xtal {
+		compatible = "fixed-clock";
+		clock-frequency = <24000000>;
+		#clock-cells = <0>;
+	};
+
+	clk50m: clk50m {
+		compatible = "fixed-clock";
+		clock-frequency = <50000000>;
+		#clock-cells = <0>;
+	};
+
+	clk200m: clk200m {
+		compatible = "fixed-clock";
+		clock-frequency = <200000000>;
+		#clock-cells = <0>;
+	};
+
+	clk166m: clk166m {
+		compatible = "fixed-clock";
+		clock-frequency = <166000000>;
+		#clock-cells = <0>;
+	};
+
+};
+

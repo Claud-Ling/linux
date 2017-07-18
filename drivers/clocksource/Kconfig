@@ -327,4 +327,13 @@ config CLKSRC_ST_LPC
 	  Enable this option to use the Low Power controller timer
 	  as clocksource.
 
+config TRIX_TIMER
+	bool "Sigma DTV SoC timer"
+	depends on ARCH_SIGMA_TRIX_OF || ARCH_SIGMA_TRIX
+	select CLKSRC_OF
+ 	help
+	  Support for Multi Timer Unit. MTU provides access
+	  to multiple interrupt generating programmable
+	  32-bit free running decrementing counters.
+
 endmenu

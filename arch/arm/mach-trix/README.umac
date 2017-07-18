@@ -1,0 +1,48 @@
+###############################################################
+#                                                             #
+#       Sigma DTV UMAC "/proc" interface notes                #
+#                                                             #
+###############################################################
+
+
+1. /proc/umac/states
+/proc/umac_states is used to list umac states for userland.
+On read, it gives info in form of:
+	'total: <all_size>,msize=<str>'
+	'<umac_str_line>'
+	'<umac_str_line>'
+	where,
+	<all_size> specifies overall memory size on system in MB granule, in form of 'dddm' and 'ddd' in decimal
+	<str> gives the original 'msize' environment value derived from uboot
+	<umac_str_line> lists states info for certain umac. There might be multiple lines with one for each umac
+
+In case umac <n> is activated, the string line for the umac is in form of:
+	'umac<n>: on,<size>@<addr>'
+	where,
+	<n> is the umac identifier value, starting number from 0
+	<size> specifies memory size of umac<n>, in form of 'dddm', 'ddd' in decimal and 'm' means MB
+	<addr> specifies the start address of umac<n>, in hexidecimal
+	i.e. 'dddm@xxx' means 'ddd' mega bytes starting at address 'xxx'
+
+Otherwise it's
+	'umac<n>: off'
+
+	*How to check all umac states?
+	/ # cat /proc/umac/states
+	total: 2560m,msize=488
+	umac0: on,1024m@0x00000000
+	umac1: on,1024m@0x80000000
+	umac2: on,512m@0x40000000
+
+	Or in case umac2 is inactivated
+	/ # cat /proc/umac/states
+	total: 2048m,msize=88
+	umac0: on,1024m@0x00000000
+	umac1: on,1024m@0x80000000
+	umac2: off
+
+	*How to check state for one specific umac?
+	i.e. check umac0 state:
+	/ # echo 0 > /proc/umac/states
+	[   18.949731] umac0: on,1024m@0x00000000
+

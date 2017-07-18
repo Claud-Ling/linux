@@ -11,5 +11,8 @@ static inline int nr_legacy_irqs(void)
 {
 	return 0;
 }
+#ifdef CONFIG_ARCH_SIGMA_TRIX_OF
+#include <linux/soc/sigma-dtv/irqs.h>
+#endif /* CONFIG_ARCH_SIGMA_TRIX_OF */
 
 #endif

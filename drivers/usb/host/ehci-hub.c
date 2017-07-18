@@ -1022,7 +1022,15 @@ int ehci_hub_control(
 			if (temp & PORT_RESUME) {
 				/* resume signaling for 20 msec */
 				ehci->reset_done[wIndex] = jiffies
+#if defined(CONFIG_SIGMA_DTV)
+			/*
+			 * Guarantee the resume signal no less than 20ms, due to
+			 * low precision jiffies
+			 */
+						+ msecs_to_jiffies(USB_RESUME_TIMEOUT);
+#else
 						+ msecs_to_jiffies(20);
+#endif
 				usb_hcd_start_port_resume(&hcd->self, wIndex);
 				set_bit(wIndex, &ehci->resuming_ports);
 				/* check the port again */
@@ -1220,7 +1228,15 @@ int ehci_hub_control(
 				 * usb 2.0 spec says 50 ms resets on root
 				 */
 				ehci->reset_done [wIndex] = jiffies
+#if defined(CONFIG_SIGMA_DTV)
+					/*
+					 * Guarantee the reset signal no less than 50ms, due to
+					 * low precision jiffies
+					 */
+						+ msecs_to_jiffies (51);
+#else
 						+ msecs_to_jiffies (50);
+#endif
 
 				/*
 				 * Force full-speed connect for FSL high-speed

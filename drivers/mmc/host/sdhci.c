@@ -579,6 +579,16 @@ static int sdhci_adma_table_pre(struct sdhci_host *host,
 			host->align_addr, host->align_buffer_sz, direction);
 	}
 
+#if defined(CONFIG_SIGMA_DTV)
+	{
+		/*try read back terminating entry for data coherent issue*/
+		volatile __le16 *cmdlen = (__le16 __force *)desc;
+		do {
+			nop();
+		}while(cmdlen[0] != ADMA2_NOP_END_VALID);
+	}
+#endif
+
 	return 0;
 
 unmap_align:

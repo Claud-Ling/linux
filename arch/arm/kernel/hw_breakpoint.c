@@ -1033,12 +1033,27 @@ static struct notifier_block dbg_reset_nb = {
 	.notifier_call = dbg_reset_notify,
 };
 
+#ifdef CONFIG_SIGMA_DTV
+extern void trix_set_dbg_swen(unsigned int cpu, bool state);
+/*
+ * it should be called before CPU accesses any debug registers
+ */
+static void swdbg_enable(void)
+{
+	trix_set_dbg_swen(-1, true);	/*enalbe dbg for all cpus*/
+}
+#endif
+
 #ifdef CONFIG_CPU_PM
 static int dbg_cpu_pm_notify(struct notifier_block *self, unsigned long action,
 			     void *v)
 {
-	if (action == CPU_PM_EXIT)
+	if (action == CPU_PM_EXIT) {
+#ifdef CONFIG_SIGMA_DTV
+		swdbg_enable();
+#endif
 		reset_ctrl_regs(NULL);
+	}
 
 	return NOTIFY_OK;
 }
@@ -1059,6 +1074,9 @@ static inline void pm_init(void)
 
 static int __init arch_hw_breakpoint_init(void)
 {
+#ifdef CONFIG_SIGMA_DTV
+	swdbg_enable();
+#endif
 	debug_arch = get_debug_arch();
 
 	if (!debug_arch_supported()) {

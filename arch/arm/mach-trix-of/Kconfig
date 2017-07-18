@@ -1,0 +1,63 @@
+if  ARCH_SIGMA_TRIX_OF
+
+menu "Sigma SX series SoC Specific Features"
+
+choice
+	prompt "Select SIGMA DTV SoC type"
+	depends on ARCH_SIGMA_TRIX_OF
+	help
+	  Sigma DTV Soc selection
+
+config SIGMA_SOC_UNION
+	bool "UNION"
+	help
+	  Sigma DTV UNION SoCs support(AARCH32)
+
+config SIGMA_SOC_SX8_OF
+	bool "SX8"
+	help
+	  Sigma DTV SX8 SoCs support
+
+endchoice
+
+
+config TRIX_CACHE_L2X0
+	bool "Enable L2 Cache "
+	default n
+	select CACHE_L2X0
+	help
+	  Turn ON L2 Cache
+	  if unsure say Y
+
+config ANDROID_PLATFORM
+	bool "Android Support"
+	default n
+	select SYNC
+	select ANDROID
+	select ANDROID_BINDER_IPC
+	select ANDROID_TIMED_OUTPUT
+	select ASHMEM
+	select ANDROID_LOW_MEMORY_KILLER
+	select ANDROID_SWITCH
+	select ANDROID_INTF_ALARM_DEV
+	help
+	  Support Android Platform.
+	  Turn ON android support, if unsure say N
+
+config TRIX_UTIL_REGTEST
+	bool "regtest utility"
+	default n
+	help
+	  Enable regtest utility support, if unsure say N
+
+menu "release version"
+
+config SIGMA_RELEASE_VERSION
+	string "git commit version"
+	default "000000"
+
+endmenu #menu "release version"
+
+endmenu
+
+endif

@@ -3627,6 +3627,37 @@ void xhci_free_dev(struct usb_hcd *hcd, struct usb_device *udev)
 		return;
 	}
 
+#if defined(CONFIG_SIGMA_DTV) && defined(CONFIG_SIGMA_SOC_SX7) && defined(CONFIG_SIGMA_SOC_SX8)
+	/*
+	 * @@@@patch start@@@@
+	 * double check virt dev to avoid dereference NULL pointer...
+	 *
+	 * this is necessary if xhci_alloc_dev gets timeout when
+	 * wait for slot assignment due to host is died,
+	 * as a result udev->slot_id will be 0 and virt_dev be NULL
+	 * in that case.
+	 *
+	 * this issue was seen on SX7 evb boards which haven't tied
+	 * SDAM1 to low to workaround xhci host (for DTVSEN-1342).
+	 *
+	 */
+	if (!udev->slot_id || !xhci->devs[udev->slot_id]) {
+		printk(KERN_DEBUG "xHCI %s called with unaddressed "
+					"device\n", __func__);
+		return;
+	}
+
+	virt_dev = xhci->devs[udev->slot_id];
+	if (virt_dev->udev != udev) {
+		printk(KERN_DEBUG "xHCI %s called with udev and "
+				  "virt_dev does not match\n", __func__);
+		return;
+	}
+	/*
+	 * @@@@patch end@@@@
+	 */
+#endif
+
 	virt_dev = xhci->devs[udev->slot_id];
 
 	/* Stop any wayward timer functions (which may grab the lock) */

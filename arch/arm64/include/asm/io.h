@@ -212,5 +212,9 @@ extern bool xen_biovec_phys_mergeable(const struct bio_vec *vec1,
 	(__BIOVEC_PHYS_MERGEABLE(vec1, vec2) &&				\
 	 (!xen_domain() || xen_biovec_phys_mergeable(vec1, vec2)))
 
+#ifdef CONFIG_ARCH_SIGMA_TRIX_OF
+#include <linux/soc/sigma-dtv/io.h>
+#endif /* CONFIG_ARCH_SIGMA_TRIX_OF */
+
 #endif	/* __KERNEL__ */
 #endif	/* __ASM_IO_H */

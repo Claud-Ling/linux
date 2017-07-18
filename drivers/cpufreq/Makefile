@@ -77,6 +77,8 @@ obj-$(CONFIG_ARM_TEGRA20_CPUFREQ)	+= tegra20-cpufreq.o
 obj-$(CONFIG_ARM_TEGRA124_CPUFREQ)	+= tegra124-cpufreq.o
 obj-$(CONFIG_ARM_VEXPRESS_SPC_CPUFREQ)	+= vexpress-spc-cpufreq.o
 obj-$(CONFIG_ACPI_CPPC_CPUFREQ) += cppc_cpufreq.o
+obj-$(CONFIG_ARM_TRIX_CPUFREQ)		+= trix-cpufreq.o
+obj-$(CONFIG_ARM_TRIX_OF_CPUFREQ)	+= trix-cpufreq-dt.o
 
 
 ##################################################################################
