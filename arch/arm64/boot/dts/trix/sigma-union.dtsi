@@ -89,6 +89,25 @@
 			interrupts = <GIC_PPI 7 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>;	/* PMU PPI */
 		};
 
+		umac {
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+			compatible = "trix,umac";
+			umac-id = <0>;
+			width = <32>;
+			granule = <256>; /*msize granule set to 256MB*/
+
+			umac_ctl {
+				reg = <0x0 0xf5020000 0x0 0x2000>;
+			};
+
+			pman_con {
+				reg = <0x0 0xf5004000 0x0 0x1000>;
+			};
+
+		};
+
 		sdhci0: sdhci@fb00a000 { /* eMMC on this bus */
 			no-hs200;
 			mmc-ddr-1_8v;

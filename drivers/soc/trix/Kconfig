@@ -44,6 +44,14 @@ config TRIX_HIDTVMEM
 	  The /dev/hidtvmem device is used to access physical memory
 	  and MMIO.
 
+config TRIX_UMAC
+	tristate "UMAC controller driver"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Say y here to enable support for the Sigma DTV UMAC controller driver
+	  and '/proc/umac' interface.
+
 source "drivers/soc/trix/firmware/Kconfig"
 
 endmenu
