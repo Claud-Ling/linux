@@ -52,6 +52,20 @@ config TRIX_UMAC
 	  Say y here to enable support for the Sigma DTV UMAC controller driver
 	  and '/proc/umac' interface.
 
+config TRIX_DCSN
+	tristate "DCSN Support"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Enable DCSN driver support, if unsure say N
+
+config TRIX_PMAN
+	tristate "PMAN Support"
+	depends on ARCH_SIGMA_TRIX_OF
+	default y
+	help
+	  Enable PMAN driver support, if unsure say N
+
 source "drivers/soc/trix/firmware/Kconfig"
 
 endmenu

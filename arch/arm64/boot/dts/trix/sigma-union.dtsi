@@ -108,6 +108,21 @@
 
 		};
 
+		dcsn {
+			compatible = "trix,dcsn-union";
+			reg = <0x0 0xf5002000 0x0 0x2000>;
+			interrupts = <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		pman0 {
+			compatible = "trix,pman-union";
+			reg = <0x0 0xf5005000 0x0 0x1000>;
+			interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+
+			pman,sec_group_mask = <0xdff7fdf>;
+			pman,region = <32>;
+		};
+
 		sdhci0: sdhci@fb00a000 { /* eMMC on this bus */
 			no-hs200;
 			mmc-ddr-1_8v;
