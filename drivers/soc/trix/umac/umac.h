@@ -69,6 +69,7 @@ struct umac_device {
 						 */
 	struct device		*dev;
 	u32			id;
+	int			irq;
 };
 
 extern struct umac_device *trix_udev_tbl[MAX_NR_UMACS];
@@ -106,7 +107,14 @@ extern const u32 umac_get_addr(int uid);
  */
 extern int get_nr_umacs(void);
 
-
+/**
+ * @brief	umac DQS2DQ compensation service initial entry.
+ * @fn		int umac_compensation_init(struct umac_device *udev);
+ * @param[in]	udev		umac device instance
+ * @retval	'0'		success
+ * @retval	negative	fail
+ */
+extern int umac_compensation_init(struct umac_device *udev);
 
 #endif /*__ASSEMBLY__*/
 

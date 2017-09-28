@@ -202,7 +202,16 @@ static int umac_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	/*
+	 * Request IRQ resource
+	 * Ignore fail case, due to not all of chips' UMAC have interrupt
+	 */
+	udev->irq = platform_get_irq(pdev, 0);
+
 	platform_set_drvdata(pdev, udev);
+
+	/* Initial compensation service, if we have */
+	umac_compensation_init(udev);
 
 	umac_add_dev(udev);
 
