@@ -49,7 +49,7 @@ struct trix_clk_mux {
 static u8 _clk_mux_get_parent(struct clk_hw *hw)
 {
 	struct trix_clk_mux *mux = to_trix_clk_mux(hw);
-	int num_parents = __clk_get_num_parents(hw->clk);
+	int num_parents = clk_hw_get_num_parents(hw);
 	u32 val;
 
 	val = mux->read(mux->reg) >> mux->shift;
