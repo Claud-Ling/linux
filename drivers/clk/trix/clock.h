@@ -85,7 +85,7 @@ static inline void pll_writeb(void __iomem *base, struct pll_field *field,
 	return;
 }
 
-static inline u32 pll_readbl(void __iomem *base,
+static inline u32 pll_readl(void __iomem *base,
 				struct pll_field *field)
 {
 	return (readl(base + field->offset) >> field->shift) & field->mask;

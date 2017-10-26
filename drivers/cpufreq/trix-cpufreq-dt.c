@@ -128,13 +128,29 @@ static int trix_cpufreq_init(struct cpufreq_policy *policy)
 		return ret;
 	}
 
-	of_init_opp_table(cpu_dev);
+	/* Get OPP-sharing information from "operating-points-v2" bindings */
+	ret = dev_pm_opp_of_get_sharing_cpus(cpu_dev, policy->cpus);
+	if (ret) {
+		printk("dev_pm_opp_of_get_sharing_cpus ret = %d\n",ret);
+		goto out_node_put;
+	}
+
+	/*
+	 * Initialize OPP tables for all policy->cpus. They will be shared by
+	 * all CPUs which have marked their CPUs shared with OPP bindings.
+	 */
+	dev_pm_opp_of_cpumask_add_table(policy->cpus);
 
 	ret = dev_pm_opp_get_opp_count(cpu_dev);
 	if (ret < 0) {
 		dev_err(cpu_dev, "no OPP table is found: %d\n", ret);
 		goto out_free_opp;
 	}
+
+	transition_latency = dev_pm_opp_get_max_clock_latency(cpu_dev);
+
+	if (!transition_latency)
+		transition_latency = CPUFREQ_ETERNAL;
 
 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
 	if (!priv) {
@@ -147,9 +163,6 @@ static int trix_cpufreq_init(struct cpufreq_policy *policy)
 		dev_err(cpu_dev, "failed to init cpufreq table: %d\n", ret);
 		goto out_free_priv;
 	}
-
-	if (of_property_read_u32(np, "clock-latency", &transition_latency))
-		transition_latency = CPUFREQ_ETERNAL;
 
 	cur_freq = clk_get_rate(cpu_clk) / 1000;
 
@@ -184,7 +197,8 @@ out_free_cpufreq_table:
 out_free_priv:
 	kfree(priv);
 out_free_opp:
-	of_free_opp_table(cpu_dev);
+	dev_pm_opp_of_cpumask_remove_table(policy->cpus);
+out_node_put:
 	of_node_put(np);
 
 	return ret;
@@ -195,7 +209,7 @@ static int trix_cpufreq_exit(struct cpufreq_policy *policy)
 	struct private_data *priv = policy->driver_data;
 
 	dev_pm_opp_free_cpufreq_table(priv->cpu_dev, &policy->freq_table);
-	of_free_opp_table(priv->cpu_dev);
+	dev_pm_opp_of_cpumask_remove_table(policy->related_cpus);
 	clk_put(policy->clk);
 
 	kfree(priv);
