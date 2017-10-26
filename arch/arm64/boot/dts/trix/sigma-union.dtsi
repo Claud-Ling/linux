@@ -42,6 +42,9 @@
 			reg = <0x0 0x0>;
 			enable-method = "psci";
 			next-level-cache = <&L2_0>;
+
+			clocks = <&pll4g0>;
+			operating-points-v2 = <&cluster_a53_opp_table>;
 		};
 
 		cpu@1 {
@@ -50,11 +53,61 @@
 			reg = <0x0 0x1>;
 			enable-method = "psci";
 			next-level-cache = <&L2_0>;
+
+			clocks = <&pll4g0>;
+			operating-points-v2 = <&cluster_a53_opp_table>;
 		};
 
 		L2_0: l2-cache {
 			compatible = "cache";
 			cache-level = <2>;
+		};
+	};
+
+	cluster_a53_opp_table: opp_table0 {
+		compatible = "operating-points-v2";
+		opp-shared;
+
+		opp-600000000 {
+			opp-hz = /bits/ 64 <600000000>;
+			opp-microvolt = <0>;
+			clock-latency-ns = <8000>;
+		};
+
+		opp-700000000 {
+			opp-hz = /bits/ 64 <700000000>;
+			opp-microvolt = <0>;
+			clock-latency-ns = <8000>;
+		};
+
+		opp-800000000 {
+			opp-hz = /bits/ 64 <800000000>;
+			opp-microvolt = <0>;
+			clock-latency-ns = <8000>;
+		};
+
+		opp-900000000 {
+			opp-hz = /bits/ 64 <900000000>;
+			opp-microvolt = <0>;
+			clock-latency-ns = <8000>;
+		};
+
+		opp-1000000000 {
+			opp-hz = /bits/ 64 <1000000000>;
+			opp-microvolt = <0>;
+			clock-latency-ns = <8000>;
+		};
+
+		opp-1100000000 {
+			opp-hz = /bits/ 64 <1100000000>;
+			opp-microvolt = <0>;
+			clock-latency-ns = <8000>;
+		};
+
+		opp-1200000000 {
+			opp-hz = /bits/ 64 <1200000000>;
+			opp-microvolt = <0>;
+			clock-latency-ns = <8000>;
 		};
 	};
 
@@ -208,5 +261,11 @@
 			compatible = "trix,union-otp";
 			#include <dt-bindings/soc/sigma-dtv/fuse_data_map-union.inc>
 		};
+
+		a53_sub_sys: a53_sub_sys@fb040000 {
+			compatible = "trix,syscon";
+			reg = <0X0 0xfb040000 0X0 0x20>;
+		};
+
 	};
 };

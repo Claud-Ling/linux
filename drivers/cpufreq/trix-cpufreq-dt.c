@@ -96,7 +96,7 @@ static int trix_cpufreq_set_target(struct cpufreq_policy *policy, unsigned int i
 	}
 	rcu_read_unlock();
 
-	dev_dbg(cpu_dev, "cpufreq-trix: %u MHz  --> %u MHz\n", 
+	dev_info(cpu_dev, "cpufreq-trix: %u MHz  --> %u MHz\n",
 		old_freq / 1000, new_freq / 1000);
 
 	ret = clk_set_rate(policy->clk, new_freq * 1000);
@@ -106,7 +106,7 @@ static int trix_cpufreq_set_target(struct cpufreq_policy *policy, unsigned int i
 
 static int trix_cpufreq_init(struct cpufreq_policy *policy)
 {
-	struct cpufreq_frequency_table *freq_table, *pos;
+	struct cpufreq_frequency_table *freq_table;
 	struct clk *cpu_clk;
 	struct device *cpu_dev;
 	struct device_node *np;
@@ -128,13 +128,29 @@ static int trix_cpufreq_init(struct cpufreq_policy *policy)
 		return ret;
 	}
 
-	of_init_opp_table(cpu_dev);
+	/* Get OPP-sharing information from "operating-points-v2" bindings */
+	ret = dev_pm_opp_of_get_sharing_cpus(cpu_dev, policy->cpus);
+	if (ret) {
+		printk("dev_pm_opp_of_get_sharing_cpus ret = %d\n",ret);
+		goto out_node_put;
+	}
+
+	/*
+	 * Initialize OPP tables for all policy->cpus. They will be shared by
+	 * all CPUs which have marked their CPUs shared with OPP bindings.
+	 */
+	dev_pm_opp_of_cpumask_add_table(policy->cpus);
 
 	ret = dev_pm_opp_get_opp_count(cpu_dev);
 	if (ret < 0) {
 		dev_err(cpu_dev, "no OPP table is found: %d\n", ret);
 		goto out_free_opp;
 	}
+
+	transition_latency = dev_pm_opp_get_max_clock_latency(cpu_dev);
+
+	if (!transition_latency)
+		transition_latency = CPUFREQ_ETERNAL;
 
 	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
 	if (!priv) {
@@ -148,22 +164,10 @@ static int trix_cpufreq_init(struct cpufreq_policy *policy)
 		goto out_free_priv;
 	}
 
-	if (of_property_read_u32(np, "clock-latency", &transition_latency))
-		transition_latency = CPUFREQ_ETERNAL;
-
 	cur_freq = clk_get_rate(cpu_clk) / 1000;
 
 	priv->cpu_dev = cpu_dev;
 	priv->max_freq = cur_freq;
-
-	/*
-	 * use the frequency set by bootloader as the maxium freq.
-	 * iterate over the cpufreq_frequency_table excluding the
-	 * frequency larger than max_freq
-	 */
-	cpufreq_for_each_entry(pos, freq_table)
-		if (pos->frequency > priv->max_freq)
-			pos->frequency = CPUFREQ_ENTRY_INVALID;
 
 	policy->driver_data = priv;
 	policy->clk = cpu_clk;
@@ -175,6 +179,11 @@ static int trix_cpufreq_init(struct cpufreq_policy *policy)
 		goto out_free_cpufreq_table;
 	}
 
+	/* respect first_freq as max_freq of current policy*/
+	policy->max = policy->cur = cur_freq;
+	if (policy->min > policy->max)
+		policy->min = policy->max;
+
 	of_node_put(np);
 
 	return 0;
@@ -184,7 +193,8 @@ out_free_cpufreq_table:
 out_free_priv:
 	kfree(priv);
 out_free_opp:
-	of_free_opp_table(cpu_dev);
+	dev_pm_opp_of_cpumask_remove_table(policy->cpus);
+out_node_put:
 	of_node_put(np);
 
 	return ret;
@@ -195,7 +205,7 @@ static int trix_cpufreq_exit(struct cpufreq_policy *policy)
 	struct private_data *priv = policy->driver_data;
 
 	dev_pm_opp_free_cpufreq_table(priv->cpu_dev, &policy->freq_table);
-	of_free_opp_table(priv->cpu_dev);
+	dev_pm_opp_of_cpumask_remove_table(policy->related_cpus);
 	clk_put(policy->clk);
 
 	kfree(priv);

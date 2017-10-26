@@ -48,5 +48,11 @@
 		#clock-cells = <0>;
 	};
 
+	pll4g0: pll4g0 {
+		#clock-cells = <0>;
+		compatible = "trix,union1_revA1_pll4g0", "trix,pll-4g0";
+		clocks = <&xtal>;
+		reg = <&a53_sub_sys 0>;  /* 0xfb040000 */
+	};
 };
 
